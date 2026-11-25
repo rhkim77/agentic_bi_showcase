@@ -1,12 +1,14 @@
-"""FastAPI Server for the PoC Architecture, 2-Tier Token Diet & Outcome Verification Portal.
+"""FastAPI Server for the PoC Architecture, 2-Tier Token Diet & Live Progressive Workbench Portal.
 
 Serves:
-  - `/` & `/index.html`      -> English Outcome Verification Portal (`docs/index.html`)
-  - `/ko` & `/index_ko.html` -> Korean Verification Portal (`docs/index_ko.html`)
-  - `/diagrams/*`            -> Official GCP Vector SVGs & 3x HiDPI PNGs
+  - `/` & `/index.html`                  -> English Outcome Verification & Live Progressive Workbench Portal
+  - `/ko` & `/index_ko.html`             -> Korean Outcome Verification & Live Progressive Workbench Portal
+  - `/diagrams/*`                        -> Official GCP Vector SVGs & 3x HiDPI PNGs
   - `/api/health` & `/api/version`
-  - `/api/benchmarks`        -> Empirical GCP A/B + `Vertex AI usage_metadata` benchmark dataset
-  - `POST /api/verify-scenario` -> Executes S1..S5 live on GCP returning real `usage_metadata` & 90% cache cost
+  - `/api/benchmarks`                    -> Pre-verified GCP A/B + `Vertex AI usage_metadata` baseline dataset
+  - `POST /api/workbench/stream`         -> Full Live Dual Run (`SSE`) comparing `As-Is` vs `To-Be` on custom prompts
+  - `POST /api/workbench/reset`          -> Resets an evaluator's isolated ADK Session & Memory bank
+  - `POST /api/verify-scenario`          -> Legacy single-click live scenario endpoint (100% preserved)
 """
 
 from __future__ import annotations
@@ -18,13 +20,13 @@ from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from google.adk.memory import InMemoryMemoryService
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from agents.bq_caa_3domain_multi_agent.agent import (
     ADK_USAGE_COLLECTOR_VAR,
@@ -39,6 +41,7 @@ from agents.bq_caa_3domain_multi_agent.agent import (
     root_agent,
     run_cross_domain_caa_analysis,
 )
+from backend.workbench_engine import reset_visitor_session, stream_dual_ab_scenario
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
@@ -46,8 +49,8 @@ DIAGRAMS_DIR = DOCS_DIR / "diagrams"
 BENCHMARK_JSON = REPO_ROOT / "benchmarks" / "scenario_benchmark_results.json"
 
 app = FastAPI(
-    title="Google ADK + BigQuery CAA Multi-Agent Architecture & 2-Tier Token Optimization Portal",
-    version="3.0.0",
+    title="Google ADK + BigQuery CAA Multi-Agent Architecture & Interactive Dual A/B Workbench",
+    version="4.0.0",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -63,6 +66,17 @@ if DIAGRAMS_DIR.exists():
 
 class LiveVerifyRequest(BaseModel):
     scenario_code: str = "S1"
+
+
+class WorkbenchStreamRequest(BaseModel):
+    visitor_id: str = Field(default="default_eval", max_length=64)
+    scenario_code: str = Field(default="S1", max_length=8)
+    prompt: str = Field(..., min_length=2, max_length=600)
+    s4_mode: str = Field(default="burst_5turn", max_length=32)
+
+
+class WorkbenchResetRequest(BaseModel):
+    visitor_id: str = Field(default="default_eval", max_length=64)
 
 
 async def _measure_adk_runner_turn(prompt: str) -> tuple[str, int, int, int]:
@@ -97,6 +111,7 @@ async def api_health() -> dict[str, Any]:
         "project_id": PROJECT_ID,
         "dataset_id": DATASET_ID,
         "scoped_agents": [d["caa_agent_id"] for d in DOMAIN_CATALOG_METADATA],
+        "workbench_dual_ab_sse": True,
     }
 
 
@@ -104,9 +119,10 @@ async def api_health() -> dict[str, Any]:
 async def api_version() -> dict[str, Any]:
     return {
         "repository": "https://github.com/rhkim77/agentic_bi_showcase",
-        "version": "3.0.0",
+        "version": "4.0.0",
         "adk_model": "gemini-2.5-flash",
         "caa_api": "geminidataanalytics.googleapis.com/v1",
+        "execution_mode": "full_live_dual_run_sse",
     }
 
 
@@ -117,9 +133,34 @@ async def api_benchmarks() -> JSONResponse:
     return JSONResponse({"error": "Benchmark JSON not generated yet."}, status_code=404)
 
 
+@app.post("/api/workbench/stream")
+async def api_workbench_stream(req: WorkbenchStreamRequest) -> StreamingResponse:
+    """Streams live parallel `As-Is` vs `To-Be` execution (`SSE`) for custom evaluator prompts across S1..S5."""
+    return StreamingResponse(
+        stream_dual_ab_scenario(
+            visitor_id=req.visitor_id,
+            scenario_code=req.scenario_code,
+            custom_prompt=req.prompt,
+            s4_mode=req.s4_mode,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.post("/api/workbench/reset")
+async def api_workbench_reset(req: WorkbenchResetRequest) -> dict[str, Any]:
+    """Resets an evaluator's isolated ADK Session & Memory bank."""
+    return await reset_visitor_session(req.visitor_id)
+
+
 @app.post("/api/verify-scenario")
 async def api_verify_scenario(req: LiveVerifyRequest) -> dict[str, Any]:
-    """Re-executes Scenarios S1..S5 live against Google Cloud (Vertex AI ADK + BigQuery CAA :chat)."""
+    """Legacy single-click endpoint preserved for backward compatibility."""
     code = req.scenario_code.upper()
     t0 = time.monotonic()
 
@@ -202,7 +243,6 @@ async def api_verify_scenario(req: LiveVerifyRequest) -> dict[str, Any]:
             "answer": combined_ans,
         }
 
-    # S4 or S5: Live Vertex AI ADK `usage_metadata` execution via `Runner`
     ans, p_tok, o_tok, ms = await _measure_adk_runner_turn(
         "Without running BigQuery SQL, inspect my saved analyst profile and memory status, "
         "and summarize the Nordic Luxe / Memphis TN DC #1 root-cause finding in 2 concise bullets."
@@ -217,7 +257,7 @@ async def api_verify_scenario(req: LiveVerifyRequest) -> dict[str, Any]:
         "monolithic_tokens": MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
         "token_reduction_pct": round((1 - p_tok / MONOLITHIC_SINGLE_TURN_INPUT_TOKENS) * 100, 1),
         "effective_cost_usd": cost["total_effective_cost_usd"],
-        "generated_sql": f"-- Live Vertex AI `usage_metadata` verified: prompt_token_count={p_tok}, output_tokens={o_tok}, BQCA calls=0",
+        "generated_sql": f"-- Live Vertex AI usage_metadata verified: prompt_token_count={p_tok}, output_tokens={o_tok}, BQCA calls=0",
         "markdown_table": "",
         "answer": ans,
     }
@@ -237,7 +277,7 @@ async def serve_portal_index():
 async def serve_portal_index_ko():
     index_ko_file = DOCS_DIR / "index_ko.html"
     if index_ko_file.is_file():
-        return FileResponse(str(index_file_ko)) if (index_file_ko := DOCS_DIR / "index_ko.html").is_file() else JSONResponse({"error": "missing"}, status_code=404)
+        return FileResponse(str(index_ko_file))
     return JSONResponse({"error": "docs/index_ko.html not built yet."}, status_code=404)
 
 

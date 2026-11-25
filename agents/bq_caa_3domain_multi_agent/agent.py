@@ -56,8 +56,19 @@ ADK_USAGE_COLLECTOR_VAR: ContextVar[list[dict[str, Any]] | None] = ContextVar(
     "adk_usage_collector", default=None
 )
 
+# Per-visitor isolation ID so concurrent demo evaluators never collide on persistent Memory files
+VISITOR_ID_VAR: ContextVar[str] = ContextVar("cymbal_visitor_id", default="default")
+
 _STATE_DIR = Path(os.environ.get("CYMBAL_STATE_DIR", "/tmp/cymbal_agentic_bi_state"))
 _PERSISTENT_MEMORY_FILE = _STATE_DIR / "long_term_memory_bank.json"
+
+
+def _get_visitor_memory_file() -> Path:
+    vid = VISITOR_ID_VAR.get() or "default"
+    safe = "".join(ch for ch in vid if ch.isalnum() or ch in ("-", "_"))[:48] or "default"
+    if safe == "default":
+        return _PERSISTENT_MEMORY_FILE
+    return _STATE_DIR / f"long_term_memory_bank_{safe}.json"
 
 # Upstream ADK History Compaction cap (max pure-text user turns kept in `llm_request.contents`)
 MAX_ADK_UPSTREAM_USER_TURNS = 3
@@ -245,7 +256,8 @@ def compute_effective_cost_usd(
 
 
 def load_persistent_memory_store() -> dict[str, Any]:
-    if not _PERSISTENT_MEMORY_FILE.exists():
+    mem_file = _get_visitor_memory_file()
+    if not mem_file.exists():
         return {
             "user_profiles": {},
             "sessions": {},
@@ -255,7 +267,7 @@ def load_persistent_memory_store() -> dict[str, Any]:
             "cumulative_monolithic_tokens": 0,
         }
     try:
-        return json.loads(_PERSISTENT_MEMORY_FILE.read_text(encoding="utf-8"))
+        return json.loads(mem_file.read_text(encoding="utf-8"))
     except Exception:
         return {
             "user_profiles": {},
@@ -269,8 +281,9 @@ def load_persistent_memory_store() -> dict[str, Any]:
 
 def save_persistent_memory_store(store: dict[str, Any]) -> None:
     try:
-        _PERSISTENT_MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        _PERSISTENT_MEMORY_FILE.write_text(
+        mem_file = _get_visitor_memory_file()
+        mem_file.parent.mkdir(parents=True, exist_ok=True)
+        mem_file.write_text(
             json.dumps(store, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
@@ -279,9 +292,10 @@ def save_persistent_memory_store(store: dict[str, Any]) -> None:
 
 
 def reset_persistent_memory_store() -> None:
-    if _PERSISTENT_MEMORY_FILE.exists():
+    mem_file = _get_visitor_memory_file()
+    if mem_file.exists():
         try:
-            _PERSISTENT_MEMORY_FILE.unlink()
+            mem_file.unlink()
         except Exception:
             pass
 
@@ -571,6 +585,9 @@ def _record_caa_result_into_session_state(
     state["session_turn_count"] = turn_num
     state["active_domain"] = domain_label
 
+    prior_agent_msgs = list((state.get("domain_ca_multiturn_messages") or {}).get(agent_id, []))[-6:]
+    msgs_sent_this_turn = len(prior_agent_msgs) + 1
+
     # Full audit record stored in Session.state for UI/telemetry inspection ONLY (NOT injected into LLM system prompt)
     history_entry = {
         "turn": turn_num,
@@ -579,6 +596,8 @@ def _record_caa_result_into_session_state(
         "caa_agent_id": agent_id,
         "query": query,
         "generated_sql": generated_sql,
+        "markdown_table": _format_markdown_table(rows, max_rows=20),
+        "multiturn_context_messages_sent": msgs_sent_this_turn,
         "row_count": len(rows),
         "scoped_tokens": scoped_tokens_est,
         "answer_preview": ca_final_answer[:280],
@@ -1005,6 +1024,9 @@ def run_cross_domain_caa_analysis(
                     session_id=tool_context.session.id,
                     user_id=tool_context.user_id or "analyst_01",
                 )
+
+    if tool_context is not None:
+        tool_context.state["last_fanout_results"] = results
 
     return {
         "status": "SUCCESS",

@@ -569,6 +569,226 @@ SHARED_CSS = r"""
     }
     .live-output.visible { display: block; }
 
+    /* Progressive S1->S5 Architecture & Live Token Tracker */
+    .prog-tracker-card {
+      background: var(--surface);
+      border: 1px solid #C2D7FA;
+      border-top: 4px solid var(--blue);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      min-width: 0;
+    }
+    .prog-tracker-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--surface-subtle);
+    }
+    .prog-step-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 960px) { .prog-step-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .prog-step-strip { grid-template-columns: minmax(0, 1fr); } }
+    .prog-step-pill {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-width: 0;
+    }
+    .prog-step-pill:hover { border-color: var(--blue); }
+    .prog-step-pill.active-step {
+      border-color: var(--blue);
+      background: #F4F8FE;
+      box-shadow: 0 1px 4px rgba(26, 115, 232, 0.16);
+    }
+    .prog-step-pill.live-done {
+      border-color: #86EFAC;
+      background: #F0FDF4;
+    }
+    .prog-bar-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .prog-bar-row {
+      display: grid;
+      grid-template-columns: 185px minmax(0, 1fr) 195px;
+      gap: 12px;
+      align-items: center;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 13px;
+      font-size: 12.5px;
+    }
+    @media (max-width: 860px) {
+      .prog-bar-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    }
+    .dual-bar-track {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+      min-width: 0;
+    }
+    .bar-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    .bar-fill-asis {
+      height: 8px;
+      background: #EA4335;
+      border-radius: 4px;
+      min-width: 4px;
+      transition: width 0.35s ease;
+    }
+    .bar-fill-tobe {
+      height: 8px;
+      background: #137333;
+      border-radius: 4px;
+      min-width: 4px;
+      transition: width 0.35s ease;
+    }
+
+    /* Interactive Evaluator Prompt Workbench inside Scenario Detail */
+    .workbench-box {
+      background: #F4F8FE;
+      border: 1px solid #AECBFA;
+      border-left: 4px solid var(--blue);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      width: 100%;
+      min-width: 0;
+    }
+    .wb-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .preset-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .preset-chip {
+      appearance: none;
+      border: 1px solid #C2D7FA;
+      background: #FFFFFF;
+      color: #174EA6;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .preset-chip:hover { background: var(--blue); color: #FFFFFF; border-color: var(--blue); }
+    .wb-textarea {
+      width: 100%;
+      min-height: 78px;
+      resize: vertical;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 11px 13px;
+      font-family: inherit;
+      font-size: 13.8px;
+      line-height: 1.52;
+      color: var(--text);
+      background: #FFFFFF;
+      margin-bottom: 10px;
+    }
+    .wb-textarea:focus { outline: 2px solid var(--blue); border-color: var(--blue); }
+    .wb-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .wb-btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn-next-step {
+      appearance: none;
+      border: 1px solid var(--blue);
+      background: #FFFFFF;
+      color: var(--blue);
+      font-family: inherit;
+      font-size: 12.8px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+    .btn-next-step:hover { background: var(--blue); color: #FFFFFF; }
+    .sse-log-box {
+      background: #1E222A;
+      color: #E8EAED;
+      border-radius: 8px;
+      padding: 12px 15px;
+      font-size: 12.2px;
+      line-height: 1.55;
+      margin-top: 14px;
+      max-height: 190px;
+      overflow-y: auto;
+      width: 100%;
+    }
+    .sse-item { margin-bottom: 4px; overflow-wrap: anywhere; }
+    .sse-tag-asis { color: #FCA5A5; font-weight: 700; }
+    .sse-tag-tobe { color: #86EFAC; font-weight: 700; }
+    .sse-tag-both { color: #93C5FD; font-weight: 700; }
+    .live-dual-card {
+      margin-top: 14px;
+      background: #FFFFFF;
+      border: 2px solid #34A853;
+      border-radius: 10px;
+      padding: 18px 20px;
+      width: 100%;
+      min-width: 0;
+    }
+    .ref-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 22px 0 14px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+    .ref-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
     .calc-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
@@ -795,11 +1015,12 @@ HTML_EN = r"""<!DOCTYPE html>
     </section>
 
     <section id="scenarios">
-      <h2>3. Live As-Is vs. To-Be PoC Scenario Verification (S1 – S5)</h2>
+      <h2>3. Live As-Is vs. To-Be PoC Scenario Verification &amp; Progressive Workbench (S1 – S5)</h2>
       <p class="section-desc">
-        Each tab below contrasts the <strong>As-Is Anti-Pattern</strong> directly against the <strong>To-Be Best Practice</strong> with real <span class="mono">Vertex AI usage_metadata</span> token counts, BigQuery SQL diffs, 4-Scope state snapshots, and live Cloud Run re-execution.
+        Pre-verified GCP baseline results load immediately below, while the <strong>Interactive Dual A/B Workbench</strong> lets you enter or customize prompts at every step from <strong>S1 to S5</strong> to watch both the <strong>As-Is Anti-Pattern</strong> and <strong>To-Be Best Practice</strong> execute live in parallel on Google Cloud with real-time <span class="mono">Vertex AI usage_metadata</span> and 2-tier token visualization.
       </p>
 
+      <div class="prog-tracker-card" id="progressive-tracker"></div>
       <div class="tab-bar" id="scenario-tabs"></div>
       <div class="scenario-shell" id="scenario-detail"></div>
     </section>
@@ -1125,11 +1346,12 @@ HTML_KO = r"""<!DOCTYPE html>
     </section>
 
     <section id="scenarios">
-      <h2>3. As-Is 문제 재현 vs To-Be 해결 직접 대조 시현 (Scenario 1 – 5)</h2>
+      <h2>3. As-Is 문제 재현 vs To-Be 해결 직접 대조 시현 및 실시간 단계별 Workbench (S1 – S5)</h2>
       <p class="section-desc">
-        각 Scenario Tab을 클릭하면 실제 GCP에서 채집한 <strong>As-Is 실패/고비용 로그</strong>와 <strong>To-Be 해결 SQL·State Diff</strong>, 그리고 <strong>실제 <span class="mono">Vertex AI usage_metadata</span> 계측치</strong>를 나란히 대조 검증할 수 있습니다.
+        사전 검증된 기준 실측치(Reference Baseline)가 즉시 표시되며, 각 단계(<strong>S1 → S5</strong>) 입력창에 직접 질문을 수정·입력하여 실행하면 실제 GCP에서 <strong>As-Is Agent</strong>와 <strong>To-Be Agent</strong>가 동시 병렬 실행되면서 답변 품질과 <strong>2-Tier Token 소모량</strong>이 단계별로 개선되는 과정을 실시간 시각화로 확인할 수 있습니다.
       </p>
 
+      <div class="prog-tracker-card" id="progressive-tracker"></div>
       <div class="tab-bar" id="scenario-tabs"></div>
       <div class="scenario-shell" id="scenario-detail"></div>
     </section>
@@ -1298,6 +1520,22 @@ uv run adk web agents --port 8000</pre>
 PORTAL_JS = r"""
     let liveApiAvailable = false;
     let activeScenarioIdx = 0;
+    let workbenchRunning = false;
+    const customPromptDrafts = {};
+    const liveRunResults = {};
+
+    function getVisitorId() {
+      try {
+        let vid = sessionStorage.getItem("cymbal_eval_visitor_id");
+        if (!vid) {
+          vid = "v_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
+          sessionStorage.setItem("cymbal_eval_visitor_id", vid);
+        }
+        return vid;
+      } catch (_) {
+        return "v_session_default";
+      }
+    }
 
     function escapeHtml(str) {
       return String(str || "")
@@ -1529,6 +1767,15 @@ PORTAL_JS = r"""
         ? S.btnRunLive.replace("{CODE}", sc.code)
         : S.btnRunDisabled;
 
+      const presets = (S.wbPresets && S.wbPresets[sc.code]) ? S.wbPresets[sc.code] : [];
+      const currentDraft = customPromptDrafts[sc.code] !== undefined ? customPromptDrafts[sc.code] : sc.prompt;
+      const nextSc = BENCHMARK_DATA.scenarios[idx + 1];
+      const savedLive = liveRunResults[sc.code];
+
+      const presetButtonsHtml = presets.map((p, pIdx) => `
+        <button type="button" class="preset-chip" data-preset-idx="${pIdx}">${escapeHtml(p.label)}</button>
+      `).join("");
+
       document.getElementById("scenario-detail").innerHTML = `
         <div class="scenario-top">
           <div>
@@ -1536,7 +1783,7 @@ PORTAL_JS = r"""
             <h3 style="font-size:19px;margin-bottom:2px;">${formatInlineText(sc.title)}</h3>
             <div class="route-trace mono">Route: ${formatInlineText(sc.routing_path)}</div>
           </div>
-          <button class="btn-live" id="run-live-btn" ${liveApiAvailable ? "" : "disabled"}>${btnLabel}</button>
+          <button class="btn-outline" id="run-live-btn" ${liveApiAvailable ? "" : "disabled"}>${btnLabel}</button>
         </div>
 
         <div class="stack-list">
@@ -1549,6 +1796,44 @@ PORTAL_JS = r"""
             <div style="font-size:14px;">${formatInlineText(sc.architecture_mechanism)}</div>
           </div>
         </div>
+
+        <div class="workbench-box" id="wb-console-anchor">
+          <div class="wb-header">
+            <div>
+              <span class="tag tag-blue" style="margin-bottom:4px;">${S.wbBadge} · ${escapeHtml(sc.code)}</span>
+              <h3 style="font-size:16px;margin-bottom:2px;">${S.wbTitle} (${escapeHtml(S.layerLabels[sc.code] || sc.code)})</h3>
+              <div style="font-size:12.8px;color:var(--text-secondary);">${S.wbSubtitle}</div>
+            </div>
+            <details style="font-size:12.3px;color:var(--text-secondary);">
+              <summary style="cursor:pointer;font-weight:600;color:var(--blue);">${S.wbSchemaSummary}</summary>
+              <div style="margin-top:6px;background:#FFFFFF;border:1px solid var(--border);border-radius:6px;padding:9px 12px;max-width:540px;line-height:1.5;">
+                ${S.wbSchemaBodyHtml}
+              </div>
+            </details>
+          </div>
+
+          <div style="font-size:11.8px;font-weight:700;color:var(--text-secondary);margin-bottom:5px;">${S.wbPresetLabel}</div>
+          <div class="preset-row" id="wb-preset-row">${presetButtonsHtml}</div>
+
+          <textarea class="wb-textarea" id="wb-prompt-input" maxlength="600" placeholder="${escapeHtml(S.wbPlaceholder)}">${escapeHtml(currentDraft)}</textarea>
+
+          <div class="wb-actions">
+            <div class="wb-btn-group">
+              <button type="button" class="btn-live" id="wb-run-dual-btn" ${(liveApiAvailable && !workbenchRunning) ? "" : "disabled"}>
+                ${liveApiAvailable ? S.wbBtnRunDual.replace("{CODE}", sc.code) : S.btnRunDisabled}
+              </button>
+              ${(sc.code === "S4" && savedLive) ? `<button type="button" class="btn-outline" id="wb-append-turn-btn" ${workbenchRunning ? "disabled" : ""}>${S.wbBtnAppendTurn}</button>` : ""}
+            </div>
+            <div class="wb-btn-group">
+              ${nextSc ? `<button type="button" class="btn-next-step" id="wb-next-step-btn">${S.wbBtnNextStep.replace("{NEXT}", nextSc.code)}</button>` : ""}
+            </div>
+          </div>
+
+          <div id="wb-sse-stream-container"></div>
+          <div id="wb-live-dual-card-container">${savedLive ? buildDualComparisonCardHtml(savedLive) : ""}</div>
+        </div>
+
+        <div class="ref-divider">${S.refBaselineHeading} (${escapeHtml(sc.code)})</div>
 
         <div class="prompt-box">
           <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:3px;">${S.promptLabel}</span>
@@ -1594,10 +1879,451 @@ PORTAL_JS = r"""
         <div class="live-output" id="live-verify-box"></div>
       `;
 
+      renderProgressiveTracker();
+
+      const ta = document.getElementById("wb-prompt-input");
+      if (ta) {
+        ta.addEventListener("input", () => {
+          customPromptDrafts[sc.code] = ta.value;
+        });
+      }
+
+      document.querySelectorAll("#wb-preset-row .preset-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          const pIdx = Number(chip.dataset.presetIdx);
+          if (presets[pIdx] && ta) {
+            ta.value = presets[pIdx].prompt;
+            customPromptDrafts[sc.code] = presets[pIdx].prompt;
+          }
+        });
+      });
+
+      const dualBtn = document.getElementById("wb-run-dual-btn");
+      if (dualBtn && liveApiAvailable) {
+        dualBtn.addEventListener("click", () => triggerWorkbenchDualStream(sc.code, "burst_5turn"));
+      }
+
+      const appendBtn = document.getElementById("wb-append-turn-btn");
+      if (appendBtn && liveApiAvailable) {
+        appendBtn.addEventListener("click", () => triggerWorkbenchDualStream("S4", "append_turn"));
+      }
+
+      const nextBtn = document.getElementById("wb-next-step-btn");
+      if (nextBtn && nextSc) {
+        nextBtn.addEventListener("click", () => {
+          renderScenario(idx + 1);
+          const anchor = document.getElementById("progressive-tracker");
+          if (anchor) anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+
       const runBtn = document.getElementById("run-live-btn");
       if (runBtn && liveApiAvailable) {
         runBtn.addEventListener("click", () => triggerLiveVerification(sc.code));
       }
+    }
+
+    function getStepBaselineOrLiveSummary(sc) {
+      const code = sc.code;
+      if (liveRunResults[code]) {
+        const cs = liveRunResults[code].comparison_summary;
+        return {
+          isLive: true,
+          asisTok: cs.asis_total_2tier_tokens,
+          tobeTok: cs.tobe_total_2tier_tokens,
+          savedPct: cs.total_token_reduction_pct,
+          tobeCost: cs.tobe_effective_cost_usd,
+          adkAsis: cs.asis_adk_measured_prompt_tokens,
+          adkTobe: cs.tobe_adk_measured_prompt_tokens,
+        };
+      }
+      const mr = sc.measured_result || {};
+      if (code === "S4") {
+        const t5 = (BENCHMARK_DATA.turn_scaling_curve || [])[4] || {};
+        const aTok = t5.monolithic_unscoped || 199536;
+        const bTok = t5.proposed_scoped_sliding_window || 17757;
+        return {
+          isLive: false,
+          asisTok: aTok,
+          tobeTok: bTok,
+          savedPct: Number(((1 - bTok / Math.max(1, aTok)) * 100).toFixed(1)),
+          tobeCost: (mr.cost_comparison_turn5 || {}).tobe_with_90pct_cache_usd || 0.0406,
+          adkAsis: t5.adk_asis_prompt_tokens || 51376,
+          adkTobe: t5.adk_tobe_prompt_tokens || 3807,
+        };
+      }
+      if (code === "S5") {
+        const aTok = 117517;
+        const bTok = mr.scoped_tokens || 6753;
+        return {
+          isLive: false,
+          asisTok: aTok,
+          tobeTok: bTok,
+          savedPct: Number(((1 - bTok / aTok) * 100).toFixed(1)),
+          tobeCost: mr.effective_cost_usd || 0.0039,
+          adkAsis: 6753,
+          adkTobe: mr.adk_measured_prompt_tokens || 6753,
+        };
+      }
+      const aTok = mr.monolithic_tokens || 122137;
+      const bTok = mr.scoped_tokens || 15737;
+      return {
+        isLive: false,
+        asisTok: aTok,
+        tobeTok: bTok,
+        savedPct: mr.token_reduction_pct || Number(((1 - bTok / Math.max(1, aTok)) * 100).toFixed(1)),
+        tobeCost: mr.effective_cost_usd || 0.035,
+        adkAsis: (sc.asis_comparison || {}).adk_measured_prompt_tokens || 11373,
+        adkTobe: mr.adk_measured_prompt_tokens || 4298,
+      };
+    }
+
+    function renderProgressiveTracker() {
+      const el = document.getElementById("progressive-tracker");
+      if (!el) return;
+      const S = UI_STRINGS;
+      const scenarios = BENCHMARK_DATA.scenarios || [];
+      const summaries = scenarios.map(sc => ({ sc, sum: getStepBaselineOrLiveSummary(sc) }));
+      const maxTok = Math.max(200000, ...summaries.map(x => x.sum.asisTok));
+      const liveCount = summaries.filter(x => x.sum.isLive).length;
+
+      const pillsHtml = summaries.map(({ sc, sum }, idx) => {
+        const cls = [
+          "prog-step-pill",
+          idx === activeScenarioIdx ? "active-step" : "",
+          sum.isLive ? "live-done" : "",
+        ].filter(Boolean).join(" ");
+        const statusBadge = sum.isLive
+          ? `<span class="mono" style="font-size:10.5px;font-weight:700;color:var(--green);background:var(--green-soft);padding:1px 6px;border-radius:4px;">${S.trackerLiveTag}</span>`
+          : `<span class="mono" style="font-size:10.5px;color:var(--text-secondary);">${S.trackerBaseTag}</span>`;
+        return `
+          <div class="${cls}" data-step-idx="${idx}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:4px;">
+              <strong class="mono" style="font-size:12.5px;color:var(--blue);">${escapeHtml(sc.code)}</strong>
+              ${statusBadge}
+            </div>
+            <div style="font-size:12px;font-weight:600;line-height:1.35;color:var(--text);margin-bottom:4px;">${escapeHtml(S.layerLabels[sc.code] || sc.code)}</div>
+            <div class="mono" style="font-size:11.5px;color:var(--green);font-weight:700;">-${sum.savedPct}% tok</div>
+          </div>
+        `;
+      }).join("");
+
+      const barsHtml = summaries.map(({ sc, sum }) => {
+        const wAsis = Math.max(3, Math.min(100, (sum.asisTok / maxTok) * 100)).toFixed(1);
+        const wTobe = Math.max(2, Math.min(100, (sum.tobeTok / maxTok) * 100)).toFixed(1);
+        return `
+          <div class="prog-bar-row">
+            <div>
+              <strong class="mono" style="color:var(--text);">${escapeHtml(sc.code)}</strong>
+              <span style="color:var(--text-secondary);font-size:11.8px;"> · ${escapeHtml(S.layerShort[sc.code] || "")}</span>
+              ${sum.isLive ? `<span class="mono" style="display:inline-block;margin-left:4px;font-size:10px;color:var(--green);font-weight:700;">[LIVE]</span>` : ""}
+            </div>
+            <div class="dual-bar-track">
+              <div class="bar-line">
+                <span class="mono" style="font-size:10.5px;width:42px;color:var(--red);flex-shrink:0;">As-Is</span>
+                <div style="flex:1;background:#F1F3F4;border-radius:4px;overflow:hidden;">
+                  <div class="bar-fill-asis" style="width:${wAsis}%;"></div>
+                </div>
+                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--text-secondary);flex-shrink:0;">${sum.asisTok.toLocaleString()}</span>
+              </div>
+              <div class="bar-line">
+                <span class="mono" style="font-size:10.5px;width:42px;color:var(--green);font-weight:700;flex-shrink:0;">To-Be</span>
+                <div style="flex:1;background:#F1F3F4;border-radius:4px;overflow:hidden;">
+                  <div class="bar-fill-tobe" style="width:${wTobe}%;"></div>
+                </div>
+                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--green);font-weight:700;flex-shrink:0;">${sum.tobeTok.toLocaleString()}</span>
+              </div>
+            </div>
+            <div class="mono" style="text-align:right;font-size:11.8px;">
+              <strong style="color:var(--green);">-${sum.savedPct}%</strong>
+              <span style="color:var(--text-secondary);"> · $${Number(sum.tobeCost).toFixed(4)}/turn</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      el.innerHTML = `
+        <div class="prog-tracker-head">
+          <div style="flex:1 1 520px;min-width:0;">
+            <span class="tag tag-green" style="margin-bottom:4px;">${S.trackerEyebrow} (${liveCount}/5 ${S.trackerLiveCountLabel})</span>
+            <h3 style="font-size:16.5px;margin-bottom:2px;">${S.trackerTitle}</h3>
+            <p style="font-size:13px;color:var(--text-secondary);">${S.trackerDesc}</p>
+          </div>
+          <button type="button" class="btn-outline" id="wb-reset-session-btn" ${(!liveApiAvailable || workbenchRunning) ? "disabled" : ""}>${S.wbBtnReset}</button>
+        </div>
+        <div class="prog-step-strip">${pillsHtml}</div>
+        <div class="prog-bar-rows">${barsHtml}</div>
+      `;
+
+      el.querySelectorAll(".prog-step-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+          const sIdx = Number(pill.dataset.stepIdx);
+          renderScenario(sIdx);
+        });
+      });
+
+      const resetBtn = document.getElementById("wb-reset-session-btn");
+      if (resetBtn && liveApiAvailable) {
+        resetBtn.addEventListener("click", resetWorkbenchSession);
+      }
+    }
+
+    function buildDualComparisonCardHtml(res) {
+      const S = UI_STRINGS;
+      const cs = res.comparison_summary || {};
+      const asis = res.asis || {};
+      const tobe = res.tobe || {};
+      const asisAdk = asis.adk_usage || {};
+      const tobeAdk = tobe.adk_usage || {};
+
+      let turnCurveHtml = "";
+      if (Array.isArray(tobe.turn_curve) && tobe.turn_curve.length > 0) {
+        const rows = tobe.turn_curve.map(r => {
+          const pct = ((1 - r.tobe_adk_prompt_tokens / Math.max(1, r.asis_adk_prompt_tokens)) * 100).toFixed(1);
+          return `
+            <tr>
+              <td class="mono"><strong>Turn ${r.turn}</strong></td>
+              <td class="mono" style="color:var(--red);">${Number(r.asis_adk_prompt_tokens).toLocaleString()} tok</td>
+              <td class="mono" style="color:var(--green);font-weight:700;">${Number(r.tobe_adk_prompt_tokens).toLocaleString()} tok (-${pct}%)</td>
+              <td class="mono">${Number(r.tobe_compacted_dropped || 0)} items evicted</td>
+            </tr>
+          `;
+        }).join("");
+        turnCurveHtml = `
+          <div style="margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${S.wbLiveS4TableTitle}</div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Turn</th>
+                    <th>As-Is ADK (<span class="mono">usage_metadata</span>)</th>
+                    <th>To-Be Compacted ADK (<span class="mono">usage_metadata</span>)</th>
+                    <th><span class="mono">before_model_callback</span></th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      const maxBar = Math.max(1, cs.asis_total_2tier_tokens || 1);
+      const tobePctWidth = Math.max(2, Math.min(100, ((cs.tobe_total_2tier_tokens || 0) / maxBar) * 100)).toFixed(1);
+
+      return `
+        <div class="live-dual-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+            <div>
+              <span class="tag tag-green" style="margin-bottom:4px;">${S.wbLiveCardBadge} · ${escapeHtml(res.scenario_code)}</span>
+              <div style="font-size:13.5px;font-weight:600;color:var(--text);">${S.wbExecutedPromptLabel}: "${escapeHtml(res.prompt_executed)}"</div>
+            </div>
+            <div class="mono" style="font-size:12px;color:var(--text-secondary);">
+              Wall-Clock: <strong>${(Number(res.wall_clock_ms || 0) / 1000).toFixed(2)} s</strong>
+            </div>
+          </div>
+
+          <div class="metric-ribbon" style="margin-bottom:14px;">
+            <div class="metric-cell">
+              <div class="m-k">${S.wbMetric2Tier}</div>
+              <div class="m-v good mono">${Number(cs.tobe_total_2tier_tokens || 0).toLocaleString()} vs ${Number(cs.asis_total_2tier_tokens || 0).toLocaleString()} (-${cs.total_token_reduction_pct}%)</div>
+            </div>
+            <div class="metric-cell">
+              <div class="m-k">${S.wbMetricAdkExact}</div>
+              <div class="m-v mono" style="color:var(--blue);">${Number(cs.tobe_adk_measured_prompt_tokens || 0).toLocaleString()} vs ${Number(cs.asis_adk_measured_prompt_tokens || 0).toLocaleString()} tok</div>
+            </div>
+            <div class="metric-cell">
+              <div class="m-k">${S.wbMetricCost}</div>
+              <div class="m-v good mono">$${Number(cs.tobe_effective_cost_usd || 0).toFixed(4)} vs $${Number(cs.asis_effective_cost_usd || 0).toFixed(4)} (-${cs.effective_cost_reduction_pct}%)</div>
+            </div>
+            <div class="metric-cell">
+              <div class="m-k">${S.wbMetricLatencyPair}</div>
+              <div class="m-v mono">${(Number(tobe.latency_ms || 0) / 1000).toFixed(1)}s (To-Be) / ${(Number(asis.latency_ms || 0) / 1000).toFixed(1)}s (As-Is)</div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">${S.wbVisualBarTitle}</div>
+            <div class="dual-bar-track">
+              <div class="bar-line">
+                <span class="mono" style="font-size:11px;width:52px;color:var(--red);font-weight:700;">As-Is</span>
+                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-asis" style="width:100%;"></div></div>
+                <span class="mono" style="font-size:11.5px;width:185px;text-align:right;">${Number(cs.asis_total_2tier_tokens || 0).toLocaleString()} tok (ADK ${Number(asisAdk.prompt_tokens || 0).toLocaleString()} + BQCA ${Number(asis.bqca_input_tokens || 0).toLocaleString()})</span>
+              </div>
+              <div class="bar-line">
+                <span class="mono" style="font-size:11px;width:52px;color:var(--green);font-weight:700;">To-Be</span>
+                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-tobe" style="width:${tobePctWidth}%;"></div></div>
+                <span class="mono" style="font-size:11.5px;width:185px;text-align:right;color:var(--green);font-weight:700;">${Number(cs.tobe_total_2tier_tokens || 0).toLocaleString()} tok (ADK ${Number(tobeAdk.prompt_tokens || 0).toLocaleString()} + BQCA ${Number(tobe.bqca_input_tokens || 0).toLocaleString()})</span>
+              </div>
+            </div>
+          </div>
+
+          ${turnCurveHtml}
+
+          <div class="stack-list" style="margin-bottom:0;">
+            <div class="sub-box asis-border" style="background:#FFFBFB;">
+              <div class="evidence-header">
+                <span class="tag tag-red">${escapeHtml(asis.label || "As-Is Live Execution")}</span>
+                <span class="mono" style="font-size:11.8px;color:var(--red);">
+                  ADK Measured: ${Number(asisAdk.prompt_tokens || 0).toLocaleString()} tok (out+thought: ${Number(asisAdk.output_and_thoughts_tokens || 0).toLocaleString()}) · ${(Number(asis.latency_ms || 0) / 1000).toFixed(2)}s
+                </span>
+              </div>
+              ${asis.defect_summary ? `<div style="font-size:12.8px;color:var(--red);margin-bottom:8px;font-weight:500;">${escapeHtml(asis.defect_summary)}</div>` : ""}
+              ${asis.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(asis.generated_sql)}</pre>` : ""}
+              ${asis.markdown_table ? `<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-secondary);">${S.wbViewAsisRows}</summary><div style="margin-top:6px;">${parseMarkdownTableToHtml(asis.markdown_table)}</div></details>` : ""}
+              <div class="answer-box" style="border-left-color:var(--red);">${formatAgentAnswer(asis.answer)}</div>
+            </div>
+
+            <div class="sub-box tobe-border" style="background:#F8FDF9;">
+              <div class="evidence-header">
+                <span class="tag tag-green">${escapeHtml(tobe.label || "To-Be Live Execution")}</span>
+                <span class="mono" style="font-size:11.8px;color:var(--green);font-weight:700;">
+                  ADK Measured: ${Number(tobeAdk.prompt_tokens || 0).toLocaleString()} tok (cached: ${Number(tobeAdk.cached_tokens || 0).toLocaleString()}) · ${(Number(tobe.latency_ms || 0) / 1000).toFixed(2)}s
+                </span>
+              </div>
+              <div class="mono" style="font-size:11.8px;color:var(--blue);margin-bottom:8px;">
+                ADK Agents Hop Trace: ${escapeHtml((tobeAdk.agents_invoked || []).join(" → ") || "root_agent")}
+              </div>
+              ${tobe.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(tobe.generated_sql)}</pre>` : ""}
+              ${tobe.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(tobe.markdown_table)}</div>` : ""}
+              <div class="answer-box">${formatAgentAnswer(tobe.answer)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function triggerWorkbenchDualStream(scenarioCode, s4Mode) {
+      if (workbenchRunning) return;
+      const S = UI_STRINGS;
+      const ta = document.getElementById("wb-prompt-input");
+      const promptText = (ta ? ta.value : "").trim();
+      if (!promptText) return;
+
+      customPromptDrafts[scenarioCode] = promptText;
+      workbenchRunning = true;
+
+      const dualBtn = document.getElementById("wb-run-dual-btn");
+      const appendBtn = document.getElementById("wb-append-turn-btn");
+      const sseContainer = document.getElementById("wb-sse-stream-container");
+      const cardContainer = document.getElementById("wb-live-dual-card-container");
+
+      if (dualBtn) {
+        dualBtn.disabled = true;
+        dualBtn.textContent = S.wbRunningDual.replace("{CODE}", scenarioCode);
+      }
+      if (appendBtn) appendBtn.disabled = true;
+
+      const startMs = Date.now();
+      const logs = [];
+      const renderLogs = () => {
+        if (!sseContainer) return;
+        const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
+        const itemsHtml = logs.map(item => {
+          const cls = item.side === "asis" ? "sse-tag-asis" : (item.side === "tobe" ? "sse-tag-tobe" : "sse-tag-both");
+          const tag = item.side === "asis" ? "[As-Is]" : (item.side === "tobe" ? "[To-Be]" : "[Dual Engine]");
+          return `<div class="sse-item mono"><span class="${cls}">${tag}</span> ${escapeHtml(item.detail)}</div>`;
+        }).join("");
+        sseContainer.innerHTML = `
+          <div class="sse-log-box">
+            <div class="mono" style="display:flex;justify-content:space-between;color:#93C5FD;font-weight:700;margin-bottom:6px;border-bottom:1px solid #374151;padding-bottom:4px;">
+              <span>${S.wbSseHeader} (${escapeHtml(scenarioCode)})</span>
+              <span>${elapsed}s</span>
+            </div>
+            ${itemsHtml}
+          </div>
+        `;
+        const box = sseContainer.querySelector(".sse-log-box");
+        if (box) box.scrollTop = box.scrollHeight;
+      };
+
+      logs.push({ side: "both", detail: S.callingEndpoint + " (" + BENCHMARK_DATA.environment.gcp_project + ")..." });
+      renderLogs();
+      const timerId = setInterval(renderLogs, 400);
+
+      try {
+        const resp = await fetch("/api/workbench/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visitor_id: getVisitorId(),
+            scenario_code: scenarioCode,
+            prompt: promptText,
+            s4_mode: s4Mode || "burst_5turn",
+          }),
+        });
+
+        if (!resp.ok || !resp.body) {
+          throw new Error("HTTP " + resp.status);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buf = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const parts = buf.split("\n\n");
+          buf = parts.pop() || "";
+
+          for (const chunk of parts) {
+            const line = chunk.trim();
+            if (!line.startsWith("data:")) continue;
+            const jsonStr = line.slice(5).trim();
+            if (!jsonStr) continue;
+            let evt = null;
+            try { evt = JSON.parse(jsonStr); } catch (_) { continue; }
+            if (!evt) continue;
+
+            if (evt.type === "progress") {
+              logs.push({ side: evt.side || "both", detail: evt.detail || "" });
+              renderLogs();
+            } else if (evt.type === "complete" && evt.payload) {
+              clearInterval(timerId);
+              liveRunResults[scenarioCode] = evt.payload;
+              if (cardContainer) {
+                cardContainer.innerHTML = buildDualComparisonCardHtml(evt.payload);
+              }
+              renderProgressiveTracker();
+              if (scenarioCode === "S4") {
+                renderScenario(activeScenarioIdx);
+              }
+            } else if (evt.type === "error") {
+              logs.push({ side: "asis", detail: "Error: " + (evt.message || "Unknown error") });
+              renderLogs();
+            }
+          }
+        }
+      } catch (err) {
+        logs.push({ side: "asis", detail: "Stream error: " + err.message });
+        renderLogs();
+      } finally {
+        clearInterval(timerId);
+        workbenchRunning = false;
+        if (dualBtn) {
+          dualBtn.disabled = false;
+          dualBtn.textContent = S.wbBtnRunDual.replace("{CODE}", scenarioCode);
+        }
+        if (appendBtn) appendBtn.disabled = false;
+        renderProgressiveTracker();
+      }
+    }
+
+    async function resetWorkbenchSession() {
+      if (!liveApiAvailable || workbenchRunning) return;
+      try {
+        await fetch("/api/workbench/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitor_id: getVisitorId() }),
+        });
+      } catch (_) {}
+      Object.keys(liveRunResults).forEach(k => delete liveRunResults[k]);
+      Object.keys(customPromptDrafts).forEach(k => delete customPromptDrafts[k]);
+      renderScenario(activeScenarioIdx);
     }
 
     async function triggerLiveVerification(scenarioCode) {
@@ -1891,6 +2617,76 @@ UI_EN = {
         "Product, Margin & Return Analytics": "Product, Margin & Return Analytics",
         "Supply Chain, Inventory & Fulfillment": "Supply Chain, Inventory & Fulfillment",
     },
+    "trackerEyebrow": "Progressive S1 → S5 Architecture & Token Tracker",
+    "trackerLiveCountLabel": "Steps Live-Tested",
+    "trackerTitle": "Step-by-Step 2-Tier Token Reduction & Architecture Progression (S1 → S5)",
+    "trackerDesc": "Shows pre-verified GCP baselines at load and dynamically updates each bar as you execute custom prompts in S1 through S5.",
+    "trackerLiveTag": "LIVE VERIFIED",
+    "trackerBaseTag": "Baseline",
+    "layerLabels": {
+        "S1": "+L1 Static Enum & Scoped DDL",
+        "S2": "+L2 Stateless 3-Turn Window",
+        "S3": "+L3 Peer Switch & Parallel API",
+        "S4": "+L4 3-Turn ADK Cap & 90% Cache",
+        "S5": "+L5 4-Scope State & 0-Scan Memory",
+    },
+    "layerShort": {
+        "S1": "Static Route + Scoped DDL",
+        "S2": "Stateless 3-Turn Window",
+        "S3": "Peer + Parallel Chat API",
+        "S4": "ADK Cap + 90% Cache",
+        "S5": "Memory 0-Scan Recall",
+    },
+    "wbBadge": "Interactive Full Live Dual A/B Workbench",
+    "wbTitle": "Test Custom Evaluator Prompt Live on GCP",
+    "wbSubtitle": "Executes BOTH the unoptimized As-Is Agent (including Monolithic CAA) and the To-Be Best-Practice Agent in parallel on Vertex AI & BigQuery.",
+    "wbSchemaSummary": "View Available Dataset Schema & Business KPIs",
+    "wbSchemaBodyHtml": "<strong>Dataset:</strong> <span class='mono'>thelook_ecommerce_agent</span> (7 Tables: <span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)<br/><strong>Sample Entities &amp; KPIs:</strong> VIP Customer (<span class='mono'>&gt;= $500</span> or <span class='mono'>&gt;= 5 orders</span>), Channels (<span class='mono'>Search, Organic, Email, Display</span>), Brands (<span class='mono'>Nordic Luxe, TheLook Atelier</span>), Distribution Centers (<span class='mono'>Memphis TN, Chicago IL</span>), Gross Margin %, Return Rate %, Delivery Lead Time.",
+    "wbPresetLabel": "Quick Evaluator Prompt Variations (Click to Load or Type Any Question Below):",
+    "wbPlaceholder": "Enter any analytical question to execute live against both As-Is and To-Be pipelines...",
+    "wbBtnRunDual": "Run Full Live Dual A/B on GCP ({CODE}: As-Is vs To-Be)",
+    "wbRunningDual": "Streaming Parallel As-Is & To-Be on GCP ({CODE})...",
+    "wbBtnAppendTurn": "+ Append Next Turn to Live S4 Session",
+    "wbBtnNextStep": "Continue to Next Layer ({NEXT} →)",
+    "wbBtnReset": "Reset Live Session & Tracker",
+    "wbSseHeader": "Live GCP Parallel SSE Execution Stream",
+    "wbLiveCardBadge": "Live Dual A/B Execution Result",
+    "wbExecutedPromptLabel": "Custom Prompt Executed",
+    "wbMetric2Tier": "2-Tier Total Input Tokens (To-Be vs As-Is)",
+    "wbMetricAdkExact": "Live Vertex AI usage_metadata (ADK Prompt)",
+    "wbMetricCost": "Effective Cost w/ 90% Cache ($0.30/1M)",
+    "wbMetricLatencyPair": "Parallel Dual Wall-Clock",
+    "wbVisualBarTitle": "Live 2-Tier Input Token Footprint Comparison (Tier 1 Measured ADK + Tier 2 BQCA Payload)",
+    "wbLiveS4TableTitle": "Live Multi-Turn Measured Vertex AI usage_metadata Progression",
+    "wbViewAsisRows": "View Returned As-Is Rows",
+    "refBaselineHeading": "Pre-Verified Reference Baseline Evidence",
+    "wbPresets": {
+        "S1": [
+            {"label": "Default: 30-Day VIP Revenue & AOV by Channel", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
+            {"label": "Product Margin: Outerwear Return Rate & Profit by Brand", "prompt": "For Women's Outerwear & Coats (order_id >= 9900000), compare gross margin %, return and cancellation rate %, and realized gross profit by brand."},
+            {"label": "Supply Chain: Delivery Lead Time & Unsold Inventory by DC", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) across distribution centers for recent orders (order_id >= 9900000)."},
+        ],
+        "S2": [
+            {"label": "Default Follow-Up: Join 14-Day Cart Abandonment to Turn 1", "prompt": "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source."},
+            {"label": "Follow-Up 2: Filter Previous Channels to Top 3 by AOV", "prompt": "From those exact acquisition channels in our previous query, rank the top 3 channels by average order value (AOV) and show their VIP share."},
+            {"label": "Follow-Up 3: Add 90-Day Dormant Customer Count", "prompt": "Using the same traffic_source breakdown from our previous result, add the count of dormant customers with zero orders in the last 90 days."},
+        ],
+        "S3": [
+            {"label": "3-Domain Parallel Root-Cause Fan-Out (Outerwear Profit Drop)", "prompt": "Why is Women's Outerwear & Coats realized profit dropping despite strong VIP sales? Run a parallel cross-domain analysis across: (1) last 30-day VIP orders & gross demand where order_id >= 9900000, (2) Women's 'Outerwear & Coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent Women's Outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000)."},
+            {"label": "Peer Switch (0 Root Bounce): Pivot Directly to Supply Chain DC", "prompt": "Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers."},
+            {"label": "2-Domain Parallel Check: Brand Returns vs DC Lead Time", "prompt": "Run a parallel cross-domain check comparing Women's Outerwear return rate % by brand (order_id >= 9900000) alongside average delivery lead time by distribution center (order_id >= 9900000)."},
+        ],
+        "S4": [
+            {"label": "Turn 5 Custom Query: DC Delivery Delay & Unsold Holding Cost", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center for Women's Outerwear (order_id >= 9900000)."},
+            {"label": "Turn 5 Custom Query: VIP Revenue & Order Count by Channel", "prompt": "Show VIP customer count and total gross revenue by traffic_source over the last 30 days."},
+            {"label": "Turn 5 Custom Query: Brand Return Rate vs Realized Profit", "prompt": "Compare return and cancellation rate % and realized gross profit ($) between Nordic Luxe and TheLook Atelier (order_id >= 9900000)."},
+        ],
+        "S5": [
+            {"label": "Default Session-B Recall: Summarize Root Cause (0 BQCA Scan)", "prompt": "Without running any BigQuery SQL, inspect my rehydrated profile and long-term memory, summarize the pinned Nordic Luxe and Memphis TN DC #1 root-cause anomaly, and give 2 concrete remediation steps."},
+            {"label": "Executive Briefing Recall: Preferred KPIs & Action Plan", "prompt": "Based strictly on my saved analyst profile, preferred KPIs, and long-term memory from Session A, draft a 3-bullet executive action plan without querying BigQuery."},
+            {"label": "Audit 4-Scope State & Pinned Insights Status", "prompt": "Inspect my current session and memory status without running SQL, and list my rehydrated analyst role, preferred KPIs, and pinned cross-session insights."},
+        ],
+    },
 }
 
 
@@ -1964,6 +2760,76 @@ UI_KO = {
         "Customer CRM & Marketing Funnel": "Domain 1 · 고객 CRM 및 마케팅 Funnel",
         "Product, Margin & Return Analytics": "Domain 2 · 상품 Margin 및 반품 분석",
         "Supply Chain, Inventory & Fulfillment": "Domain 3 · 물류센터(DC) 및 재고·배송",
+    },
+    "trackerEyebrow": "S1 → S5 단계별 Architecture 진화 및 실시간 Token 절감 추이",
+    "trackerLiveCountLabel": "단계 실시간 검증 완료",
+    "trackerTitle": "S1 → S5 단계별 2-Tier Token 소모량 및 실효 비용 개선 시각화",
+    "trackerDesc": "초기 화면에는 사전 검증된 기준 실측치(Baseline)가 즉시 표시되며, 아래 각 단계에서 직접 질문을 입력·실행할 때마다 해당 단계의 실시간 계측 결과로 그래프가 즉시 갱신됩니다.",
+    "trackerLiveTag": "실시간 검증됨",
+    "trackerBaseTag": "기준 실측치",
+    "layerLabels": {
+        "S1": "+L1 정적 Enum & 격리 Schema",
+        "S2": "+L2 Stateless 3-Turn Window",
+        "S3": "+L3 Peer 직접 전환 & 병렬 API",
+        "S4": "+L4 ADK 3-Turn 압축 & 90% Cache",
+        "S5": "+L5 4-Scope State & 0-Scan 복원",
+    },
+    "layerShort": {
+        "S1": "정적 Routing + Schema 분리",
+        "S2": "Stateless 3-Turn Window",
+        "S3": "Peer 전환 + 병렬 Chat API",
+        "S4": "ADK 압축 + 90% Cache",
+        "S5": "Memory 0-Token 복원",
+    },
+    "wbBadge": "심사자 직접 입력 · Full Live Dual A/B Workbench",
+    "wbTitle": "커스텀 Prompt 실시간 GCP 병렬 비교 실행",
+    "wbSubtitle": "입력하신 질문으로 비최적화 As-Is Agent(통합 Monolithic CAA 포함)와 제안 To-Be Best Practice Agent를 동시에 실제 GCP(Vertex AI + BigQuery)에서 병렬 실행하여 답변 품질·SQL·실측 Token을 나란히 대조합니다.",
+    "wbSchemaSummary": "질문 가능한 Dataset Table 및 핵심 KPI 가이드 펼치기",
+    "wbSchemaBodyHtml": "<strong>대상 Dataset:</strong> <span class='mono'>thelook_ecommerce_agent</span> (7개 Table: <span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)<br/><strong>주요 분석 항목:</strong> VIP 고객(<span class='mono'>$500 이상</span> 또는 <span class='mono'>5회 이상 주문</span>), 유입 채널(<span class='mono'>Search, Organic, Email, Display</span>), Brand(<span class='mono'>Nordic Luxe, TheLook Atelier</span>), 물류센터(<span class='mono'>Memphis TN, Chicago IL</span>), Gross Margin %, 반품률(Return Rate %), 평균 배송 소요일(Delivery Lead Time).",
+    "wbPresetLabel": "단계별 추천 실험 Prompt (클릭하여 불러오거나 아래 입력창에 자유롭게 수정·입력하세요):",
+    "wbPlaceholder": "검증하고 싶은 분석 질문을 영문 또는 한국어로 자유롭게 입력하세요...",
+    "wbBtnRunDual": "GCP 실시간 Dual A/B 병렬 실행 ({CODE}: As-Is vs To-Be 동시 비교)",
+    "wbRunningDual": "GCP에서 {CODE} As-Is 및 To-Be 동시 병렬 실행 및 계측 중...",
+    "wbBtnAppendTurn": "+ 현재 S4 실시간 Session에 추가 Turn(Turn 6+) 누적 실행",
+    "wbBtnNextStep": "다음 개선 단계({NEXT} →)로 이어서 진행",
+    "wbBtnReset": "실시간 Session 및 그래프 초기화",
+    "wbSseHeader": "실시간 GCP Dual A/B 병렬 SSE 실행 타임라인",
+    "wbLiveCardBadge": "심사자 입력 실시간 Dual A/B 실행 결과",
+    "wbExecutedPromptLabel": "실행된 입력 Prompt",
+    "wbMetric2Tier": "2-Tier 합산 Input Token (To-Be vs As-Is)",
+    "wbMetricAdkExact": "실시간 Vertex AI usage_metadata (ADK 실측)",
+    "wbMetricCost": "90% Cache 반영 실효 단가 ($0.30/1M)",
+    "wbMetricLatencyPair": "병렬 실행 소요 Latency",
+    "wbVisualBarTitle": "실시간 2-Tier Input Token 소모량 시각 비교 (Tier 1 ADK 실측치 + Tier 2 BQCA 입력 합산)",
+    "wbLiveS4TableTitle": "실시간 연속 Turn Vertex AI usage_metadata.prompt_token_count 계측 결과",
+    "wbViewAsisRows": "As-Is 반환 결과 Table 펼치기",
+    "refBaselineHeading": "사전 검증된 기준 실측 리포트 (Pre-Verified Reference Baseline)",
+    "wbPresets": {
+        "S1": [
+            {"label": "기본 검증: 최근 30일 유입 채널별 VIP 고객수·매출·AOV", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
+            {"label": "상품 Margin 변형: 여성 아우터 Brand별 반품률 및 실현 이익 비교", "prompt": "For Women's Outerwear & Coats (order_id >= 9900000), compare gross margin %, return and cancellation rate %, and realized gross profit by brand."},
+            {"label": "물류 DC 변형: 물류센터별 평균 배송 소요일 및 미판매 재고 원가", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) across distribution centers for recent orders (order_id >= 9900000)."},
+        ],
+        "S2": [
+            {"label": "기본 후속 질문: 직전 결과 채널 유지 + 14일 장바구니 이탈률 결합", "prompt": "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source."},
+            {"label": "후속 변형 2: 직전 조회 채널 중 AOV 상위 3개 채널 추출", "prompt": "From those exact acquisition channels in our previous query, rank the top 3 channels by average order value (AOV) and show their VIP share."},
+            {"label": "후속 변형 3: 동일 유입 채널 기준 90일 휴면 고객 수 추가 결합", "prompt": "Using the same traffic_source breakdown from our previous result, add the count of dormant customers with zero orders in the last 90 days."},
+        ],
+        "S3": [
+            {"label": "3-Domain 병렬 원인 규명: VIP 호조 속 아우터 수익 급감 원인", "prompt": "Why is Women's Outerwear & Coats realized profit dropping despite strong VIP sales? Run a parallel cross-domain analysis across: (1) last 30-day VIP orders & gross demand where order_id >= 9900000, (2) Women's 'Outerwear & Coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent Women's Outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000)."},
+            {"label": "Peer 직접 전환(Root 생략): 마케팅에서 물류 DC 배송 지연으로 즉시 전환", "prompt": "Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers."},
+            {"label": "2-Domain 병렬 비교: Brand별 반품률 vs 물류센터별 배송 소요일", "prompt": "Run a parallel cross-domain check comparing Women's Outerwear return rate % by brand (order_id >= 9900000) alongside average delivery lead time by distribution center (order_id >= 9900000)."},
+        ],
+        "S4": [
+            {"label": "Turn 5 커스텀 검증: 물류센터별 평균 배송 소요일 및 미판매 재고 비용", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center for Women's Outerwear (order_id >= 9900000)."},
+            {"label": "Turn 5 커스텀 검증: 최근 30일 채널별 VIP 고객 수 및 총매출", "prompt": "Show VIP customer count and total gross revenue by traffic_source over the last 30 days."},
+            {"label": "Turn 5 커스텀 검증: Nordic Luxe vs TheLook Atelier 반품률·실현이익", "prompt": "Compare return and cancellation rate % and realized gross profit ($) between Nordic Luxe and TheLook Atelier (order_id >= 9900000)."},
+        ],
+        "S5": [
+            {"label": "기본 신규 Session-B 복원: BigQuery 재실행 없이 핵심 원인 및 대책 요약", "prompt": "Without running any BigQuery SQL, inspect my rehydrated profile and long-term memory, summarize the pinned Nordic Luxe and Memphis TN DC #1 root-cause anomaly, and give 2 concrete remediation steps."},
+            {"label": "임원 보고 요약: 저장된 선호 KPI 및 직무 기반 3줄 실행 계획 도출", "prompt": "Based strictly on my saved analyst profile, preferred KPIs, and long-term memory from Session A, draft a 3-bullet executive action plan without querying BigQuery."},
+            {"label": "4-Scope State 및 영속 Memory 저장 상태 즉시 점검", "prompt": "Inspect my current session and memory status without running SQL, and list my rehydrated analyst role, preferred KPIs, and pinned cross-session insights."},
+        ],
     },
 }
 

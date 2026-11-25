@@ -65,11 +65,12 @@ gcloud run deploy "${SERVICE}" \
   --region "${REGION}" \
   --service-account "${SA_EMAIL}" \
   --port 8080 \
-  --memory 1Gi \
-  --cpu 1 \
-  --min-instances 0 \
+  --memory 2Gi \
+  --cpu 2 \
+  --min-instances 1 \
   --max-instances 5 \
-  --timeout 180 \
+  --timeout 240 \
+  --session-affinity \
   --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT},BQ_DATASET_ID=${DATASET_ID},GOOGLE_CLOUD_LOCATION=${REGION},GOOGLE_GENAI_USE_VERTEXAI=TRUE" \
   --quiet
 

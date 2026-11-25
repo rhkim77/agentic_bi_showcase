@@ -38,10 +38,11 @@ Executed live via [`scripts/04_run_scenario_benchmarks.py`](./scripts/04_run_sce
 
 ## 3. Repository Structure & Quickstart
 
-- **[`agents/bq_caa_3domain_multi_agent/agent.py`](./agents/bq_caa_3domain_multi_agent/agent.py)**: Production reference with `App(context_cache_config=ContextCacheConfig(...))`, 3 Domain-Scoped Sub-Agents, `before_model_callback` 3-turn compaction, `after_model_callback` `usage_metadata` telemetry, `[-6:]` sliding window, `ThreadPoolExecutor` parallel fan-out, and 4-Scope `Session.state` + `MemoryService`.
+- **[`agents/bq_caa_3domain_multi_agent/agent.py`](./agents/bq_caa_3domain_multi_agent/agent.py)**: Production reference with `App(context_cache_config=ContextCacheConfig(...))`, 3 Domain-Scoped Sub-Agents, `before_model_callback` 3-turn compaction, `after_model_callback` `usage_metadata` telemetry, `[-6:]` sliding window, `ThreadPoolExecutor` parallel fan-out, and per-visitor isolated 4-Scope `Session.state` + `MemoryService`.
+- **[`backend/main.py`](./backend/main.py)** & **[`backend/workbench_engine.py`](./backend/workbench_engine.py)**: FastAPI + real-time `SSE` (`POST /api/workbench/stream`) engine powering the **Interactive S1–S5 Progressive Dual A/B Workbench**, executing both `As-Is` (Monolithic / One-Shot / Unbounded) and `To-Be` (Scoped / Sliding Window / Compacted / Memory-Rehydrated) pipelines in parallel on Google Cloud for any custom evaluator prompt.
 - **[`agents/bq_caa_streaming_agent/agent.py`](./agents/bq_caa_streaming_agent/agent.py)** & **[`agents/bq_caa_toolset_agent/agent.py`](./agents/bq_caa_toolset_agent/agent.py)**: Companion `SequentialAgent` custom `:chat` streamer and built-in `DataAgentToolset` baseline packages.
 - **[`docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md`](./docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md)** & **[`docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md`](./docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md)**: Full architectural specification and A/B SQL/telemetry walkthrough.
-- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Self-contained Outcome Verification Portals with interactive `90%` Cached Input FinOps simulator.
+- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Self-contained Outcome Verification & Live Progressive Dual A/B Workbench Portals with interactive `90%` Cached Input FinOps simulator.
 
 ```bash
 gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform"
