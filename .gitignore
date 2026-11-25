@@ -1,0 +1,21 @@
+# Python & ADK State
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+.adk/
+
+# Frontend Build Artifacts
+frontend/node_modules/
+static/
+
+# Terraform State
+infra/.terraform/
+infra/*.tfstate*
+infra/*.tfvars
+!infra/terraform.tfvars.example
+internal_docs/
+.adk/
+*/.adk/

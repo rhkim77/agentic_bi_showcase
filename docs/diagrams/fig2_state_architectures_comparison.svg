@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 804" width="1440" height="804" font-family="Roboto, Arial, 'Liberation Sans', sans-serif">
+  <defs>
+    <filter id="card-shadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#202124" flood-opacity="0.06"/>
+    </filter>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 1 1 L 9 5 L 1 9 z" fill="#34A853"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 1 1 L 9 5 L 1 9 z" fill="#1A73E8"/></marker>
+    <marker id="arrow-grey" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 1 1 L 9 5 L 1 9 z" fill="#5F6368"/></marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 1 1 L 9 5 L 1 9 z" fill="#C56200"/></marker>
+    <marker id="arrow-amber-start" viewBox="0 0 10 10" refX="2" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path d="M 9 1 L 1 5 L 9 9 z" fill="#C56200"/></marker>
+    <symbol id="icon-vertex-ai" viewBox="0 0 512 512">
+    <g id="art">
+    <path d="M128,244.99c-8.84,0-16-7.16-16-16v-95.97c0-8.84,7.16-16,16-16s16,7.16,16,16v95.97c0,8.84-7.16,16-16,16Z" fill="#ea4335"/>
+    <path d="M256,458c-2.98,0-5.97-.83-8.59-2.5l-186-122c-7.46-4.74-9.65-14.63-4.91-22.09,4.75-7.46,14.64-9.65,22.09-4.91l177.41,116.53,177.41-116.53c7.45-4.74,17.34-2.55,22.09,4.91,4.74,7.46,2.55,17.34-4.91,22.09l-186,122c-2.62,1.67-5.61,2.5-8.59,2.5Z" fill="#fbbc04"/>
+    <path d="M256,388.03c-8.84,0-16-7.16-16-16v-73.06c0-8.84,7.16-16,16-16s16,7.16,16,16v73.06c0,8.84-7.16,16-16,16Z" fill="#34a853"/>
+    <circle cx="128" cy="70" r="16" fill="#ea4335"/>
+    <circle cx="128" cy="292" r="16" fill="#ea4335"/>
+    <path d="M384.23,308.01c-8.82,0-15.98-7.14-16-15.97l-.23-94.01c-.02-8.84,7.13-16.02,15.97-16.03h.04c8.82,0,15.98,7.14,16,15.97l.23,94.01c.02,8.84-7.13,16.02-15.97,16.03h-.04Z" fill="#4285f4"/>
+    <circle cx="384" cy="70" r="16" fill="#4285f4"/>
+    <circle cx="384" cy="134" r="16" fill="#4285f4"/>
+    <path d="M320,220.36c-8.84,0-16-7.16-16-16v-103.02c0-8.84,7.16-16,16-16s16,7.16,16,16v103.02c0,8.84-7.16,16-16,16Z" fill="#fbbc04"/>
+    <circle cx="256" cy="171" r="16" fill="#34a853"/>
+    <circle cx="256" cy="235" r="16" fill="#34a853"/>
+    <circle cx="320" cy="265" r="16" fill="#fbbc04"/>
+    <circle cx="320" cy="329" r="16" fill="#fbbc04"/>
+    <path d="M192,217.36c-8.84,0-16-7.16-16-16v-100.02c0-8.84,7.16-16,16-16s16,7.16,16,16v100.02c0,8.84-7.16,16-16,16Z" fill="#fbbc04"/>
+    <circle cx="192" cy="265" r="16" fill="#fbbc04"/>
+    <circle cx="192" cy="329" r="16" fill="#fbbc04"/>
+    </g>
+  </symbol>
+    <symbol id="icon-cloud-sql" viewBox="0 0 512 512">
+    <g id="art">
+    <path fill="#fbbc04" d="M447.5,123.7l-186-68.7c-3.6-1.3-7.5-1.3-11.1,0l-40.7,15-145.2,53.5c-6.3,2.3-10.5,8.3-10.5,15s4.2,12.7,10.5,15l145.1,53.4s0,0,0,0l40.8,15c1.8.6,3.7,1,5.5,1s3.7-.3,5.5-1l185.9-68.2c6.3-2.3,10.5-8.3,10.5-15,0-6.7-4.2-12.7-10.5-15h0ZM256,189.9l-139.6-51.4,139.6-51.4,139.7,51.6-139.6,51.2Z"/>
+    <path fill="#34a853" d="M447.5,388.8l-185.9,68.2c-1.8.6-3.6,1-5.5,1s-3.7-.3-5.5-1l-40.8-15h0l-145.1-53.4c-8.3-3-12.5-12.2-9.5-20.5,3-8.3,12.2-12.5,20.5-9.5l180.4,66.4,180.4-66.2c8.3-3,17.5,1.2,20.5,9.5,3,8.3-1.2,17.5-9.5,20.5h0Z"/>
+    <path fill="#34a853" d="M447.5,310.4l-185.9,68.2c-1.8.6-3.6,1-5.5,1s-3.7-.3-5.5-1l-40.8-15h0l-145.1-53.4c-8.3-3-12.5-12.2-9.5-20.5,3-8.3,12.2-12.5,20.5-9.5l180.4,66.4,180.4-66.2c8.3-3,17.5,1.2,20.5,9.5,3,8.3-1.2,17.5-9.5,20.5h0Z"/>
+    <path fill="#34a853" d="M447.5,232.1l-185.9,68.2c-1.8.7-3.6,1-5.5,1s-3.7-.3-5.5-1l-40.8-15h0l-145.1-53.4c-8.3-3.1-12.5-12.2-9.5-20.5,3-8.3,12.2-12.5,20.5-9.5l180.4,66.4,180.4-66.2c8.3-3,17.5,1.2,20.5,9.5,3,8.3-1.2,17.5-9.5,20.5h0Z"/>
+    <path fill="#ea4335" d="M458,138.7c0,6.7-4.2,12.7-10.5,15l-186,68.2c-1.8.7-3.6,1-5.5,1s-3.7-.3-5.5-1l-40.8-15h0s46.4-17,46.4-17l139.6-51.2-139.7-51.6-46.2-17.1,40.7-15c3.6-1.3,7.5-1.3,11.1,0l186,68.7c6.3,2.3,10.5,8.3,10.5,15h0Z"/>
+    <path fill="#4285f4" d="M447.5,388.8l-185.9,68.2c-1.8.6-3.6,1-5.5,1s-3.7-.3-5.5-1l-40.8-15,46.4-17,180.4-66.2c8.3-3,17.5,1.2,20.5,9.5,3,8.3-1.2,17.5-9.5,20.5h0Z"/>
+    <path fill="#4285f4" d="M447.5,310.4l-185.9,68.2c-1.8.6-3.6,1-5.5,1s-3.7-.3-5.5-1l-40.8-15h0l46.4-17,180.4-66.2c8.3-3,17.5,1.2,20.5,9.5,3,8.3-1.2,17.5-9.5,20.5Z"/>
+    <path fill="#4285f4" d="M447.5,232.1l-185.9,68.2c-1.8.7-3.6,1-5.5,1s-3.7-.3-5.5-1l-40.8-15h0l46.4-17,180.4-66.2c8.3-3,17.5,1.2,20.5,9.5,3,8.3-1.2,17.5-9.5,20.5h0Z"/>
+    <path fill="#fbbc04" d="M302.4,206.9l-186-68.5-51.8-15c-6.3,2.3-10.5,8.3-10.5,15s4.2,12.7,10.5,15l145.1,53.4s0,0,0,0l40.8,15c1.8.6,3.7,1,5.5,1s3.7-.3,5.5-1l40.9-15h0Z"/>
+    </g>
+  </symbol>
+    <symbol id="icon-bigquery" viewBox="0 0 512 512">
+    <g id="art">
+    <path fill="#34a853" d="M311.9,418.9c-8.8,0-16-7.2-16-16v-145.8c0-8.8,7.2-16,16-16s16,7.2,16,16v145.8c0,8.8-7.2,16-16,16h0Z"/>
+    <path fill="#34a853" d="M147.6,418.9c-8.8,0-16-7.2-16-16v-200.5c0-8.8,7.2-16,16-16s16,7.2,16,16v200.5c0,8.8-7.2,16-16,16Z"/>
+    <path fill="#34a853" d="M229.8,437.4c-8.8,0-16-7.2-16-16V147.6c0-8.8,7.2-16,16-16s16,7.2,16,16v273.7c0,8.8-7.2,16-16,16h0Z"/>
+    <path fill="#fbbc04" d="M229.8,437.4c-114.5,0-207.6-93.1-207.6-207.6h32c0,96.8,78.8,175.6,175.6,175.6s175.6-78.8,175.6-175.6h32c0,114.5-93.1,207.6-207.6,207.6h0Z"/>
+    <path fill="#ea4335" d="M437.4,229.8h-32c0-96.8-78.8-175.6-175.6-175.6S54.1,132.9,54.1,229.8H22.1c0-114.5,93.2-207.7,207.7-207.7s207.6,93.1,207.6,207.6h0Z"/>
+    <path fill="#4285f4" d="M487.4,464.8l-100-100c32.3-37.6,49.9-85,49.9-135.1s-21.6-107.6-60.8-146.8l-22.6,22.6c33.2,33.2,51.4,77.3,51.4,124.2s-18.3,90.9-51.5,124.1h0c-5,5-7.5,7-11.8,10.8l122.8,122.8c3.1,3.1,7.2,4.7,11.3,4.7h0c4.1,0,8.2-1.6,11.3-4.7,6.2-6.2,6.2-16.4,0-22.6h0Z"/>
+    </g>
+  </symbol>
+    <symbol id="icon-cloud-run" viewBox="0 0 512 512">
+    <g id="art">
+    <path fill="#fbbc04" d="M144.4,272c-6.4,0-12.4-3.8-14.9-10.1L55.4,75.9c-3.3-8.2.7-17.5,8.9-20.8,8.2-3.3,17.5.7,20.8,8.9l74.2,186c3.3,8.2-.7,17.5-8.9,20.8-1.9.8-3.9,1.1-5.9,1.1h-.1Z"/>
+    <g id="b">
+    <path fill="#ea4335" d="M256,272c-6.4,0-12.4-3.8-14.9-10.1l-74.1-186c-2.6-6.6-.6-14.1,5-18.5s13.4-4.5,19.2-.4l260.1,186c7.2,5.1,8.9,15.1,3.7,22.3s-15.1,8.9-22.3,3.7L216.9,114.7l54,135.3c3.3,8.2-.7,17.5-8.9,20.8-1.9.8-4,1.1-5.9,1.1h-.1Z"/>
+    </g>
+    <path fill="#34a853" d="M127.2,256l-72,180c-3.3,8.2.7,17.5,8.9,20.8,3.1,1.2,4,1.1,5.9,1.1,6.3,0,12.4-3.8,14.9-10.1l74.4-186c.8-2,1.1-4,1.1-5.9h-33.2Z"/>
+    <path fill="#4285f4" d="M414.5,256l-197.7,141.2,54.1-135.3c.8-2,1.1-4,1.1-5.9h-33.2l-72,180c-2.6,6.6-.6,14.1,5,18.5,2.9,2.3,6.4,3.4,9.9,3.4s6.5-1,9.3-3l260.4-186c4.4-3.1,6.7-8,6.7-13h-43.6Z"/>
+    </g>
+  </symbol>
+    <symbol id="icon-cloud-storage" viewBox="0 0 512 512">
+    <g id="art">
+    <path fill="#34a853" d="M442,277.9H70c-8.8,0-16,7.2-16,16v148.1c0,8.8,7.2,16,16,16h107.2c1.5.5,3.1.7,4.8.7s3.3-.3,4.8-.7h255.2c8.8,0,16-7.2,16-16v-148.1c0-8.8-7.2-16-16-16ZM86,309.9h80v116.1h-80v-116.1ZM426,425.9h-228v-116.1h228v116.1Z"/>
+    <path fill="#fbbc04" d="M442,54H70c-8.8,0-16,7.2-16,16v148.8c0,8.8,7.2,16,16,16h372c8.8,0,16-7.2,16-16V70c0-8.8-7.2-16-16-16ZM86,86h80v116.8h-80v-116.8ZM426,202.8h-228v-116.8h228v116.8Z"/>
+    <path fill="#ea4335" d="M442,234.8h-16V86H54v-16c0-8.8,7.2-16,16-16h372c8.8,0,16,7.2,16,16v148.8c0,8.8-7.2,16-16,16Z"/>
+    <path fill="#4285f4" d="M442,457.9h-16v-148.1H54v-16c0-8.8,7.2-16,16-16h372c8.8,0,16,7.2,16,16v148.1c0,8.8-7.2,16-16,16Z"/>
+    <circle fill="#ea4335" cx="349" cy="144.4" r="37"/>
+    <circle fill="#4285f4" cx="349" cy="367.9" r="37"/>
+    </g>
+  </symbol>
+    <symbol id="icon-mdi-person" viewBox="0 0 24 24"><path fill="#1A73E8" d="M12 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2m0 10c2.7 0 5.8 1.29 6 2H6c.23-.72 3.31-2 6-2m0-12C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 10c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></symbol>
+    <symbol id="icon-mdi-widgets" viewBox="0 0 24 24"><path fill="#5F6368" d="m16.66 4.52 2.83 2.83-2.83 2.83-2.83-2.83 2.83-2.83M9 5v4H5V5h4m10 10v4h-4v-4h4M9 15v4H5v-4h4m7.66-13.31L11 7.34 16.66 13l5.66-5.66-5.66-5.65zM11 3H3v8h8V3zm10 10h-8v8h8v-8zm-10 0H3v8h8v-8z"/></symbol>
+    <symbol id="icon-mdi-forum" viewBox="0 0 24 24"><path fill="#1A73E8" d="M15 4v7H5.17L4 12.17V4h11m1-2H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1V3c0-.55-.45-1-1-1zm5 4h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1z"/></symbol>
+    <symbol id="icon-mdi-laptop" viewBox="0 0 24 24"><path fill="#1A73E8" d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></symbol>
+  </defs>
+  <rect x="0" y="0" width="1440" height="804" fill="#FFFFFF"/>
+  <rect x="20" y="16" width="1400" height="244" rx="12" ry="12" fill="#F6FBF7" stroke="#34A853" stroke-width="2"/>
+  <line x1="40" y1="62" x2="1400" y2="62" stroke="#DADCE0" stroke-width="1"/>
+  <text x="40" y="46" font-size="15.5" font-weight="700" fill="#137333">1. Architecture 1 — ADK Session Object + Memory Object (Multi-Agent Enterprise Standard)</text>
+  <rect x="1184" y="27" width="216" height="24" rx="12" ry="12" fill="#E6F4EA"/>
+  <text x="1292.0" y="43" text-anchor="middle" font-size="11.5" font-weight="700" fill="#137333">Recommended for Multi-Domain BI</text>
+  <rect x="40" y="78" width="210" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-mdi-person" x="54" y="89" width="32" height="32"/>
+  <text x="94" y="110" font-size="13.2" font-weight="700" fill="#202124">Enterprise User</text>
+  <line x1="54" y1="130" x2="236" y2="130" stroke="#E8EAED" stroke-width="1"/>
+  <text x="56" y="152" font-size="11.5" font-weight="400" fill="#3C4043">• Multi-Domain Analyst</text>
+  <text x="56" y="173" font-size="11.5" font-weight="400" fill="#3C4043">• Cross-Domain Drill-Down</text>
+  <text x="56" y="194" font-size="11.5" font-weight="400" fill="#3C4043">• Executive KPI Queries</text>
+  <text x="56" y="215" font-size="11.5" font-weight="400" fill="#3C4043">• Persistent User Profile</text>
+  <rect x="362" y="78" width="246" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-vertex-ai" x="376" y="89" width="32" height="32"/>
+  <text x="416" y="110" font-size="13.2" font-weight="700" fill="#202124">ADK Root &amp; Sub-Agents</text>
+  <line x1="376" y1="130" x2="594" y2="130" stroke="#E8EAED" stroke-width="1"/>
+  <text x="378" y="152" font-size="11.5" font-weight="400" fill="#3C4043">• LlmAgent / BaseAgent</text>
+  <text x="378" y="173" font-size="11.5" font-weight="400" fill="#3C4043">• transfer_to_agent (Enum)</text>
+  <text x="378" y="194" font-size="11.5" font-weight="400" fill="#3C4043">• Parallel 3-Domain Fan-out</text>
+  <text x="378" y="215" font-size="11.5" font-weight="400" fill="#3C4043">• Slim 20-Row Token Diet</text>
+  <rect x="764" y="78" width="246" height="164" rx="10" ry="10" fill="#FFFDF5" stroke="#F9AB00" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-cloud-sql" x="778" y="89" width="32" height="32"/>
+  <text x="818" y="110" font-size="13.2" font-weight="700" fill="#202124">ADK Session &amp; Memory</text>
+  <line x1="778" y1="130" x2="996" y2="130" stroke="#E8EAED" stroke-width="1"/>
+  <text x="780" y="152" font-size="11.5" font-weight="400" fill="#3C4043">• temp:* : Single-Turn GC</text>
+  <text x="780" y="173" font-size="11.5" font-weight="400" fill="#3C4043">• session : [-6:] (3-Turn Win)</text>
+  <text x="780" y="194" font-size="11.5" font-weight="400" fill="#3C4043">• user:* &amp; app:* : 4-Scope State</text>
+  <text x="780" y="215" font-size="11.5" font-weight="400" fill="#3C4043">• MemoryService : Long-Term</text>
+  <rect x="1154" y="78" width="246" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-bigquery" x="1168" y="89" width="32" height="32"/>
+  <text x="1208" y="110" font-size="13.2" font-weight="700" fill="#202124">Scoped Domain BQ CAAs</text>
+  <line x1="1168" y1="130" x2="1386" y2="130" stroke="#E8EAED" stroke-width="1"/>
+  <text x="1170" y="152" font-size="11.5" font-weight="400" fill="#3C4043">• Sales / Profit / Supply Chain</text>
+  <text x="1170" y="173" font-size="11.5" font-weight="400" fill="#3C4043">• Lock-Free Parallel Execution</text>
+  <text x="1170" y="194" font-size="11.5" font-weight="400" fill="#3C4043">• IAM : dataAgentUser</text>
+  <text x="1170" y="215" font-size="11.5" font-weight="400" fill="#3C4043">• Bounded Token Cost (~27K)</text>
+  <line x1="253" y1="174" x2="352" y2="174" stroke="#34A853" stroke-width="2.2" marker-end="url(#arrow-green)"/>
+  <rect x="268.0" y="140.0" width="76" height="25" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="306.0" y="154.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">User Turn</text>
+  <line x1="618" y1="174" x2="754" y2="174" stroke="#C56200" stroke-width="2.2" marker-start="url(#arrow-amber-start)" marker-end="url(#arrow-amber)"/>
+  <rect x="637.5" y="125.0" width="97" height="40" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="686.0" y="139.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">Read / Write</text>
+  <text x="686.0" y="154.5" text-anchor="middle" font-size="10.8" font-weight="500" fill="#3C4043">4-Scope State</text>
+  <line x1="1013" y1="174" x2="1144" y2="174" stroke="#34A853" stroke-width="2.2" marker-end="url(#arrow-green)"/>
+  <rect x="1011.0" y="125.0" width="142" height="40" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="1082.0" y="139.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">DataAgentContext</text>
+  <text x="1082.0" y="154.5" text-anchor="middle" font-size="10.8" font-weight="500" fill="#3C4043">+ Curated 3-Turn Msgs</text>
+  <rect x="20" y="280" width="1400" height="244" rx="12" ry="12" fill="#F8F9FA" stroke="#80868B" stroke-width="2"/>
+  <line x1="40" y1="326" x2="1400" y2="326" stroke="#DADCE0" stroke-width="1"/>
+  <text x="40" y="310" font-size="15.5" font-weight="700" fill="#202124">2. Architecture 2 — Default One-Shot Stateless Mode (Pure DataAgentContext / InlineContext)</text>
+  <rect x="1174" y="291" width="226" height="24" rx="12" ry="12" fill="#E8EAED"/>
+  <text x="1287.0" y="307" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3C4043">Best for One-Shot Widgets &amp; Batch</text>
+  <rect x="40" y="342" width="210" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#80868B" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-mdi-widgets" x="54" y="353" width="32" height="32"/>
+  <text x="94" y="374" font-size="13.2" font-weight="700" fill="#202124">User or BI Widget</text>
+  <line x1="54" y1="394" x2="236" y2="394" stroke="#E8EAED" stroke-width="1"/>
+  <text x="56" y="416" font-size="11.5" font-weight="400" fill="#3C4043">• Dashboard Summary Button</text>
+  <text x="56" y="437" font-size="11.5" font-weight="400" fill="#3C4043">• Daily Scheduled Batch</text>
+  <text x="56" y="458" font-size="11.5" font-weight="400" fill="#3C4043">• Isolated Single Question</text>
+  <text x="56" y="479" font-size="11.5" font-weight="400" fill="#3C4043">• Stateless API Caller</text>
+  <rect x="362" y="342" width="246" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-cloud-run" x="376" y="353" width="32" height="32"/>
+  <text x="416" y="374" font-size="13.2" font-weight="700" fill="#202124">Client App / Default ADK</text>
+  <line x1="376" y1="394" x2="594" y2="394" stroke="#E8EAED" stroke-width="1"/>
+  <text x="378" y="416" font-size="11.5" font-weight="400" fill="#3C4043">• Direct SDK / REST Caller</text>
+  <text x="378" y="437" font-size="11.5" font-weight="400" fill="#3C4043">• Built-in ask_data_agent</text>
+  <text x="378" y="458" font-size="11.5" font-weight="400" fill="#3C4043">• Zero Custom Session DB</text>
+  <text x="378" y="479" font-size="11.5" font-weight="400" fill="#3C4043">• No History Chaining</text>
+  <rect x="764" y="342" width="246" height="164" rx="10" ry="10" fill="#FFFFFF" fill-opacity="0.75" stroke="#BDC1C6" stroke-width="1.6" stroke-dasharray="6 4"/>
+  <circle cx="794" cy="369" r="11" fill="none" stroke="#9AA0A6" stroke-width="1.8"/>
+  <line x1="786.5" y1="376.5" x2="801.5" y2="361.5" stroke="#9AA0A6" stroke-width="1.8"/>
+  <text x="814" y="374" font-size="12.8" font-weight="700" fill="#80868B">No Session / State Store</text>
+  <line x1="778" y1="394" x2="996" y2="394" stroke="#E8EAED" stroke-width="1" stroke-dasharray="4 3"/>
+  <text x="887.0" y="488" text-anchor="middle" font-size="11" font-weight="500" fill="#9AA0A6">Stateless Pass-Through (Zero DB)</text>
+  <rect x="1154" y="342" width="246" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#80868B" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-bigquery" x="1168" y="353" width="32" height="32"/>
+  <text x="1208" y="374" font-size="13.2" font-weight="700" fill="#202124">BQ CAA Service (:chat)</text>
+  <line x1="1168" y1="394" x2="1386" y2="394" stroke="#E8EAED" stroke-width="1"/>
+  <text x="1170" y="416" font-size="11.5" font-weight="400" fill="#3C4043">• Zero Server History Log</text>
+  <text x="1170" y="437" font-size="11.5" font-weight="400" fill="#3C4043">• Intra-Turn Cache Only</text>
+  <text x="1170" y="458" font-size="11.5" font-weight="400" fill="#3C4043">• No Multi-Turn Context</text>
+  <text x="1170" y="479" font-size="11.5" font-weight="400" fill="#3C4043">• IAM : dataAgentUser</text>
+  <line x1="253" y1="438" x2="352" y2="438" stroke="#5F6368" stroke-width="2.2" marker-end="url(#arrow-grey)"/>
+  <rect x="259.0" y="404.0" width="94" height="25" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="306.0" y="418.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">Single Prompt</text>
+  <line x1="611" y1="438" x2="1144" y2="438" stroke="#5F6368" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#arrow-grey)"/>
+  <rect x="792.0" y="418.0" width="190" height="40" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="887.0" y="432.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">DataAgentContext (Stateless)</text>
+  <text x="887.0" y="447.5" text-anchor="middle" font-size="10.8" font-weight="500" fill="#3C4043">1 UserMessage Only · No History</text>
+  <rect x="20" y="544" width="1400" height="244" rx="12" ry="12" fill="#F4F8FE" stroke="#1A73E8" stroke-width="2"/>
+  <line x1="40" y1="590" x2="1400" y2="590" stroke="#DADCE0" stroke-width="1"/>
+  <text x="40" y="574" font-size="15.5" font-weight="700" fill="#174EA6">3. Architecture 3 — Managed Conversation API Stateful Mode (ConversationReference)</text>
+  <rect x="1159" y="555" width="241" height="24" rx="12" ry="12" fill="#E8F0FE"/>
+  <text x="1279.5" y="571" text-anchor="middle" font-size="11.5" font-weight="700" fill="#174EA6">Best for Single-Domain No-DB Chatbot</text>
+  <rect x="40" y="606" width="210" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-mdi-forum" x="54" y="617" width="32" height="32"/>
+  <text x="94" y="638" font-size="13.2" font-weight="700" fill="#202124">Department Analyst</text>
+  <line x1="54" y1="658" x2="236" y2="658" stroke="#E8EAED" stroke-width="1"/>
+  <text x="56" y="680" font-size="11.5" font-weight="400" fill="#3C4043">• Single-Domain User</text>
+  <text x="56" y="701" font-size="11.5" font-weight="400" fill="#3C4043">• Interactive Follow-up Chat</text>
+  <text x="56" y="722" font-size="11.5" font-weight="400" fill="#3C4043">• Ad-hoc SQL Exploration</text>
+  <text x="56" y="743" font-size="11.5" font-weight="400" fill="#3C4043">• BQ Studio / Thin Web UI</text>
+  <rect x="362" y="606" width="246" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-mdi-laptop" x="376" y="617" width="32" height="32"/>
+  <text x="416" y="638" font-size="13.2" font-weight="700" fill="#202124">Thin Client / BQ Studio</text>
+  <line x1="376" y1="658" x2="594" y2="658" stroke="#E8EAED" stroke-width="1"/>
+  <text x="378" y="680" font-size="11.5" font-weight="400" fill="#3C4043">• Zero Custom History DB</text>
+  <text x="378" y="701" font-size="11.5" font-weight="400" fill="#3C4043">• Sends conversation_id</text>
+  <text x="378" y="722" font-size="11.5" font-weight="400" fill="#3C4043">• 6-Turn / 15m Rotation</text>
+  <text x="378" y="743" font-size="11.5" font-weight="400" fill="#3C4043">• Guardrail Recommended</text>
+  <rect x="764" y="606" width="246" height="164" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-bigquery" x="778" y="617" width="32" height="32"/>
+  <text x="818" y="638" font-size="13.2" font-weight="700" fill="#202124">BQ CAA Service (:chat)</text>
+  <line x1="778" y1="658" x2="996" y2="658" stroke="#E8EAED" stroke-width="1"/>
+  <text x="780" y="680" font-size="11.5" font-weight="400" fill="#3C4043">• Bound to 1 Fixed DataAgent</text>
+  <text x="780" y="701" font-size="11.5" font-weight="400" fill="#3C4043">• Cross-Turn Cache (90% Off)</text>
+  <text x="780" y="722" font-size="11.5" font-weight="400" fill="#3C4043">• Serialized Per-Conv Write</text>
+  <text x="780" y="743" font-size="11.5" font-weight="400" fill="#3C4043">• Domain Switch Loses State</text>
+  <rect x="1154" y="606" width="246" height="164" rx="10" ry="10" fill="#FFFDF5" stroke="#F9AB00" stroke-width="2" filter="url(#card-shadow)"/>
+  <use href="#icon-cloud-storage" x="1168" y="617" width="32" height="32"/>
+  <text x="1208" y="638" font-size="13.2" font-weight="700" fill="#202124">Google Managed Store</text>
+  <line x1="1168" y1="658" x2="1386" y2="658" stroke="#E8EAED" stroke-width="1"/>
+  <text x="1170" y="680" font-size="11.5" font-weight="400" fill="#3C4043">• Auto-Injects Server History</text>
+  <text x="1170" y="701" font-size="11.5" font-weight="400" fill="#3C4043">• 180d Idle Auto-Expiration</text>
+  <text x="1170" y="722" font-size="11.5" font-weight="400" fill="#3C4043">• Regional CMEK (No global)</text>
+  <text x="1170" y="743" font-size="11.5" font-weight="400" fill="#3C4043">• Visible in BQ Studio UI</text>
+  <line x1="253" y1="702" x2="352" y2="702" stroke="#1A73E8" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+  <rect x="268.0" y="668.0" width="76" height="25" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="306.0" y="682.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">Follow-up</text>
+  <line x1="611" y1="702" x2="754" y2="702" stroke="#1A73E8" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+  <rect x="614.5" y="653.0" width="143" height="40" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="686.0" y="667.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">ConversationReference</text>
+  <text x="686.0" y="682.5" text-anchor="middle" font-size="10.8" font-weight="500" fill="#3C4043">+ 1 New UserMessage</text>
+  <line x1="1020" y1="702" x2="1144" y2="702" stroke="#C56200" stroke-width="2.2" marker-start="url(#arrow-amber-start)" marker-end="url(#arrow-amber)"/>
+  <rect x="1044.0" y="653.0" width="76" height="40" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
+  <text x="1082.0" y="667.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">Auto Load</text>
+  <text x="1082.0" y="682.5" text-anchor="middle" font-size="10.8" font-weight="500" fill="#3C4043">&amp; Append</text>
+</svg>

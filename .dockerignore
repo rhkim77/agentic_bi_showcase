@@ -1,0 +1,9 @@
+.git
+.venv
+__pycache__
+frontend/node_modules
+infra/.terraform
+docs/video-assets
+*.mp4
+*.webm
+.env

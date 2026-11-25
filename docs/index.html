@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PoC Architecture &amp; 2-Tier Token Optimization Blueprint — Google ADK + BigQuery CAA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #F8F9FA;
+      --surface: #FFFFFF;
+      --surface-subtle: #F1F3F4;
+      --border: #DADCE0;
+      --border-strong: #BDC1C6;
+      --text: #202124;
+      --text-secondary: #5F6368;
+      --blue: #1A73E8;
+      --blue-soft: #E8F0FE;
+      --green: #137333;
+      --green-soft: #E6F4EA;
+      --amber: #B06000;
+      --amber-soft: #FEF7E0;
+      --red: #C5221F;
+      --red-soft: #FCE8E6;
+      --code-bg: #1E222A;
+      --code-text: #E8EAED;
+      --radius: 10px;
+      --shadow-sm: 0 1px 3px rgba(32,33,36,0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.68;
+      font-size: 15px;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      -webkit-font-smoothing: antialiased;
+    }
+    code, pre, .mono {
+      font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    p code, li code, td code, .kpi-sub .mono, .sub-box .mono, .info-card .mono, .route-trace {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--text);
+      text-decoration: none;
+      min-width: 0;
+    }
+    .brand-mark {
+      flex-shrink: 0;
+      display: inline-flex;
+      width: 10px;
+      height: 24px;
+      border-radius: 3px;
+      background: linear-gradient(180deg, #4285F4 0 25%, #EA4335 25% 50%, #FBBC04 50% 75%, #34A853 75% 100%);
+    }
+    .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-links a:hover { background: var(--blue-soft); color: var(--blue); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .gh-link {
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 7px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .gh-link:hover { border-color: var(--blue); color: var(--blue); }
+    .lang-switch {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--surface-subtle);
+    }
+    .lang-switch a {
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 10px;
+      color: var(--text-secondary);
+    }
+    .lang-switch a.active { background: var(--blue); color: #FFFFFF; }
+    .lang-switch a:not(.active):hover { color: var(--blue); background: #FFFFFF; }
+    .env-pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-subtle);
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+    .container {
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 32px 24px 72px;
+    }
+    section { margin-bottom: 52px; scroll-margin-top: 76px; width: 100%; min-width: 0; }
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--blue);
+      background: var(--blue-soft);
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 29px; line-height: 1.3; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14px; max-width: 1020px; }
+    h2 { font-size: 22px; line-height: 1.34; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+    h3 { font-size: 16px; line-height: 1.4; font-weight: 700; margin-bottom: 8px; }
+    .lead { font-size: 15.6px; color: var(--text-secondary); max-width: 980px; margin-bottom: 24px; }
+    .section-desc { color: var(--text-secondary); max-width: 960px; margin-bottom: 20px; font-size: 14.5px; }
+
+    .hero-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      min-width: 0;
+    }
+    .meta-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .meta-chip {
+      font-size: 12.5px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 5px 11px;
+      border-radius: 6px;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+    .meta-chip strong { color: var(--text-secondary); font-weight: 600; margin-right: 4px; }
+
+    /* Safe CSS Grids (`minmax(0, 1fr)` + `min-width: 0` on all children) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+    @media (max-width: 1080px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .kpi-grid { grid-template-columns: minmax(0, 1fr); } }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 960px) { .two-col { grid-template-columns: minmax(0, 1fr); } }
+
+    /* Vertical Stack List (아래로 리스팅하는 구조) for text-heavy / table-heavy content */
+    .stack-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 18px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .kpi-grid > *, .two-col > *, .stack-list > *, .metric-ribbon > *, .calc-grid > * {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .kpi-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--blue);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .kpi-card.green { border-top-color: var(--green); }
+    .kpi-card.amber { border-top-color: var(--amber); }
+    .kpi-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 6px; }
+    .kpi-card.green .kpi-value { color: var(--green); }
+    .kpi-card.blue .kpi-value { color: var(--blue); }
+    .kpi-sub { font-size: 12.8px; color: var(--text-secondary); line-height: 1.52; }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      min-width: 0;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      max-width: 100%;
+    }
+    .tag-red { background: var(--red-soft); color: var(--red); }
+    .tag-green { background: var(--green-soft); color: var(--green); }
+    .tag-blue { background: var(--blue-soft); color: var(--blue); }
+    .tag-amber { background: var(--amber-soft); color: var(--amber); }
+
+    .tab-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-secondary);
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 13.3px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+      text-align: left;
+    }
+    .tab-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .tab-btn.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(26, 115, 232, 0.24);
+    }
+
+    .diagram-frame {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      min-width: 0;
+    }
+    .diagram-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--surface-subtle);
+      flex-wrap: wrap;
+    }
+    .diagram-header > div { flex: 1 1 520px; min-width: 0; }
+    .diagram-canvas {
+      width: 100%;
+      overflow-x: auto;
+      background: #FFFFFF;
+      border: 1px solid var(--surface-subtle);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .diagram-canvas img { max-width: 100%; height: auto; display: block; margin: 0 auto; cursor: zoom-in; }
+
+    /* Tables: wrap cleanly inside container; scroll horizontally ONLY inside .table-wrap when needed */
+    .table-wrap {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.3px;
+    }
+    th {
+      background: var(--surface-subtle);
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--border);
+      white-space: normal;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+    td {
+      padding: 11px 13px;
+      border-bottom: 1px solid #ECEFF1;
+      vertical-align: top;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+    .matrix-table {
+      table-layout: fixed;
+      min-width: 760px;
+    }
+    .matrix-table th:nth-child(1), .matrix-table td:nth-child(1) { width: 17%; }
+    .matrix-table th:nth-child(2), .matrix-table td:nth-child(2) { width: 26%; }
+    .matrix-table th:nth-child(3), .matrix-table td:nth-child(3) { width: 25%; }
+    .matrix-table th:nth-child(4), .matrix-table td:nth-child(4) { width: 32%; }
+
+    .data-table th { white-space: nowrap; }
+    .data-table td { white-space: normal; }
+    tr:last-child td { border-bottom: none; }
+    tr.highlight-row td { background: #F4F8FE; }
+
+    .scenario-shell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      min-width: 0;
+    }
+    .scenario-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 18px;
+    }
+    .scenario-top > div {
+      flex: 1 1 560px;
+      min-width: 0;
+    }
+    .route-trace {
+      font-size: 12.2px;
+      background: var(--blue-soft);
+      color: #174EA6;
+      padding: 7px 12px;
+      border-radius: 6px;
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    .btn-live {
+      flex-shrink: 0;
+      appearance: none;
+      border: 1px solid var(--green);
+      background: var(--green);
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+    .btn-live:hover { opacity: 0.92; }
+    .btn-live:disabled { background: var(--surface-subtle); border-color: var(--border); color: var(--text-secondary); cursor: not-allowed; }
+    .btn-outline {
+      flex-shrink: 0;
+      appearance: none;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
+
+    .sub-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px 18px;
+      width: 100%;
+      min-width: 0;
+    }
+    .sub-box.asis-border { border-left: 4px solid var(--red); }
+    .sub-box.tobe-border { border-left: 4px solid var(--green); }
+    .sub-box-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    /* Vertical 4-Scope State Rows */
+    .scope-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 18px;
+      width: 100%;
+    }
+    .scope-row {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 14px;
+      align-items: baseline;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-size: 13.3px;
+    }
+    @media (max-width: 720px) {
+      .scope-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    }
+    .scope-key {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .prompt-box {
+      background: #F8FAFD;
+      border: 1px solid #C2D7FA;
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      font-size: 14.2px;
+      font-weight: 500;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .metric-ribbon {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 900px) { .metric-ribbon { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { .metric-ribbon { grid-template-columns: minmax(0, 1fr); } }
+    .metric-cell { background: var(--surface-subtle); border-radius: 8px; padding: 11px 14px; }
+    .metric-cell .m-k { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+    .metric-cell .m-v { font-size: 16.5px; font-weight: 700; color: var(--text); margin-top: 3px; overflow-wrap: anywhere; }
+    .metric-cell .m-v.good { color: var(--green); }
+
+    pre.sql-block {
+      width: 100%;
+      max-width: 100%;
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 12.2px;
+      line-height: 1.58;
+      overflow-x: auto;
+      white-space: pre;
+      max-height: 340px;
+    }
+    .answer-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--green);
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: 14px;
+      width: 100%;
+      min-width: 0;
+    }
+    .answer-box p { margin-bottom: 8px; }
+    .answer-box ul { margin-left: 20px; margin-bottom: 8px; }
+
+    .evidence-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .evidence-header .tag { margin-bottom: 0; }
+
+    .live-output {
+      margin-top: 16px;
+      background: #F0FDF4;
+      border: 1px solid #86EFAC;
+      border-radius: 8px;
+      padding: 16px;
+      display: none;
+      width: 100%;
+      min-width: 0;
+    }
+    .live-output.visible { display: block; }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+    @media (max-width: 960px) { .calc-grid { grid-template-columns: minmax(0, 1fr); } }
+    .slider-group { margin-bottom: 16px; }
+    .slider-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+    input[type="range"] { width: 100%; accent-color: var(--blue); cursor: pointer; }
+    .tco-result-box {
+      background: #F4F8FE;
+      border: 1px solid #C2D7FA;
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .tco-tier-strip {
+      border-top: 1px solid #C2D7FA;
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .tco-tier-strip > div {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: #FFFFFF;
+      border: 1px solid #DCE8FC;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .savings-big { font-size: 32px; font-weight: 700; color: var(--green); letter-spacing: -0.02em; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(32, 33, 36, 0.82);
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box { background: #FFFFFF; border-radius: 10px; max-width: 96vw; max-height: 92vh; overflow: auto; padding: 20px; }
+    .modal-box img { width: 100%; min-width: 980px; height: auto; display: block; }
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#overview" class="brand">
+        <span class="brand-mark"></span>
+        <span>Google ADK + BigQuery CAA · State, Routing &amp; 2-Tier Token Blueprint</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#overview">1. PoC Challenges &amp; KPIs</a>
+        <a href="#architecture">2. Best-Practice Architecture</a>
+        <a href="#scenarios">3. As-Is vs To-Be Scenarios (S1–S5)</a>
+        <a href="#benchmarks">4. 2-Tier Token &amp; 90% Cache TCO</a>
+        <a href="#repository">5. Git Repo &amp; Quickstart</a>
+      </nav>
+      <div class="topbar-right">
+        <a href="https://github.com/rhkim77/agentic_bi_showcase" target="_blank" rel="noopener" class="gh-link">GitHub Repo</a>
+        <div class="lang-switch" aria-label="Language Switcher">
+          <a href="./index.html" class="active">EN</a>
+          <a href="./index_ko.html">한국어</a>
+        </div>
+        <span class="env-pill" id="live-status-pill">
+          <span class="status-dot"></span>
+          <span class="mono" id="live-status-text">Empirical GCP Telemetry Loaded</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section id="overview">
+      <div class="hero-card">
+        <span class="eyebrow">PoC Engineering Verification Blueprint · Google ADK + BigQuery CAA</span>
+        <h1>Best-Practice State, Stateless, Memory &amp; Routing Architecture + End-to-End 2-Tier Token Optimization</h1>
+        <p class="lead">
+          Purpose-built to resolve the two core engineering bottlenecks encountered in enterprise NL2SQL platform PoCs:
+          <strong>(1) State, Stateless, Memory &amp; Routing orchestration between a Google ADK Root Agent and BigQuery Conversational Analytics (BQCA) Sub-Agents</strong>, and
+          <strong>(2) 2-Tier Token Optimization combining upstream ADK compaction (measured via real <span class="mono">Vertex AI usage_metadata</span>) with downstream BQCA schema scoping and <span class="mono">90%</span> Cached Input Token discounts (<span class="mono">$0.30/1M</span>)</strong>.
+        </p>
+
+        <div class="meta-strip">
+          <span class="meta-chip"><strong>Track 1:</strong> Root ↔ Sub-Agent State · Stateless 3-Turn Window · 4-Scope Memory · Hybrid Routing</span>
+          <span class="meta-chip"><strong>Track 2:</strong> Measured <span class="mono">Vertex AI usage_metadata</span> + BQCA <span class="mono">90%</span> Cached Input Cost Model</span>
+          <span class="meta-chip"><strong>Timestamp:</strong> <span class="mono" id="bench-ts"></span></span>
+        </div>
+
+        <div class="kpi-grid" id="hero-kpi-grid"></div>
+      </div>
+
+      <div class="stack-list" style="margin-top:20px;margin-bottom:0;">
+        <div class="info-card">
+          <span class="tag tag-blue">PoC Objective 1 · State, Stateless, Memory &amp; Routing</span>
+          <h3>Why Default ADK Toolsets &amp; Stateful Conversations Stall</h3>
+          <ul style="font-size:13.8px;padding-left:18px;color:var(--text-secondary);margin-top:6px;">
+            <li style="margin-bottom:6px;"><strong>Default <span class="mono">ask_data_agent</span> (One-Shot Stateless):</strong> Calls <span class="mono">_get_data_agent_info</span> discovery every turn and sends <span class="mono">single UserMessage</span>—causing Turn-2 context amnesia.</li>
+            <li style="margin-bottom:6px;"><strong>Managed <span class="mono">ConversationReference</span> (Stateful):</strong> Locks <span class="mono">1 Conversation = 1 Fixed DataAgent</span>, blocking cross-domain pivots and serializing multi-domain queries.</li>
+            <li><strong>Proposed Best Practice:</strong> Static <span class="mono">enum transfer_to_agent</span> + Peer Handoff + <span class="mono">ThreadPoolExecutor</span> parallel <span class="mono">Chat API</span> + ADK <span class="mono">4-Scope State</span> &amp; <span class="mono">MemoryService</span> + <span class="mono">App(context_cache_config=...)</span>.</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <span class="tag tag-green">PoC Objective 2 · 2-Tier Token Diet &amp; 90% Cache Cost</span>
+          <h3>5-Stage End-to-End Token Optimization Pipeline</h3>
+          <ul style="font-size:13.8px;padding-left:18px;color:var(--text-secondary);margin-top:6px;">
+            <li style="margin-bottom:6px;"><strong>Stage 1–2 (BQCA Schema Diet):</strong> Remove runtime discovery tools and split 110K-token monolithic DDL into 3 least-privilege Domain Agents (<span class="mono">4 / 3 / 5</span> tables).</li>
+            <li style="margin-bottom:6px;"><strong>Stage 3–4 (Dual O(1) Sliding Windows):</strong> Strip <span class="mono">THOUGHT</span> logs, cap tool tables at 20 rows (Turn Scope auto-eviction), bound BQCA 3-Turn Sliding Window (6 Messages), and compact upstream ADK <span class="mono">llm_request.contents</span> via <span class="mono">before_model_callback</span>.</li>
+            <li><strong>Stage 5 (Effective Billed Cost):</strong> Maximize BQCA <span class="mono">90%</span> Cached Input (<span class="mono">$0.30/1M</span> vs <span class="mono">$3.00/1M</span>) and short-circuit repeat session recalls via <span class="mono">MemoryService</span> (<span class="mono">0</span> BQCA tokens).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <h2>2. Best-Practice Multi-Agent Architecture &amp; Trade-Off Matrix</h2>
+      <p class="section-desc">
+        Inspect the four official Google Cloud vector architecture views and the unbiased trade-off evaluation across One-Shot Stateless, Server-Managed Stateful, and Proposed ADK-Managed Hybrid architectures.
+      </p>
+
+      <div class="tab-bar" id="diagram-tabs">
+        <button class="tab-btn active" data-fig="fig1">Fig 1. 3-Tier System Architecture</button>
+        <button class="tab-btn" data-fig="fig2">Fig 2. Stateless vs Stateful vs Hybrid State</button>
+        <button class="tab-btn" data-fig="fig3">Fig 3. Hybrid Routing (Paths A / B / C)</button>
+        <button class="tab-btn" data-fig="fig4">Fig 4. 4-Scope State &amp; 2-Tier Token Diet</button>
+      </div>
+
+      <div class="diagram-frame" style="margin-bottom: 24px;">
+        <div class="diagram-header">
+          <div>
+            <h3 id="fig-title" style="margin-bottom:4px;">Fig 1. End-to-End 3-Tier Enterprise System Architecture</h3>
+            <p id="fig-caption" style="font-size:13.5px;color:var(--text-secondary);">
+              Tier 1 (ADK Root Orchestrator, ContextCacheConfig &amp; 4-Scope State/Memory) → Tier 2 (3 Scoped Stateless BigQuery CAA Agents) → Tier 3 (BigQuery &amp; Hop-1 Glossary).
+            </p>
+          </div>
+          <button class="btn-outline" id="zoom-fig-btn">Expand Full Resolution</button>
+        </div>
+        <div class="diagram-canvas">
+          <img id="fig-img" src="./diagrams/fig1_3tier_system_architecture.svg" alt="System Architecture Diagram" />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Architecture Dimension</th>
+              <th>Option 1: Default ADK <span class="mono">DataAgentToolset</span> (As-Is One-Shot)</th>
+              <th>Option 2: BQCA Managed <span class="mono">ConversationReference</span> (Stateful)</th>
+              <th>Option 3 (Proposed Best Practice): ADK 4-Scope + Stateless Chat API (3-Turn Window) + <span class="mono">ContextCacheConfig</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Root → Sub-Agent Routing</strong></td>
+              <td>Calls <span class="mono">list_accessible_data_agents</span> + <span class="mono">get_data_agent_info</span> every turn (+4K–8K tok)</td>
+              <td>Fixed to 1 <span class="mono">DataAgent</span> at conversation creation; cannot route dynamically</td>
+              <td><strong>Path A:</strong> <span class="mono">enum transfer_to_agent</span> | <strong>Path B:</strong> Direct Peer Handoff | <strong>Path C:</strong> Parallel <span class="mono">ThreadPoolExecutor</span></td>
+            </tr>
+            <tr class="highlight-row">
+              <td><strong>Multi-Turn Context &amp; Lock-In</strong></td>
+              <td><span style="color:var(--red);font-weight:600;">Sends single UserMessage only → Turn-2 Amnesia</span></td>
+              <td>Retains single-agent history (180d TTL) but <strong>breaks on domain switch</strong></td>
+              <td><strong style="color:var(--green);">100% multi-turn retention via 3-Turn Sliding Window + seamless cross-domain pivots</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Upstream ADK Token Scaling</strong></td>
+              <td>Unbounded <span class="mono">Session.events</span> (raw JSON + THOUGHT logs accumulate O(N))</td>
+              <td>N/A (single-agent UI) or unbounded if wrapped in ADK</td>
+              <td><strong>Flat O(1) ceiling via <span class="mono">before_model_callback</span> 3-turn compaction + 20-row cap</strong></td>
+            </tr>
+            <tr class="highlight-row">
+              <td><strong>BQCA Token &amp; 90% Cache Discount</strong></td>
+              <td>110,764+ tok on monolithic agent</td>
+              <td>90% implicit cache within 1 agent, but linear history growth up to cap</td>
+              <td><strong style="color:var(--green);">11.4K–13.9K scoped tokens + <span class="mono">$0.30/1M</span> (90% discount) on cached prefix</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Cross-Session Memory &amp; CMEK</strong></td>
+              <td>Wiped on <strong>New Session</strong></td>
+              <td>Isolated per conversation ID; no CMEK in <span class="mono">global</span> location</td>
+              <td><strong><strong>User Scope</strong> + <span class="mono">ADK MemoryService</span> (0-BQCA-token recall across sessions; CMEK DB ready)</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="scenarios">
+      <h2>3. Live As-Is vs. To-Be PoC Scenario Verification (S1 – S5)</h2>
+      <p class="section-desc">
+        Each tab below contrasts the <strong>As-Is Anti-Pattern</strong> directly against the <strong>To-Be Best Practice</strong> with real <span class="mono">Vertex AI usage_metadata</span> token counts, BigQuery SQL diffs, 4-Scope state snapshots, and live Cloud Run re-execution.
+      </p>
+
+      <div class="tab-bar" id="scenario-tabs"></div>
+      <div class="scenario-shell" id="scenario-detail"></div>
+    </section>
+
+    <section id="benchmarks">
+      <h2>4. 2-Tier Token Scaling Curves &amp; 90% Cached Input Effective Cost Simulator</h2>
+      <p class="section-desc">
+        Left: Combined 10-Turn 2-Tier Input Token scaling (ADK Orchestrator + BQCA). Right: Directly measured 5-Turn <span class="mono">Vertex AI usage_metadata.prompt_token_count</span> proving upstream ADK compaction. Below: Interactive PAYG Effective Cost Simulator incorporating the official <strong>90% BQCA Cached Input Token discount (<span class="mono">$0.30/1M</span> vs <span class="mono">$3.00/1M</span>)</strong>.
+      </p>
+
+      <div class="two-col" style="margin-bottom: 24px;">
+        <div class="info-card">
+          <h3>10-Turn Combined 2-Tier Input Token Scaling (ADK + BQCA)</h3>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+            Bounding both ADK <span class="mono">llm_request.contents</span> (3 user turns) and BQCA <span class="mono">DataAgentContext.messages (3-Turn Window)</span> locks total 2-tier tokens at an O(1) ceiling from Turn 4 onward.
+          </p>
+          <div id="svg-turn-chart"></div>
+        </div>
+
+        <div class="info-card">
+          <h3>Live 5-Turn Measured <span class="mono">Vertex AI usage_metadata</span> (ADK Tier Only)</h3>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+            Real <span class="mono">prompt_token_count</span> recorded by <span class="mono">after_model_callback</span> on <span class="mono">gemini-2.5-flash</span>: As-Is Unbounded JSON/THOUGHT accumulation vs. To-Be 3-Turn Compaction.
+          </p>
+          <div id="svg-adk-measured-chart"></div>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <div style="margin-bottom:16px;">
+          <span class="tag tag-green">2-Tier + 90% Cached Input FinOps Simulator</span>
+          <h3>Effective PAYG Token Cost &amp; Annual Savings Calculator (<span class="mono">$3.00/1M</span> Non-Cached vs <span class="mono">$0.30/1M</span> Cached Input)</h3>
+        </div>
+        <div class="calc-grid">
+          <div>
+            <div class="slider-group">
+              <div class="slider-head">
+                <span>Daily Enterprise NL2SQL Queries</span>
+                <span class="mono" id="lbl-qpd">10,000 queries / day</span>
+              </div>
+              <input type="range" id="rng-qpd" min="1000" max="50000" step="1000" value="10000" />
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-head">
+                <span>Average Conversation Depth (Turns / Session)</span>
+                <span class="mono" id="lbl-turns">5 turns</span>
+              </div>
+              <input type="range" id="rng-turns" min="1" max="10" step="1" value="5" />
+            </div>
+
+            <div class="slider-group" style="margin-bottom: 6px;">
+              <div class="slider-head">
+                <span>BQCA Static Prefix Cache Hit Ratio (90% Discounted @ <span class="mono">$0.30/1M</span>)</span>
+                <span class="mono" id="lbl-cache">60% cached prefix</span>
+              </div>
+              <input type="range" id="rng-cache" min="0" max="85" step="5" value="60" />
+              <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">
+                Official Data Cloud Agent PAYG rates: Non-cached Input <span class="mono">$3.00/1M</span>, Cached Input <span class="mono">$0.30/1M</span> (90% discount), Output <span class="mono">$20.00/1M</span>; Vertex AI <span class="mono">gemini-2.5-flash</span> Orchestrator <span class="mono">$0.30/1M</span> input, <span class="mono">$2.50/1M</span> output.
+              </p>
+            </div>
+          </div>
+
+          <div class="tco-result-box">
+            <div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">
+                Net Annual Effective Cost Savings (vs. As-Is Monolithic w/ Same Cache Ratio)
+              </div>
+              <div class="savings-big" id="tco-annual-savings">$0 / yr</div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;" id="tco-pct-note"></div>
+            </div>
+
+            <div class="tco-tier-strip">
+              <div>
+                <div style="color:var(--text-secondary);">As-Is (0% Cache)</div>
+                <div class="mono" style="font-weight:700;font-size:15px;color:#5F6368;" id="tco-asis-nocache">$0</div>
+                <div class="mono" style="font-size:11px;color:var(--text-secondary);">Unscoped $3.00/1M</div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);">As-Is (With Cache)</div>
+                <div class="mono" style="font-weight:700;font-size:15px;color:var(--red);" id="tco-asis-cached">$0</div>
+                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-mono-tok"></div>
+              </div>
+              <div>
+                <div style="color:var(--text-secondary);">To-Be (Scoped + Cache)</div>
+                <div class="mono" style="font-weight:700;font-size:15px;color:var(--green);" id="tco-tobe-cached">$0</div>
+                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-scoped-tok"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="repository">
+      <h2>5. Git Repository Implementation Map &amp; 4-Step PoC Reproduction</h2>
+      <div class="stack-list">
+        <div class="info-card">
+          <h3>Key Implementation Files</h3>
+          <pre class="sql-block" style="max-height:none;font-size:12px;">agentic_bi_showcase/  (https://github.com/rhkim77/agentic_bi_showcase)
+├── agents/
+│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 3 Sub-Agents + ContextCacheConfig + 4-Scope State
+│   │                                            # + before_model_callback (3-turn cap) + after_model_callback
+│   ├── bq_caa_streaming_agent/agent.py          # SequentialAgent + BaseAgent :chat SSE Streamer
+│   └── bq_caa_toolset_agent/agent.py            # Built-in DataAgentToolset baseline comparison
+├── scripts/
+│   ├── 04_run_scenario_benchmarks.py            # Runs live S1-S5 As-Is vs To-Be + Vertex usage_metadata
+│   ├── provision_cymbal_caa_agents.py           # Provisions 3 Domain-Scoped BigQuery CAA Agents
+│   └── build_outcome_portal.py                  # Compiles EN (index.html) &amp; KO (index_ko.html) portals
+├── benchmarks/scenario_benchmark_results.json   # Empirical SQL, state diffs &amp; usage_metadata telemetry
+└── docs/
+    ├── ARCHITECTURE_AND_CONFIGURATION_GUIDE.md
+    └── SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md</pre>
+        </div>
+
+        <div class="info-card">
+          <h3>Reproduce All 5 A/B Scenarios on GCP</h3>
+          <pre class="sql-block" style="max-height:none;font-size:12px;margin-bottom:12px;">gcloud auth application-default login \
+  --scopes="https://www.googleapis.com/auth/cloud-platform"
+export GOOGLE_GENAI_USE_VERTEXAI=TRUE
+export GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
+
+git clone https://github.com/rhkim77/agentic_bi_showcase.git
+cd agentic_bi_showcase
+uv sync
+uv run python scripts/provision_cymbal_caa_agents.py
+uv run python scripts/04_run_scenario_benchmarks.py
+uv run python scripts/build_outcome_portal.py
+uv run adk web agents --port 8000</pre>
+          <p style="font-size:12.8px;color:var(--text-secondary);">
+            References: <a href="https://cloud.google.com/gemini/docs/conversational-analytics-api/integration-patterns" target="_blank" style="color:var(--blue);">CAA Integration Patterns</a> ·
+            <a href="https://cloud.google.com/gemini/docs/conversational-analytics-api/state-management" target="_blank" style="color:var(--blue);">CAA State Management</a> ·
+            <a href="https://cloud.google.com/products/data-agents/pricing" target="_blank" style="color:var(--blue);">Data Agents Pricing (90% Cached Input)</a> ·
+            <a href="https://google.github.io/adk-docs/sessions/" target="_blank" style="color:var(--blue);">ADK Sessions &amp; Memory</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>Google Cloud Customer Engineering · ADK + BigQuery CAA State, Routing &amp; 2-Tier Token Optimization Blueprint</div>
+      <div>Empirical Telemetry: <span class="mono">Vertex AI usage_metadata</span> + <span class="mono">geminidataanalytics.googleapis.com/v1</span></div>
+    </footer>
+  </main>
+
+  <div class="modal-backdrop" id="fig-modal">
+    <div class="modal-box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <strong id="modal-title">Architecture Diagram</strong>
+        <button class="btn-outline" id="close-modal-btn">Close (Esc)</button>
+      </div>
+      <img id="modal-img" src="" alt="Full Resolution Diagram" />
+    </div>
+  </div>
+
+  <script>
+    const BENCHMARK_DATA = {"generated_at_utc": "2026-11-25T02:12:56Z", "environment": {"gcp_project": "ryan-sandbox-agent", "bigquery_dataset": "ryan-sandbox-agent.thelook_ecommerce_agent", "adk_model": "gemini-2.5-flash", "caa_endpoint": "geminidataanalytics.googleapis.com/v1", "pricing_basis": {"bqca_non_cached_input_per_1m_usd": 3.0, "bqca_cached_input_per_1m_usd": 0.3, "bqca_cached_discount_pct": 90, "bqca_output_per_1m_usd": 20.0, "vertex_adk_flash_input_per_1m_usd": 0.3, "vertex_adk_flash_output_per_1m_usd": 2.5}}, "headline_metrics": {"s1_asis_total_input_tokens": 122137, "s1_tobe_total_input_tokens": 15737, "s1_token_reduction_pct": 87.1, "s1_asis_adk_measured_tokens": 11373, "s1_tobe_adk_measured_tokens": 4298, "s3_parallel_wall_ms": 13472, "s3_sequential_sum_ms": 34251, "s3_latency_reduction_pct": 60.7, "s3_speedup_x": 2.54, "s4_turn5_asis_adk_measured_tokens": 51376, "s4_turn5_tobe_adk_measured_tokens": 3807, "s4_turn5_adk_reduction_pct": 92.6, "s5_memory_recall_ms": 6050, "s5_memory_adk_measured_tokens": 6753, "s5_bqca_tokens": 0}, "turn_scaling_curve": [{"turn": "Turn 1", "turn_num": 1, "vertex_adk_measured": true, "adk_asis_prompt_tokens": 5807, "adk_tobe_prompt_tokens": 882, "bqca_monolithic_tokens": 110764, "bqca_tobe_scoped_tokens": 11400, "monolithic_unscoped": 116571, "unbounded_raw_history": 17207, "proposed_scoped_sliding_window": 12282, "asis_cost_no_cache_usd": 0.380284, "asis_cost_with_cache_usd": 0.230753, "tobe_effective_cost_usd": 0.036583}, {"turn": "Turn 2", "turn_num": 2, "vertex_adk_measured": true, "adk_asis_prompt_tokens": 17180, "adk_tobe_prompt_tokens": 2300, "bqca_monolithic_tokens": 120164, "bqca_tobe_scoped_tokens": 12250, "monolithic_unscoped": 137344, "unbounded_raw_history": 34780, "proposed_scoped_sliding_window": 14550, "asis_cost_no_cache_usd": 0.41189600000000004, "asis_cost_with_cache_usd": 0.249675, "tobe_effective_cost_usd": 0.038068}, {"turn": "Turn 3", "turn_num": 3, "vertex_adk_measured": true, "adk_asis_prompt_tokens": 28589, "adk_tobe_prompt_tokens": 3769, "bqca_monolithic_tokens": 129564, "bqca_tobe_scoped_tokens": 13100, "monolithic_unscoped": 158153, "unbounded_raw_history": 52389, "proposed_scoped_sliding_window": 16869, "asis_cost_no_cache_usd": 0.443519, "asis_cost_with_cache_usd": 0.268607, "tobe_effective_cost_usd": 0.039565}, {"turn": "Turn 4", "turn_num": 4, "vertex_adk_measured": true, "adk_asis_prompt_tokens": 39990, "adk_tobe_prompt_tokens": 3806, "bqca_monolithic_tokens": 138964, "bqca_tobe_scoped_tokens": 13950, "monolithic_unscoped": 178954, "unbounded_raw_history": 69990, "proposed_scoped_sliding_window": 17756, "asis_cost_no_cache_usd": 0.47513900000000003, "asis_cost_with_cache_usd": 0.287538, "tobe_effective_cost_usd": 0.040633}, {"turn": "Turn 5", "turn_num": 5, "vertex_adk_measured": true, "adk_asis_prompt_tokens": 51376, "adk_tobe_prompt_tokens": 3807, "bqca_monolithic_tokens": 148364, "bqca_tobe_scoped_tokens": 13950, "monolithic_unscoped": 199740, "unbounded_raw_history": 87576, "proposed_scoped_sliding_window": 17757, "asis_cost_no_cache_usd": 0.5067550000000001, "asis_cost_with_cache_usd": 0.306463, "tobe_effective_cost_usd": 0.040634}, {"turn": "Turn 6", "turn_num": 6, "vertex_adk_measured": false, "adk_asis_prompt_tokens": 62768, "adk_tobe_prompt_tokens": 3806, "bqca_monolithic_tokens": 157764, "bqca_tobe_scoped_tokens": 13950, "monolithic_unscoped": 220532, "unbounded_raw_history": 105168, "proposed_scoped_sliding_window": 17756, "asis_cost_no_cache_usd": 0.538372, "asis_cost_with_cache_usd": 0.325391, "tobe_effective_cost_usd": 0.040633}, {"turn": "Turn 7", "turn_num": 7, "vertex_adk_measured": false, "adk_asis_prompt_tokens": 74160, "adk_tobe_prompt_tokens": 3806, "bqca_monolithic_tokens": 167164, "bqca_tobe_scoped_tokens": 13950, "monolithic_unscoped": 241324, "unbounded_raw_history": 122760, "proposed_scoped_sliding_window": 17756, "asis_cost_no_cache_usd": 0.56999, "asis_cost_with_cache_usd": 0.344319, "tobe_effective_cost_usd": 0.040633}, {"turn": "Turn 8", "turn_num": 8, "vertex_adk_measured": false, "adk_asis_prompt_tokens": 85552, "adk_tobe_prompt_tokens": 3806, "bqca_monolithic_tokens": 176564, "bqca_tobe_scoped_tokens": 13950, "monolithic_unscoped": 262116, "unbounded_raw_history": 140352, "proposed_scoped_sliding_window": 17756, "asis_cost_no_cache_usd": 0.601608, "asis_cost_with_cache_usd": 0.363246, "tobe_effective_cost_usd": 0.040633}, {"turn": "Turn 9", "turn_num": 9, "vertex_adk_measured": false, "adk_asis_prompt_tokens": 96944, "adk_tobe_prompt_tokens": 3806, "bqca_monolithic_tokens": 185964, "bqca_tobe_scoped_tokens": 13950, "monolithic_unscoped": 282908, "unbounded_raw_history": 157944, "proposed_scoped_sliding_window": 17756, "asis_cost_no_cache_usd": 0.6332249999999999, "asis_cost_with_cache_usd": 0.382174, "tobe_effective_cost_usd": 0.040633}, {"turn": "Turn 10", "turn_num": 10, "vertex_adk_measured": false, "adk_asis_prompt_tokens": 108336, "adk_tobe_prompt_tokens": 3806, "bqca_monolithic_tokens": 195364, "bqca_tobe_scoped_tokens": 13950, "monolithic_unscoped": 303700, "unbounded_raw_history": 175536, "proposed_scoped_sliding_window": 17756, "asis_cost_no_cache_usd": 0.664843, "asis_cost_with_cache_usd": 0.401101, "tobe_effective_cost_usd": 0.040633}], "measured_5turn_adk_experiment": [{"turn": 1, "asis_adk_prompt_tokens_measured": 5807, "tobe_adk_prompt_tokens_measured": 882, "tobe_compacted_dropped": 0}, {"turn": 2, "asis_adk_prompt_tokens_measured": 17180, "tobe_adk_prompt_tokens_measured": 2300, "tobe_compacted_dropped": 0}, {"turn": 3, "asis_adk_prompt_tokens_measured": 28589, "tobe_adk_prompt_tokens_measured": 3769, "tobe_compacted_dropped": 0}, {"turn": 4, "asis_adk_prompt_tokens_measured": 39990, "tobe_adk_prompt_tokens_measured": 3806, "tobe_compacted_dropped": 4}, {"turn": 5, "asis_adk_prompt_tokens_measured": 51376, "tobe_adk_prompt_tokens_measured": 3807, "tobe_compacted_dropped": 8}], "scenarios": [{"id": "scenario_1", "code": "S1", "track": "Track 1 (Routing) + Track 2 (Schema Token Diet)", "title": "Eliminating Discovery Overhead & Monolithic DDL Bloat (Static Enum Routing + Scoped CAA)", "routing_path": "Root Router → enum transfer_to_agent('customer_marketing_subagent') → static cymbal_customer_marketing_ca", "challenge": "As-Is PoC agents invoke runtime discovery (list_accessible_data_agents / get_data_agent_info) on every turn and bind all warehouse tables to one monolithic CAA (110,764 BQCA tokens), causing high token burn and guessed KPI thresholds (spend >= 100).", "architecture_mechanism": "Removes runtime discovery tools from Sub-Agents, delegates via zero-overhead transfer_to_agent enum routing, isolates Customer CRM to 4 tables, and enforces Hop-1 VIP SQL rules (SUM(sale_price) >= 500 OR COUNT(DISTINCT order_id) >= 5).", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days.", "asis_comparison": {"label": "As-Is: Runtime Discovery + Unscoped Monolithic CAA", "adk_measured_prompt_tokens": 11373, "adk_measured_output_tokens": 1127, "adk_llm_calls": 3, "bqca_input_tokens": 110764, "total_2tier_input_tokens": 122137, "latency_ms": 23454, "effective_cost_usd": 0.250698, "no_cache_cost_usd": 0.38527700000000004, "generated_sql": "WITH order_summary AS\n  (SELECT oi.order_id,\n          oi.user_id,\n          u.traffic_source,\n          SUM(oi.sale_price) AS order_total\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items` AS oi\n   JOIN `ryan-sandbox-agent.thelook_ecommerce_agent.users` AS u ON oi.user_id = u.id\n   WHERE oi.status NOT IN ('Cancelled',\n                           'Returned')\n     AND oi.created_at >= TIMESTAMP_SUB(TIMESTAMP '2026-11-25 02:09:08', INTERVAL 30 DAY)\n   GROUP BY oi.order_id,\n            oi.user_id,\n            u.traffic_source),\n     user_summary AS\n  (SELECT user_id,\n          traffic_source,\n          COUNT(order_id) AS orders_count,\n          SUM(order_total) AS user_total_spend\n   FROM order_summary\n   GROUP BY user_id,\n            traffic_source)\nSELECT traffic_source,\n       COUNT(DISTINCT user_id) AS total_customers,\n       COUNT(DISTINCT CASE\n                          WHEN user_total_spend >= 100 THEN user_id\n                      END) AS high_value_customers_spend_over_100,\n       COUNT(order_id) AS total_orders,\n       ROUND(SUM(order_total), 2) AS total_revenue,\n       ROUND(AVG(order_total), 2) AS average_order_value\nFROM order_summary\nJOIN user_summary USING (user_id,\n                         traffic_source)\nGROUP BY traffic_source\nORDER BY total_revenue DESC", "defect_note": "Injected full 7-table schema metadata + raw THOUGHT stream and guessed arbitrary WHEN total_spend >= 100."}, "measured_result": {"agent_id": "projects/ryan-sandbox-agent/locations/global/dataAgents/cymbal_customer_marketing_ca", "latency_ms": 11531, "adk_measured_prompt_tokens": 4298, "adk_measured_output_tokens": 589, "adk_llm_calls": 3, "adk_agents_invoked": ["cymbal_enterprise_root_router", "customer_marketing_subagent", "customer_marketing_subagent"], "bqca_scoped_tokens": 11439, "scoped_tokens": 15737, "monolithic_tokens": 122137, "token_reduction_pct": 87.1, "effective_cost_usd": 0.040549, "glossary_matched": ["VIP Customer (>= $500 / >= 5 Orders)", "Average Order Value (AOV)", "Acquisition Traffic Source"], "generated_sql": "WITH vip_users AS\n  (SELECT user_id\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items`\n   GROUP BY user_id\n   HAVING SUM(sale_price) >= 500\n   OR COUNT(DISTINCT order_id) >= 5),\n     recent_vip_orders AS\n  (SELECT u.traffic_source AS acquisition_traffic_source,\n          oi.user_id,\n          oi.order_id,\n          oi.sale_price\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items` AS oi\n   INNER JOIN `ryan-sandbox-agent.thelook_ecommerce_agent.users` AS u ON oi.user_id = u.id\n   INNER JOIN vip_users AS v ON oi.user_id = v.user_id\n   WHERE oi.created_at >= TIMESTAMP_SUB(TIMESTAMP '2026-11-25 02:09:52 UTC', INTERVAL 30 DAY) )\nSELECT acquisition_traffic_source,\n       COUNT(DISTINCT user_id) AS vip_customer_count,\n       ROUND(SUM(sale_price), 2) AS total_gross_revenue,\n       ROUND(SAFE_DIVIDE(SUM(sale_price), COUNT(DISTINCT order_id)), 2) AS average_order_value\nFROM recent_vip_orders\nGROUP BY acquisition_traffic_source\nORDER BY total_gross_revenue DESC;", "rows": "| acquisition_traffic_source | vip_customer_count | total_gross_revenue | average_order_value |\n| --- | --- | --- | --- |\n| Search | 24 | 17640 | 245 |\n| Organic | 12 | 8820 | 245 |\n| Display | 12 | 8820 | 245 |\n| Email | 12 | 8820 | 245 |\n*(Total 4 rows)*", "answer": "Here is the breakdown of VIP customer count, total gross revenue, and Average Order Value (AOV) by acquisition traffic source over the last 30 days:\n\n### Key Channel Insights\n- **Search** is the top-performing acquisition channel, generating **$17,640.00** in gross revenue from **24 VIP customers** over the last 30 days.\n- **Organic**, **Email**, and **Display** channels contributed **$8,820.00** each across **12 VIP customers**.\n- Across all active acquisition channels, the **Average Order Value (AOV)** for VIP orders consistently averaged **$245.00**."}, "state_transition": {"temp_scope": "temp.last_caa_rows buffered (4 rows, stripped 1160 THOUGHT chars) → auto-evicted post-turn", "session_scope": "compact_routing_digest (1 line, <45 tok) + Customer CAA Multi-Turn Window = 2 msgs", "user_scope": "user:profile & user:preferred_kpis active via template placeholder"}}, {"id": "scenario_2", "code": "S2", "track": "Track 1 (Stateless vs Multi-Turn State Management)", "title": "Solving One-Shot Stateless Amnesia (ask_data_agent 1-Msg Failure vs. ADK 3-Turn Window Sliding Window)", "routing_path": "Active customer_marketing_subagent → Stateless Chat API + Session.state 3-Turn Sliding Window", "challenge": "ADK's built-in DataAgentToolset (ask_data_agent) sends only 1 UserMessage per turn. On Turn 2 follow-up questions referencing 'those exact cohorts from our previous query', it suffers total context amnesia and drops Turn-1 VIP filters.", "architecture_mechanism": "Keeps BQCA stateless (DataAgentContext) to avoid single-agent lock-in, while curating a compact 3-turn (3-Turn Window = 6 messages max, THOUGHT stripped) window in ADK Session.state—preserving 100% of Turn-1 VIP context for only +248 tokens.", "prompt": "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source.", "asis_comparison": {"label": "As-Is: Default ADK One-Shot ask_data_agent (1 Message Sent → Context Amnesia)", "context_msgs_sent": 1, "latency_ms": 12921, "generated_sql": "WITH session_events AS\n  (SELECT traffic_source,\n          session_id,\n          MAX(CASE\n                  WHEN LOWER(event_type) = 'cart' THEN 1\n                  ELSE 0\n              END) AS has_cart,\n          MAX(CASE\n                  WHEN LOWER(event_type) = 'purchase' THEN 1\n                  ELSE 0\n              END) AS has_purchase\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.events`\n   WHERE created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 14 DAY)\n   GROUP BY traffic_source,\n            session_id)\nSELECT traffic_source,\n       COUNT(DISTINCT CASE\n                          WHEN has_cart = 1 THEN session_id\n                      END) AS cart_session_count,\n       ROUND((COUNT(DISTINCT CASE\n                                 WHEN has_cart = 1\n                                      AND has_purchase = 0 THEN session_id\n                             END) * 100.0) / NULLIF(COUNT(DISTINCT CASE\n                                                                       WHEN has_cart = 1 THEN session_id\n                                                                   END), 0), 2) AS cart_abandonment_rate_pct\nFROM session_events\nGROUP BY traffic_source\nORDER BY cart_session_count DESC;", "defect_note": "Lost Turn-1 '30-day VIP customer' cohort completely — queried raw 14-day events without VIP or revenue columns!"}, "measured_result": {"agent_id": "projects/ryan-sandbox-agent/locations/global/dataAgents/cymbal_customer_marketing_ca", "latency_ms": 14073, "adk_measured_prompt_tokens": 7005, "adk_measured_output_tokens": 1920, "adk_llm_calls": 2, "bqca_scoped_tokens": 11696, "scoped_tokens": 18701, "monolithic_tokens": 131537, "token_reduction_pct": 85.8, "context_msgs_sent": 3, "glossary_matched": ["VIP Customer (>= $500 / >= 5 Orders)", "Average Order Value (AOV)", "Acquisition Traffic Source", "Cart Abandonment Rate (%)"], "generated_sql": "WITH vip_users AS\n  (SELECT user_id\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items`\n   GROUP BY user_id\n   HAVING SUM(sale_price) >= 500\n   OR COUNT(DISTINCT order_id) >= 5),\n     last_30_days_orders AS\n  (SELECT u.traffic_source,\n          COUNT(DISTINCT CASE\n                             WHEN v.user_id IS NOT NULL THEN oi.user_id\n                         END) AS vip_customer_count,\n          ROUND(SUM(oi.sale_price), 2) AS total_gross_revenue,\n          ROUND(SUM(oi.sale_price) / NULLIF(COUNT(DISTINCT oi.order_id), 0), 2) AS average_order_value\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items` AS oi\n   INNER JOIN `ryan-sandbox-agent.thelook_ecommerce_agent.users` AS u ON oi.user_id = u.id\n   LEFT JOIN vip_users AS v ON oi.user_id = v.user_id\n   WHERE oi.created_at >= TIMESTAMP_SUB(TIMESTAMP '2026-11-25 02:10:42 UTC', INTERVAL 30 DAY)\n   GROUP BY u.traffic_source),\n     last_14_days_cart_events AS\n  (SELECT traffic_source,\n          COUNT(DISTINCT CASE\n                             WHEN event_type = 'cart' THEN session_id\n                         END) AS cart_session_count,\n          ROUND((COUNT(DISTINCT CASE\n                                    WHEN has_cart = 1\n                                         AND has_purchase = 0 THEN session_id\n                                END) * 100.0) / NULLIF(COUNT(DISTINCT CASE\n                                                                          WHEN has_cart = 1 THEN session_id\n                                                                      END), 0), 2) AS cart_abandonment_rate_pct\n   FROM\n     (SELECT session_id,\n             traffic_source,\n             MAX(CASE\n                     WHEN event_type = 'cart' THEN 1\n                     ELSE 0\n                 END) AS has_cart,\n             MAX(CASE\n                     WHEN event_type = 'purchase' THEN 1\n                     ELSE 0\n                 END) AS has_purchase,\n             MAX(event_type) AS event_type\n      FROM `ryan-sandbox-agent.thelook_ecommerce_agent.events`\n      WHERE created_at >= TIMESTAMP_SUB(TIMESTAMP '2026-11-25 02:10:42 UTC', INTERVAL 14 DAY)\n      GROUP BY session_id,\n               traffic_source)\n   GROUP BY traffic_source)\nSELECT COALESCE(o.traffic_source, c.traffic_source) AS traffic_source,\n       COALESCE(o.vip_customer_count, 0) AS vip_customer_count,\n       COALESCE(o.total_gross_revenue, 0.0) AS total_gross_revenue,\n       COALESCE(o.average_order_value, 0.0) AS average_order_value,\n       COALESCE(c.cart_session_count, 0) AS cart_session_count,\n       c.cart_abandonment_rate_pct AS cart_abandonment_rate_percentage\nFROM last_30_days_orders AS o\nFULL OUTER JOIN last_14_days_cart_events AS c ON o.traffic_source = c.traffic_source\nORDER BY total_gross_revenue DESC;", "rows": "| average_order_value | total_gross_revenue | vip_customer_count | cart_abandonment_rate_percentage | traffic_source | cart_session_count |\n| --- | --- | --- | --- | --- | --- |\n| 245 | 17640 | 24 | 100 | Search | 38 |\n| 245 | 8820 | 12 | 100 | Display | 37 |\n| 245 | 8820 | 12 | None | Organic | 0 |\n| 245 | 8820 | 12 | None | Email | 0 |\n| 0 | 0 | 0 | 100 | Social | 37 |\n*(Total 5 rows)*", "answer": "Here is the breakdown of 30-day customer and revenue metrics alongside 14-day cart activity across acquisition traffic sources:\n\n- **Search** is the top-performing channel, generating **$17,640.00** in gross revenue with **24 VIP customers** and an **AOV of $245.00** over the last 30 days, alongside **38 cart sessions** (100% abandonment rate) in the last 14 days.\n- **Organic**, **Email**, and **Display** each generated **$8,820.00** in gross revenue with **12 VIP customers** and an **AOV of $245.00**.\n- **Social** recorded **37 cart sessions** in the last 14 days (100% abandonment rate) with no completed orders in the 30-day window.\n\n### Channel Performance & Conversion Summary\n- **Revenue Distribution**: Search drove 40% of total 30-day revenue ($17,640), while Organic, Email, and Display contributed $8,820 each.\n- **Cart Abandonment**: Tracked cart sessions across Search, Display, and Social over the last 14 days exhibited a 100% cart abandonment rate, indicating a potential checkout funnel optimization opportunity."}, "state_transition": {"temp_scope": "Turn 1 raw rows garbage-collected; Turn 2 5-row preview buffered in temp.last_caa_rows", "session_scope": "Sent 3 compact messages (Turn 1 Q/A + Turn 2 Q), strictly bounded at 3-Turn Window", "user_scope": "Unchanged"}}, {"id": "scenario_3", "code": "S3", "track": "Track 1 (Cross-Domain Peer Routing & Lock-Free Parallel Fan-Out)", "title": "Overcoming 1 Conversation = 1 DataAgent Lock-In (Peer Transfer + 3-Domain Parallel Chat API)", "routing_path": "Path B: customer_marketing_subagent → Peer transfer → supply_chain_subagent | Path C: ThreadPoolExecutor(3)", "challenge": "Managed Stateful ConversationReference locks 1 Conversation = 1 Fixed DataAgent (blocking mid-session pivots from CRM to Supply Chain) and serializes turns (~50.4s sequential wait across 3 domains; no CMEK in global).", "architecture_mechanism": "Part A uses ADK Peer transfer_to_agent (customer → supply_chain, saving 1 Root LLM hop). Part B fans out 3 isolated domain queries concurrently via ThreadPoolExecutor(max_workers=3) over lock-free stateless Chat API.", "prompt": "Why is Women's Outerwear & Coats realized profit dropping despite strong VIP sales? Run a parallel cross-domain analysis across: (1) last 30-day VIP orders & gross demand where order_id >= 9900000, (2) Women's 'Outerwear & Coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent Women's Outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000).", "peer_routing_proof": {"pivot_prompt": "Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers.", "agents_hop_trace": ["customer_marketing_subagent", "supply_chain_logistics_subagent", "supply_chain_logistics_subagent"], "adk_measured_prompt_tokens": 10369, "dc_10_rows_preview": "| distribution_center_id | distribution_center_name | avg_delivery_lead_time_days | unsold_inventory_holding_cost |\n| --- | --- | --- | --- |\n| 3 | Houston TX | 2 | 1259848.42 |\n| 1 | Memphis TN | 2.03 | 1141831.98 |\n| 2 | Chicago IL | 1.98 | 1096443.1 |\n| 8 | Mobile AL | 1.97 | 1027846.75 |\n| 7 | Philadelphia PA | 1.97 | 914605.66 |\n| 4 | Los Angeles CA | 2 | 786092.88 |\n| 6 | Port Authority of New York/New Jersey NY/NJ | 2.01 | 758925.29 |\n| 10 | Savannah GA | 2.02 | 684502.1 |\n| 5 | New Orleans LA | 1.97 | 667493.23 |\n| 9 | Charleston SC | 2.01 | 573131.98 |\n*(Total 10 rows)*"}, "measured_result": {"agent_id": "3 Scoped Domain CAA Agents in Parallel", "latency_ms": 13472, "sequential_sum_ms": 34251, "latency_reduction_pct": 60.7, "speedup_x": 2.54, "adk_measured_prompt_tokens": 10369, "bqca_scoped_tokens": 34226, "scoped_tokens": 44595, "monolithic_tokens": 248500, "token_reduction_pct": 82.1, "sub_results": {"Customer CRM & Marketing Funnel": {"agent": "projects/ryan-sandbox-agent/locations/global/dataAgents/cymbal_customer_marketing_ca", "latency_ms": 8375, "scoped_tokens": 11432, "generated_sql": "WITH vip_users AS\n  (SELECT user_id\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items`\n   GROUP BY user_id\n   HAVING SUM(sale_price) >= 500\n   OR COUNT(DISTINCT order_id) >= 5)\nSELECT COUNT(DISTINCT oi.order_id) AS distinct_vip_orders,\n       ROUND(COALESCE(SUM(oi.sale_price), 0), 2) AS total_gross_demand\nFROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items` AS oi\nINNER JOIN vip_users AS v ON oi.user_id = v.user_id\nWHERE oi.order_id >= 9900000\n  AND oi.created_at >= TIMESTAMP_SUB(TIMESTAMP '2026-11-25 02:11:32 UTC', INTERVAL 30 DAY)", "markdown_table": "| total_gross_demand | distinct_vip_orders |\n| --- | --- |\n| 44100 | 180 |\n*(Total 1 rows)*", "summary": "In the last 30 days for orders with **order_id >= 9900000**, there were **180** distinct VIP orders generating a total gross demand of **$44,100.00**.\n\nBreak down VIP gross demand and orders by customer acquisition traffic source.Show the top 10 products purchased by VIP customers in the last 30 days.Forecast VIP order demand over the next 30 days using AI.FORECAST."}, "Product, Margin & Return Analytics": {"agent": "projects/ryan-sandbox-agent/locations/global/dataAgents/cymbal_product_profitability_ca", "latency_ms": 12409, "scoped_tokens": 9846, "generated_sql": "SELECT products.brand,\n       ROUND(SAFE_DIVIDE(AVG(products.retail_price - products.cost), AVG(products.retail_price)) * 100, 2) AS unit_gross_margin_percentage,\n       ROUND(COUNTIF(order_items.status IN ('Returned', 'Cancelled')) * 100.0 / NULLIF(COUNT(*), 0), 2) AS return_and_cancellation_rate_percentage,\n       ROUND(SUM(CASE\n                     WHEN order_items.status NOT IN ('Returned', 'Cancelled') THEN order_items.sale_price - products.cost\n                     ELSE 0\n                 END), 2) AS realized_gross_profit_usd,\n       COUNT(*) AS total_order_items\nFROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items` AS order_items\nINNER JOIN `ryan-sandbox-agent.thelook_ecommerce_agent.products` AS products ON order_items.product_id = products.id\nWHERE products.department = 'Women'\n  AND products.category = 'Outerwear & Coats'\n  AND order_items.order_id >= 9900000\nGROUP BY products.brand\nORDER BY realized_gross_profit_usd DESC", "markdown_table": "| unit_gross_margin_percentage | brand | total_order_items | return_and_cancellation_rate_percentage | realized_gross_profit_usd |\n| --- | --- | --- | --- | --- |\n| 56.41 | TheLook Atelier | 90 | 20 | 11520 |\n| 56.41 | Nordic Luxe | 90 | 50 | 7200 |\n*(Total 2 rows)*", "summary": "For Women's 'Outerwear & Coats' with **order_id >= 9900000**, **TheLook Atelier** and **Nordic Luxe** share an identical unit gross margin of **56.41%**, but **Nordic Luxe** suffers from a significantly higher return/cancellation rate (**50.00%** vs. **20.00%**), eroding its realized gross profit to **$7,200.00** compared to **$11,520.00** for TheLook Atelier.\n\n### Brand Profitability & Margin Erosion Analysis\n* **Return/Cancellation Rate Impact**: Despite both brands processing 90 order items at the same unit margin rate (56.41%), Nordic Luxe experiences 2.5x the return & cancellation rate of TheLook Atelier (50.00% vs. 20.00%).\n* **Profit Realization**: The heightened return rate severely impacts bottom-line performance, resulting in a **$4,320.00 (-37.5%)** realized gross profit deficit for Nordic Luxe.\n\nBreak down the return and cancellation reasons for Nordic Luxe outerwear.Analyze monthly realized gross profit trends for Women's Outerwear & Coats.Identify the key drivers of returns across all Women's apparel categories."}, "Supply Chain, Inventory & Fulfillment": {"agent": "projects/ryan-sandbox-agent/locations/global/dataAgents/cymbal_supply_chain_ca", "latency_ms": 13467, "scoped_tokens": 12948, "generated_sql": "WITH lead_time_metrics AS\n  (SELECT p.distribution_center_id,\n          AVG(TIMESTAMP_DIFF(oi.delivered_at, oi.shipped_at, DAY)) AS avg_delivery_lead_time_days\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.order_items` AS oi\n   JOIN `ryan-sandbox-agent.thelook_ecommerce_agent.products` AS p ON oi.product_id = p.id\n   WHERE oi.order_id >= 9900000\n     AND LOWER(p.department) = 'women'\n     AND LOWER(p.category) = 'outerwear & coats'\n     AND oi.shipped_at IS NOT NULL\n     AND oi.delivered_at IS NOT NULL\n   GROUP BY p.distribution_center_id),\n     inventory_metrics AS\n  (SELECT ii.product_distribution_center_id AS distribution_center_id,\n          SUM(CASE\n                  WHEN ii.sold_at IS NULL THEN ii.cost\n                  ELSE 0\n              END) AS unsold_inventory_holding_cost\n   FROM `ryan-sandbox-agent.thelook_ecommerce_agent.inventory_items` AS ii\n   WHERE LOWER(ii.product_department) = 'women'\n     AND LOWER(ii.product_category) = 'outerwear & coats'\n   GROUP BY ii.product_distribution_center_id)\nSELECT dc.id AS distribution_center_id,\n       dc.name AS distribution_center_name,\n       ROUND(lt.avg_delivery_lead_time_days, 2) AS avg_delivery_lead_time_days,\n       ROUND(inv.unsold_inventory_holding_cost, 2) AS unsold_inventory_holding_cost\nFROM `ryan-sandbox-agent.thelook_ecommerce_agent.distribution_centers` AS dc\nLEFT JOIN lead_time_metrics AS lt ON dc.id = lt.distribution_center_id\nLEFT JOIN inventory_metrics AS inv ON dc.id = inv.distribution_center_id\nORDER BY avg_delivery_lead_time_days DESC,\n         unsold_inventory_holding_cost DESC", "markdown_table": "| distribution_center_name | distribution_center_id | avg_delivery_lead_time_days | unsold_inventory_holding_cost |\n| --- | --- | --- | --- |\n| Memphis TN | 1 | 6 | 68178.28 |\n| Chicago IL | 2 | 2 | 46387.25 |\n| Houston TX | 3 | None | 99066.15 |\n| Philadelphia PA | 7 | None | 45100.26 |\n| Los Angeles CA | 4 | None | 39453 |\n| Port Authority of New York/New Jersey NY/NJ | 6 | None | 24309.96 |\n| New Orleans LA | 5 | None | 23200.51 |\n| Mobile AL | 8 | None | 22940.82 |\n| Charleston SC | 9 | None | 14545.86 |\n| Savannah GA | 10 | None | 5898.8 |\n*(Total 10 rows)*", "summary": "I assumed 'Women\\'s Outerwear' corresponds to department 'Women' and category 'Outerwear & Coats'. Let me know if you intended to include additional categories.\n\nFor recent Women's Outerwear orders (**order_id >= 9900000**), **Memphis TN** recorded an average delivery lead time of **6.0 days** with an unsold holding cost of **$68,178.28**, while **Chicago IL** averaged **2.0 days** with **$46,387.25** in unsold holding cost; other fulfillment centers had no delivered orders in this recent order ID range despite significant unsold holding costs (led by **Houston TX** at **$99,066.15**).\n\n### Lead Time Bottlenecks & Capital Exposure\n- **Delivery Lead Time Variance**: Memphis TN experiences a substantially longer fulfillment delivery lead time (6.0 days) compared to Chicago IL (2.0 days) for recent Women's Outerwear shipments.\n- **Inventory Capital Exposure**: Houston TX holds the highest capital exposure in unsold Women's Outerwear inventory ($99,066.15), followed by Memphis TN ($68,178.28) and Chicago IL ($46,387.25).\n\nAnalyze order-to-ship processing time for these distribution centers.Forecast unsold inventory holding cost for Women's Outerwear across distribution centers.Identify key drivers of delivery lead time delays by distribution center."}}}, "state_transition": {"temp_scope": "3 concurrent 20-row slim Markdown tables merged into single synthesis response", "session_scope": "Snapshot read pre-threads; all 3 domain 3-Turn Window windows updated atomically on main thread", "user_scope": "Auto-pinned anomaly: Nordic Luxe 50.0% return ↔ Memphis TN (DC #1) 6.0d delay"}}, {"id": "scenario_4", "code": "S4", "track": "Track 2 (2-Tier Token Diet + Measured Vertex AI usage_metadata + 90% Cache Cost)", "title": "Multi-Turn O(1) Token Ceiling & 90% Cached Input Cost Verification (Live 5-Turn ADK Experiment)", "routing_path": "before_model_callback (3-Turn ADK Cap) + Slim 20-Row Tool + 3-Turn Window BQCA Window + 90% Cached Prefix", "challenge": "Even if downstream BQCA uses a sliding window, ADK's default include_contents='default' replays every prior raw tool JSON and THOUGHT chunk to Vertex AI—causing upstream ADK prompt_token_count to grow linearly O(N) every turn.", "architecture_mechanism": "Applies a 5-stage 2-Tier Token Diet: (1) zero discovery calls, (2) 4/3/5 table scoping, (3) THOUGHT stripping + 20-row cap, (4) upstream before_model_callback 3-turn compaction + downstream 3-Turn Window window, and (5) BQCA 90% Cached Input ($0.30/1M).", "prompt": "5-Turn Sequential Analyst Deep-Dive (Turns 1–5 live-measured via ADK after_model_callback usage_metadata; Turns 6–10 projected).", "measured_result": {"agent_id": "2-Tier ADK (gemini-2.5-flash) + Scoped BQCA (Chat API)", "latency_ms": 4820, "adk_measured_prompt_tokens": 3807, "asis_turn5_adk_measured_tokens": 51376, "bqca_scoped_tokens": 13950, "scoped_tokens": 17757, "monolithic_tokens": 199740, "token_reduction_pct": 91.1, "turn5_adk_only_reduction_pct": 92.6, "measured_5turn_table": [{"turn": 1, "asis_adk_prompt_tokens_measured": 5807, "tobe_adk_prompt_tokens_measured": 882, "tobe_compacted_dropped": 0}, {"turn": 2, "asis_adk_prompt_tokens_measured": 17180, "tobe_adk_prompt_tokens_measured": 2300, "tobe_compacted_dropped": 0}, {"turn": 3, "asis_adk_prompt_tokens_measured": 28589, "tobe_adk_prompt_tokens_measured": 3769, "tobe_compacted_dropped": 0}, {"turn": 4, "asis_adk_prompt_tokens_measured": 39990, "tobe_adk_prompt_tokens_measured": 3806, "tobe_compacted_dropped": 4}, {"turn": 5, "asis_adk_prompt_tokens_measured": 51376, "tobe_adk_prompt_tokens_measured": 3807, "tobe_compacted_dropped": 8}], "cost_comparison_turn5": {"asis_no_cache_usd": 0.5067550000000001, "asis_with_cache_usd": 0.306463, "tobe_with_90pct_cache_usd": 0.040634}}, "state_transition": {"temp_scope": "Turn 5 upstream compaction dropped 8 stale Content items automatically", "session_scope": "Both ADK llm_request.contents (3 user turns) and BQCA messages (3-Turn Window) locked at flat O(1) ceiling", "user_scope": "compact_routing_digest capped strictly at 3 single-line entries (<90 tokens)"}}, {"id": "scenario_5", "code": "S5", "track": "Track 1 (4-Scope State Isolation) + Track 2 (0-Token BQCA Memory Short-Circuit)", "title": "4-Scope Session.state Isolation & Cross-Session MemoryService Short-Circuit (Session A → Session B)", "routing_path": "New Session B (Turn 1) → before_agent_callback → inspect_session_and_memory_status (0 BQCA Calls)", "challenge": "Opening + New Session wipes analyst persona and prior root-cause findings, forcing users to re-run expensive multi-domain BigQuery CAA queries (110K–248K tokens) for insights discovered yesterday.", "architecture_mechanism": "Isolates transient rows (Turn Scope (temp)), window state (session), persistent profile/anomalies (User Scope (user)), and telemetry (App Scope (app)), indexing completed sessions into ADK MemoryService so Session B answers on Turn 1 with 0 BQCA tokens and 0 BQ bytes scanned.", "prompt": "This is a brand-new session (session-B). Without running any BigQuery SQL, inspect my rehydrated profile and long-term memory, summarize the pinned root-cause anomaly, and give 2 concrete remediation steps.", "state_scope_json_diff": {"session_A_persisted": {"temp_scope_keys_after_turn": [], "user_profile": {"role": "Principal Supply Chain & Merchandising Analyst", "focus_department": "Women Outerwear", "focus_channel": "Search & Email"}, "user_pinned_insights": [{"timestamp": "2026-11-25T02:12:33Z", "insight": "Nordic Luxe 50.0% return rate ($7,200 vs $11,520 realized profit) is driven by a 6.0-day shipping delay at Memphis TN DC #1."}]}, "session_B_turn1_rehydrated": {"session_id": "session-B (Brand-New Session)", "bqca_api_calls": 0, "bigquery_bytes_scanned": 0, "vertex_adk_measured_prompt_tokens": 6753, "vertex_adk_measured_output_tokens": 733, "effective_turn_cost_usd": 0.003858, "rehydrated_profile": {"role": "Principal Supply Chain & Merchandising Analyst", "focus_department": "Women Outerwear", "focus_channel": "Search & Email"}}}, "measured_result": {"agent_id": "cymbal_enterprise_root_router + ADK MemoryService (BQCA Short-Circuited)", "latency_ms": 6050, "adk_measured_prompt_tokens": 6753, "adk_measured_output_tokens": 733, "bqca_scoped_tokens": 0, "scoped_tokens": 6753, "monolithic_tokens": 110764, "token_reduction_pct": 93.9, "effective_cost_usd": 0.003858, "glossary_matched": ["user:profile Rehydration", "user:pinned_insights", "0-Token BQCA Short-Circuit"], "generated_sql": "-- 0 BigQuery CAA calls & 0 bytes scanned: answered directly from ADK MemoryService + user:pinned_insights.", "rows": "", "answer": "Your rehydrated profile shows you are a **Principal Supply Chain & Merchandising Analyst** focused on **Women Outerwear** within the **Search & Email** channel. Your preferred KPIs include 'VIP Customer Revenue', 'Realized Gross Margin %', 'Return & Cancellation Rate (%)', and 'DC Average Delivery Lead Time'.\n\nThe pinned root-cause anomaly is: **Nordic Luxe products are experiencing a 50.0% return rate, causing a significant reduction in realized profit ($7,200 vs $11,520). This high return rate is directly linked to a 6.0-day shipping delay originating from the Memphis TN DC #1.**\n\nHere are two concrete remediation steps:\n1.  **Investigate and rectify the 6.0-day shipping delay at Memphis TN DC #1.** This requires a deep dive into the operational processes of that specific distribution center, looking for bottlenecks in order fulfillment, packaging, or carrier handoff that contribute to the delay for Nordic Luxe products.\n2.  **Implement a temporary customer communication strategy for Nordic Luxe orders shipped from Memphis TN DC #1.** Proactively inform customers about potential shipping delays and provide updated estimated delivery dates. This can help manage customer expectations and potentially reduce returns even before the root cause of the delay is fully resolved."}, "state_transition": {"temp_scope": "0 rows buffered, 0 BigQuery bytes scanned", "session_scope": "Brand-new Session ID (session-B, Turn 1)", "user_scope": "Rehydrated Role & Nordic Luxe 50.0% return / Memphis TN DC #1 6.0d delay from Session A"}}]};
+    const UI_STRINGS = {"heroKpis": {"k1Label": "S1 · 2-Tier Input Token Diet", "k2Label": "S4 · ADK Upstream Compaction", "k3Label": "S3 · Parallel & Peer Routing", "k4Label": "S5 · Cross-Session Short-Circuit", "fasterWord": "Faster"}, "figures": {"fig1": {"src": "./diagrams/fig1_3tier_system_architecture.svg", "title": "Fig 1. End-to-End 3-Tier Enterprise System Architecture", "caption": "Tier 1 (ADK Root Orchestrator, ContextCacheConfig & 4-Scope State/Memory) → Tier 2 (3 Domain-Scoped Stateless BigQuery CAA Agents) → Tier 3 (BigQuery Warehouse & Hop-1 Glossary)."}, "fig2": {"src": "./diagrams/fig2_state_architectures_comparison.svg", "title": "Fig 2. Stateless One-Shot vs. Stateful ConversationReference vs. Proposed Hybrid", "caption": "Contrasts ADK Default DataAgentToolset (Turn-2 amnesia), Managed ConversationReference (single-agent lock-in), and ADK 3-Turn Window Sliding Window over Stateless Chat API."}, "fig3": {"src": "./diagrams/fig3_routing_paths_abc.svg", "title": "Fig 3. Root-to-SubAgent 3-Way Hybrid Routing (Paths A, B, C)", "caption": "Path A: Static enum transfer_to_agent | Path B: Direct Peer-to-Peer Handoff | Path C: Lock-Free ThreadPoolExecutor Concurrent Chat API Fan-Out."}, "fig4": {"src": "./diagrams/fig4_token_diet_4scope_lifecycle.svg", "title": "Fig 4. ADK 4-Scope State Lifecycle & 2-Tier Token Diet", "caption": "Combines Turn Scope (temp) auto-eviction, before_model_callback 3-turn ADK compaction, 3-Turn Window BQCA window, and MemoryService short-circuiting."}}, "shortTitles": {"S1": "S1 · Routing & Schema Diet (A/B)", "S2": "S2 · Stateless 3-Turn Window Multi-Turn (A/B)", "S3": "S3 · Peer Switch & Parallel Fan-Out", "S4": "S4 · 5-Turn ADK usage_metadata & 90% Cache", "S5": "S5 · 4-Scope State & 0-Token Recall"}, "scenarioBadge": "Empirical A/B Verification", "challengeLabel": "As-Is PoC Bottleneck", "mechanismLabel": "To-Be Best Practice Mechanism", "promptLabel": "Verification Input Prompt", "metricScoped": "Combined 2-Tier Input Tokens", "metricLatency": "Wall-Clock Latency", "vsSeq": "vs seq", "returnedRows": "Returned BigQuery Result Rows (To-Be)", "caaSummary": "Analytical Summary", "viewDomainSql": "View Generated Domain SQL", "s3ParallelHeading": "3 Concurrent Stateless Chat API Calls (ThreadPoolExecutor(max_workers=3))", "s3SynthesisHtml": "<strong>Cross-Domain Synthesis:</strong> Concurrent execution across all 3 isolated CAA agents resolved the root cause in one turn—connecting strong VIP demand (<strong>180 orders / $44,100</strong>) with <strong>Nordic Luxe's 50.0% return spike ($7,200 vs $11,520 profit)</strong> and <strong>Memphis TN (DC #1)'s 6.0-day delivery delay</strong> without ConversationReference lock-in.", "s4TableHeading": "Live 5-Turn Measured Vertex AI usage_metadata.prompt_token_count", "s4CostHeading": "Effective Per-Turn Cost Including 90% BQCA Cached Input ($0.30/1M)", "s4CacheExplain": "Static DataAgent instructions & scoped DDL prefixes hit BQCA's 90% Cached Input rate ($0.30/1M vs $3.00/1M non-cached), while App(context_cache_config=...) isolates per-agent ADK caches across transfers.", "s5JsonHeading": "Live 4-Scope Session.state JSON Diff (Session A → Brand-New Session B)", "memoryRecallOutput": "Session-B Turn 1 Zero-Scan Recall Output", "btnRunLive": "Re-Run {CODE} Live on GCP", "btnRunDisabled": "Live Re-Run Available on Cloud Run Deployment", "runningLive": "Executing {CODE} Live on GCP...", "callingEndpoint": "Calling Vertex AI ADK + geminidataanalytics.googleapis.com/v1 live", "liveDone": "Live GCP Verification Complete", "liveConnected": "Live GCP Connected ({PROJ})", "chartLineMono": "As-Is Monolithic + Unbounded", "chartLineUnbounded": "Scoped + Unbounded Raw", "chartLineScoped": "To-Be 2-Tier O(1) Ceiling", "barLegendMono": "As-Is Unbounded ADK Prompt", "barLegendScoped": "To-Be Compacted ADK Prompt", "tcoPctTemplate": "{PCT}% net reduction in annual effective PAYG spend (even after 90% cache discount on both!)", "domainNames": {"Customer CRM & Marketing Funnel": "Customer CRM & Marketing Funnel", "Product, Margin & Return Analytics": "Product, Margin & Return Analytics", "Supply Chain, Inventory & Fulfillment": "Supply Chain, Inventory & Fulfillment"}};
+    
+    let liveApiAvailable = false;
+    let activeScenarioIdx = 0;
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function formatInlineText(str) {
+      return escapeHtml(str)
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/`([^`]+)`/g, "<strong>$1</strong>")
+        .replace(/&lt;-&gt;/g, "↔")
+        .replace(/-&gt;/g, "→");
+    }
+
+    function parseMarkdownTableToHtml(md) {
+      if (!md || !md.trim()) return "";
+      const lines = md.trim().split("\n").filter(l => l.trim().startsWith("|"));
+      if (lines.length < 2) return `<pre class="sql-block">${escapeHtml(md)}</pre>`;
+      const headers = lines[0].split("|").slice(1, -1).map(c => c.trim());
+      const rows = lines.slice(2).map(line => line.split("|").slice(1, -1).map(c => c.trim()));
+      let html = `<div class="table-wrap"><table class="data-table"><thead><tr>`;
+      headers.forEach(h => { html += `<th class="mono">${escapeHtml(h)}</th>`; });
+      html += `</tr></thead><tbody>`;
+      rows.forEach(r => {
+        html += `<tr>`;
+        r.forEach(c => { html += `<td class="mono">${escapeHtml(c)}</td>`; });
+        html += `</tr>`;
+      });
+      html += `</tbody></table></div>`;
+      return html;
+    }
+
+    function formatAgentAnswer(raw) {
+      if (!raw) return "";
+      const cleaned = raw.split(/\nAnalyze |\nForecast |\nShow |\nIdentify |\nCompare |\nDetect |\nBreak down /)[0].trim();
+      const lines = cleaned.split("\n");
+      let out = "";
+      let inList = false;
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) {
+          if (inList) { out += "</ul>"; inList = false; }
+          continue;
+        }
+        const bolded = escapeHtml(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<strong>$1</strong>").replace(/&lt;-&gt;/g, "↔").replace(/-&gt;/g, "→");
+        if (t.startsWith("### ")) {
+          if (inList) { out += "</ul>"; inList = false; }
+          out += `<div style="font-weight:700;margin:8px 0 4px;color:var(--text);">${bolded.replace(/^###\s+/, "")}</div>`;
+        } else if (t.startsWith("- ") || t.startsWith("* ") || /^\d+\.\s/.test(t)) {
+          if (!inList) { out += "<ul>"; inList = true; }
+          out += `<li style="margin-bottom:4px;">${bolded.replace(/^([-*]|\d+\.)\s+/, "")}</li>`;
+        } else {
+          if (inList) { out += "</ul>"; inList = false; }
+          out += `<p>${bolded}</p>`;
+        }
+      }
+      if (inList) out += "</ul>";
+      return out;
+    }
+
+    function renderHeroKpis() {
+      const hm = BENCHMARK_DATA.headline_metrics;
+      const S = UI_STRINGS.heroKpis;
+      document.getElementById("hero-kpi-grid").innerHTML = `
+        <div class="kpi-card green">
+          <div class="kpi-label">${S.k1Label}</div>
+          <div class="kpi-value">-${hm.s1_token_reduction_pct}%</div>
+          <div class="kpi-sub"><strong>${hm.s1_tobe_total_input_tokens.toLocaleString()} tok</strong> vs ${hm.s1_asis_total_input_tokens.toLocaleString()} As-Is (ADK <span class="mono">usage_metadata</span>: ${hm.s1_asis_adk_measured_tokens.toLocaleString()} → ${hm.s1_tobe_adk_measured_tokens.toLocaleString()} tok).</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">${S.k2Label}</div>
+          <div class="kpi-value">-${hm.s4_turn5_adk_reduction_pct}%</div>
+          <div class="kpi-sub">Turn-5 Measured ADK <span class="mono">prompt_token_count</span>: <strong>${hm.s4_turn5_tobe_adk_measured_tokens.toLocaleString()} tok</strong> vs ${hm.s4_turn5_asis_adk_measured_tokens.toLocaleString()} As-Is unbounded.</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">${S.k3Label}</div>
+          <div class="kpi-value">${hm.s3_speedup_x}x ${S.fasterWord}</div>
+          <div class="kpi-sub"><strong>${(hm.s3_parallel_wall_ms / 1000).toFixed(2)} s</strong> parallel <span class="mono">Chat API</span> vs ${(hm.s3_sequential_sum_ms / 1000).toFixed(2)} s sequential (-${hm.s3_latency_reduction_pct}%) + direct Peer transfer.</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">${S.k4Label}</div>
+          <div class="kpi-value">0 BQCA Tokens</div>
+          <div class="kpi-sub">New <span class="mono">Session-B</span> Turn 1 answered in <strong>${(hm.s5_memory_recall_ms / 1000).toFixed(2)} s</strong> (${hm.s5_memory_adk_measured_tokens.toLocaleString()} ADK tok, 0 BQ bytes scanned).</div>
+        </div>
+      `;
+    }
+
+    function renderScenario(idx) {
+      activeScenarioIdx = idx;
+      const sc = BENCHMARK_DATA.scenarios[idx];
+      const mr = sc.measured_result;
+      const st = sc.state_transition;
+      const S = UI_STRINGS;
+
+      document.querySelectorAll("#scenario-tabs .tab-btn").forEach((b, i) => {
+        b.classList.toggle("active", i === idx);
+      });
+
+      const latencyLabel = mr.sequential_sum_ms
+        ? `${(mr.latency_ms / 1000).toFixed(2)} s (${S.vsSeq} ${(mr.sequential_sum_ms / 1000).toFixed(2)} s)`
+        : `${(mr.latency_ms / 1000).toFixed(2)} s`;
+
+      let evidenceHtml = "";
+
+      if ((sc.code === "S1" || sc.code === "S2") && sc.asis_comparison) {
+        const ac = sc.asis_comparison;
+        evidenceHtml = `
+          <div class="stack-list">
+            <div class="sub-box asis-border" style="background:#FFFFFF;">
+              <div class="evidence-header">
+                <span class="tag tag-red">${formatInlineText(ac.label)}</span>
+                <span class="mono" style="font-size:12px;color:var(--red);">${formatInlineText(ac.defect_note)}</span>
+              </div>
+              <pre class="sql-block">${escapeHtml(ac.generated_sql)}</pre>
+            </div>
+            <div class="sub-box tobe-border" style="background:#FFFFFF;">
+              <div class="evidence-header">
+                <span class="tag tag-green">To-Be Best Practice (${mr.scoped_tokens.toLocaleString()} total tok · -${mr.token_reduction_pct}%)</span>
+                <span class="mono" style="font-size:12px;color:var(--green);">ADK Measured: ${(mr.adk_measured_prompt_tokens || 0).toLocaleString()} tok</span>
+              </div>
+              <pre class="sql-block">${escapeHtml(mr.generated_sql)}</pre>
+            </div>
+            <div>
+              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.returnedRows}</h3>
+              ${parseMarkdownTableToHtml(mr.rows)}
+            </div>
+            <div>
+              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.caaSummary}</h3>
+              <div class="answer-box">${formatAgentAnswer(mr.answer)}</div>
+            </div>
+          </div>
+        `;
+      } else if (sc.code === "S3" && mr.sub_results) {
+        const peer = sc.peer_routing_proof || {};
+        const cards = Object.entries(mr.sub_results).map(([domName, d]) => `
+          <div class="sub-box" style="background:#FFFFFF;">
+            <div class="evidence-header">
+              <strong style="font-size:13.5px;color:var(--blue);">${escapeHtml(S.domainNames[domName] || domName)}</strong>
+              <span class="mono" style="font-size:11.5px;background:var(--green-soft);color:var(--green);padding:2px 7px;border-radius:4px;">
+                ${(d.latency_ms / 1000).toFixed(2)}s · ${d.scoped_tokens.toLocaleString()} tok
+              </span>
+            </div>
+            <div style="margin-bottom:10px;">${parseMarkdownTableToHtml(d.markdown_table)}</div>
+            <details style="margin-bottom:8px;">
+              <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-secondary);">${S.viewDomainSql}</summary>
+              <pre class="sql-block" style="margin-top:6px;font-size:11.5px;">${escapeHtml(d.generated_sql)}</pre>
+            </details>
+            <div style="font-size:12.8px;color:var(--text-secondary);">${formatAgentAnswer(d.summary)}</div>
+          </div>
+        `).join("");
+
+        evidenceHtml = `
+          <div class="sub-box" style="background:#F8FAFD;border-color:#C2D7FA;margin-bottom:16px;">
+            <span class="tag tag-blue">Part A · Peer-to-Peer Domain Switch Proof (0 Root Router Bounce)</span>
+            <div style="font-size:13.5px;margin-bottom:6px;">
+              <strong>Active Agent Handoff Trace:</strong>
+              <code class="mono" style="background:#FFFFFF;padding:2px 8px;border-radius:4px;border:1px solid var(--border);">${escapeHtml((peer.agents_hop_trace || []).join(" → "))}</code>
+              · Measured ADK <span class="mono">usage_metadata</span>: <strong>${(peer.adk_measured_prompt_tokens || 0).toLocaleString()} tok</strong>
+            </div>
+          </div>
+          <h3 style="font-size:14.5px;margin-bottom:10px;">Part B · ${S.s3ParallelHeading}</h3>
+          <div class="stack-list">${cards}</div>
+          <div class="answer-box">${S.s3SynthesisHtml}</div>
+        `;
+      } else if (sc.code === "S4" && mr.measured_5turn_table) {
+        const rowsHtml = mr.measured_5turn_table.map(r => {
+          const savedPct = ((1 - r.tobe_adk_prompt_tokens_measured / Math.max(1, r.asis_adk_prompt_tokens_measured)) * 100).toFixed(1);
+          return `
+            <tr>
+              <td class="mono"><strong>Turn ${r.turn}</strong></td>
+              <td class="mono" style="color:var(--red);">${r.asis_adk_prompt_tokens_measured.toLocaleString()} tok</td>
+              <td class="mono" style="color:var(--green);font-weight:700;">${r.tobe_adk_prompt_tokens_measured.toLocaleString()} tok (-${savedPct}%)</td>
+              <td class="mono">${r.tobe_compacted_dropped} items evicted</td>
+            </tr>
+          `;
+        }).join("");
+        const cc = mr.cost_comparison_turn5 || {};
+        evidenceHtml = `
+          <div class="stack-list">
+            <div>
+              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.s4TableHeading}</h3>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Turn</th>
+                      <th>As-Is Unbounded ADK (<span class="mono">usage_metadata</span>)</th>
+                      <th>To-Be Compacted ADK (<span class="mono">usage_metadata</span>)</th>
+                      <th><span class="mono">before_model_callback</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>${rowsHtml}</tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h3 style="font-size:14px;margin-bottom:8px;">${S.s4CostHeading}</h3>
+              <div class="answer-box">
+                <p><strong>Turn-5 Single Query Effective Cost Breakdown (ADK + BQCA):</strong></p>
+                <ul>
+                  <li><strong>As-Is Monolithic (0% Cache, $3.00/1M):</strong> <code class="mono">$${Number(cc.asis_no_cache_usd || 0).toFixed(4)} / turn</code></li>
+                  <li><strong>As-Is Monolithic (50% Implicit Cache @ $0.30/1M):</strong> <code class="mono">$${Number(cc.asis_with_cache_usd || 0).toFixed(4)} / turn</code></li>
+                  <li><strong style="color:var(--green);">To-Be 2-Tier Diet + 65% Cached Prefix (@ $0.30/1M):</strong> <code class="mono" style="color:var(--green);font-weight:700;">$${Number(cc.tobe_with_90pct_cache_usd || 0).toFixed(4)} / turn</code></li>
+                </ul>
+                <p style="margin-top:8px;font-size:13px;color:var(--text-secondary);">${S.s4CacheExplain}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        const diffJson = sc.state_scope_json_diff ? JSON.stringify(sc.state_scope_json_diff, null, 2) : mr.generated_sql;
+        evidenceHtml = `
+          <div class="stack-list">
+            <div>
+              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.s5JsonHeading}</h3>
+              <pre class="sql-block">${escapeHtml(diffJson)}</pre>
+            </div>
+            <div>
+              <h3 style="font-size:14px;margin-bottom:8px;">${S.memoryRecallOutput}</h3>
+              <div class="answer-box">${formatAgentAnswer(mr.answer)}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      const btnLabel = liveApiAvailable
+        ? S.btnRunLive.replace("{CODE}", sc.code)
+        : S.btnRunDisabled;
+
+      document.getElementById("scenario-detail").innerHTML = `
+        <div class="scenario-top">
+          <div>
+            <span class="tag tag-blue">${escapeHtml(sc.code)} · ${formatInlineText(sc.track || S.scenarioBadge)}</span>
+            <h3 style="font-size:19px;margin-bottom:2px;">${formatInlineText(sc.title)}</h3>
+            <div class="route-trace mono">Route: ${formatInlineText(sc.routing_path)}</div>
+          </div>
+          <button class="btn-live" id="run-live-btn" ${liveApiAvailable ? "" : "disabled"}>${btnLabel}</button>
+        </div>
+
+        <div class="stack-list">
+          <div class="sub-box asis-border">
+            <div class="sub-box-title">${S.challengeLabel}</div>
+            <div style="font-size:14px;">${formatInlineText(sc.challenge)}</div>
+          </div>
+          <div class="sub-box tobe-border">
+            <div class="sub-box-title">${S.mechanismLabel}</div>
+            <div style="font-size:14px;">${formatInlineText(sc.architecture_mechanism)}</div>
+          </div>
+        </div>
+
+        <div class="prompt-box">
+          <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:3px;">${S.promptLabel}</span>
+          "${formatInlineText(sc.prompt)}"
+        </div>
+
+        <div class="metric-ribbon">
+          <div class="metric-cell">
+            <div class="m-k">${S.metricScoped}</div>
+            <div class="m-v good mono">${mr.scoped_tokens.toLocaleString()} tok (-${mr.token_reduction_pct}%)</div>
+          </div>
+          <div class="metric-cell">
+            <div class="m-k">Measured ADK <span class="mono">usage_metadata</span></div>
+            <div class="m-v mono" style="color:var(--blue);">${(mr.adk_measured_prompt_tokens || 0).toLocaleString()} prompt tok</div>
+          </div>
+          <div class="metric-cell">
+            <div class="m-k">BQCA Tier Input Tokens</div>
+            <div class="m-v mono">${(mr.bqca_scoped_tokens !== undefined ? mr.bqca_scoped_tokens : 0).toLocaleString()} tok</div>
+          </div>
+          <div class="metric-cell">
+            <div class="m-k">${S.metricLatency}</div>
+            <div class="m-v mono">${latencyLabel}</div>
+          </div>
+        </div>
+
+        <div class="scope-list">
+          <div class="scope-row">
+            <div class="scope-key">1. Turn Scope (<span class="mono">temp</span>)</div>
+            <div>${formatInlineText(st.temp_scope)}</div>
+          </div>
+          <div class="scope-row">
+            <div class="scope-key">2. Session Scope (<span class="mono">3-Turn Window</span>)</div>
+            <div>${formatInlineText(st.session_scope)}</div>
+          </div>
+          <div class="scope-row">
+            <div class="scope-key">3. User Scope &amp; <span class="mono">MemoryService</span></div>
+            <div>${formatInlineText(st.user_scope)}</div>
+          </div>
+        </div>
+
+        ${evidenceHtml}
+
+        <div class="live-output" id="live-verify-box"></div>
+      `;
+
+      const runBtn = document.getElementById("run-live-btn");
+      if (runBtn && liveApiAvailable) {
+        runBtn.addEventListener("click", () => triggerLiveVerification(sc.code));
+      }
+    }
+
+    async function triggerLiveVerification(scenarioCode) {
+      const S = UI_STRINGS;
+      const btn = document.getElementById("run-live-btn");
+      const box = document.getElementById("live-verify-box");
+      btn.disabled = true;
+      btn.textContent = S.runningLive.replace("{CODE}", scenarioCode);
+      box.className = "live-output visible";
+      box.innerHTML = `<div class="mono" style="font-size:13px;color:var(--green);">${S.callingEndpoint} (${BENCHMARK_DATA.environment.gcp_project})...</div>`;
+      try {
+        const res = await fetch("/api/verify-scenario", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenario_code: scenarioCode })
+        });
+        const data = await res.json();
+        box.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+            <strong style="color:var(--green);">${S.liveDone} (${escapeHtml(data.scenario_code)})</strong>
+            <span class="mono" style="font-size:12.2px;">Latency: <strong>${(data.live_latency_ms / 1000).toFixed(2)} s</strong> · ADK <span class="mono">usage_metadata</span>: <strong>${Number(data.adk_measured_prompt_tokens || 0).toLocaleString()} tok</strong> · Total: <strong>${Number(data.scoped_tokens).toLocaleString()} tok (-${data.token_reduction_pct}%)</strong></span>
+          </div>
+          <pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(data.generated_sql)}</pre>
+          ${data.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(data.markdown_table)}</div>` : ""}
+          <div style="font-size:13.5px;">${formatAgentAnswer(data.answer)}</div>
+        `;
+      } catch (err) {
+        box.innerHTML = `<div style="color:var(--red);font-size:13px;">Live execution error: ${escapeHtml(err.message)}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = S.btnRunLive.replace("{CODE}", scenarioCode);
+      }
+    }
+
+    function renderTurnScalingSvg() {
+      const S = UI_STRINGS;
+      const pts = BENCHMARK_DATA.turn_scaling_curve;
+      const W = 560, H = 260, padL = 58, padR = 20, padT = 20, padB = 38;
+      const maxY = Math.max(230000, pts[9].monolithic_unscoped * 1.08);
+      const xPos = i => padL + (i / (pts.length - 1)) * (W - padL - padR);
+      const yPos = v => padT + (1 - v / maxY) * (H - padT - padB);
+      const poly = key => pts.map((p, i) => `${xPos(i).toFixed(1)},${yPos(p[key]).toFixed(1)}`).join(" ");
+
+      let grid = "";
+      [0, 50000, 100000, 150000, 200000].forEach(val => {
+        const y = yPos(val).toFixed(1);
+        grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#E8EAED" stroke-width="1"/>`;
+        grid += `<text x="${padL - 8}" y="${Number(y) + 4}" text-anchor="end" font-size="10.5" fill="#5F6368" font-family="Roboto Mono">${val === 0 ? "0" : (val / 1000) + "K"}</text>`;
+      });
+
+      let xLabels = "";
+      pts.forEach((p, i) => {
+        if (i % 2 === 0 || i === 9) {
+          xLabels += `<text x="${xPos(i).toFixed(1)}" y="${H - 12}" text-anchor="middle" font-size="10.5" fill="#5F6368">T${i + 1}</text>`;
+        }
+      });
+
+      const svg = `
+        <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img">
+          ${grid}
+          ${xLabels}
+          <polyline fill="none" stroke="#C5221F" stroke-width="2.5" points="${poly('monolithic_unscoped')}"/>
+          <polyline fill="none" stroke="#B06000" stroke-width="2.2" stroke-dasharray="5,4" points="${poly('unbounded_raw_history')}"/>
+          <polyline fill="none" stroke="#137333" stroke-width="3" points="${poly('proposed_scoped_sliding_window')}"/>
+          ${pts.map((p, i) => `<circle cx="${xPos(i).toFixed(1)}" cy="${yPos(p.proposed_scoped_sliding_window).toFixed(1)}" r="3.5" fill="#137333"/>`).join("")}
+          <text x="${W - padR - 4}" y="${yPos(pts[9].monolithic_unscoped) - 7}" text-anchor="end" font-size="10.5" font-weight="600" fill="#C5221F">${S.chartLineMono} (${(pts[9].monolithic_unscoped / 1000).toFixed(1)}K)</text>
+          <text x="${W - padR - 4}" y="${yPos(pts[9].unbounded_raw_history) - 7}" text-anchor="end" font-size="10.5" font-weight="600" fill="#B06000">${S.chartLineUnbounded} (${(pts[9].unbounded_raw_history / 1000).toFixed(1)}K)</text>
+          <text x="${W - padR - 4}" y="${yPos(pts[9].proposed_scoped_sliding_window) - 8}" text-anchor="end" font-size="11" font-weight="700" fill="#137333">${S.chartLineScoped} (${(pts[9].proposed_scoped_sliding_window / 1000).toFixed(1)}K)</text>
+        </svg>
+      `;
+      document.getElementById("svg-turn-chart").innerHTML = svg;
+    }
+
+    function renderAdkMeasuredSvg() {
+      const S = UI_STRINGS;
+      const items = BENCHMARK_DATA.measured_5turn_adk_experiment || [];
+      const W = 560, H = 260, padL = 52, padR = 24, padT = 26, padB = 40;
+      const maxT = Math.max(8000, ...items.map(r => r.asis_adk_prompt_tokens_measured)) * 1.15;
+      const slotW = (W - padL - padR) / Math.max(1, items.length);
+      const yPos = v => padT + (1 - v / maxT) * (H - padT - padB);
+      const baseY = H - padB;
+
+      let bars = "";
+      items.forEach((it, i) => {
+        const cx = padL + slotW * i + slotW / 2;
+        const yAsis = yPos(it.asis_adk_prompt_tokens_measured);
+        const yTobe = yPos(it.tobe_adk_prompt_tokens_measured);
+        bars += `<rect x="${(cx - 24).toFixed(1)}" y="${yAsis.toFixed(1)}" width="21" height="${(baseY - yAsis).toFixed(1)}" rx="3" fill="#FAD2CF"/>`;
+        bars += `<text x="${(cx - 13.5).toFixed(1)}" y="${(yAsis - 4).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#C5221F" font-family="Roboto Mono">${(it.asis_adk_prompt_tokens_measured / 1000).toFixed(1)}K</text>`;
+        bars += `<rect x="${(cx + 2).toFixed(1)}" y="${yTobe.toFixed(1)}" width="21" height="${(baseY - yTobe).toFixed(1)}" rx="3" fill="#1A73E8"/>`;
+        bars += `<text x="${(cx + 12.5).toFixed(1)}" y="${(yTobe - 4).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#137333" font-family="Roboto Mono">${(it.tobe_adk_prompt_tokens_measured / 1000).toFixed(1)}K</text>`;
+        bars += `<text x="${cx.toFixed(1)}" y="${H - 14}" text-anchor="middle" font-size="11" font-weight="600" fill="#202124">Turn ${it.turn}</text>`;
+      });
+
+      const svg = `
+        <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img">
+          <line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="#DADCE0" stroke-width="1"/>
+          <rect x="${padL}" y="4" width="12" height="10" rx="2" fill="#FAD2CF"/>
+          <text x="${padL + 17}" y="13" font-size="11" fill="#5F6368">${S.barLegendMono}</text>
+          <rect x="${padL + 205}" y="4" width="12" height="10" rx="2" fill="#1A73E8"/>
+          <text x="${padL + 222}" y="13" font-size="11" fill="#5F6368">${S.barLegendScoped}</text>
+          ${bars}
+        </svg>
+      `;
+      document.getElementById("svg-adk-measured-chart").innerHTML = svg;
+    }
+
+    function updateTcoCalculator() {
+      const S = UI_STRINGS;
+      const qpd = Number(document.getElementById("rng-qpd").value);
+      const turns = Number(document.getElementById("rng-turns").value);
+      const cachePct = Number(document.getElementById("rng-cache").value);
+      const cacheRatio = cachePct / 100.0;
+
+      document.getElementById("lbl-qpd").textContent = `${qpd.toLocaleString()} queries / day`;
+      document.getElementById("lbl-turns").textContent = `${turns} turn${turns > 1 ? "s" : ""}`;
+      document.getElementById("lbl-cache").textContent = `${cachePct}% cached prefix ($0.30/1M)`;
+
+      const curve = BENCHMARK_DATA.turn_scaling_curve.slice(0, turns);
+      const avgAdkAsis = Math.round(curve.reduce((s, r) => s + r.adk_asis_prompt_tokens, 0) / turns);
+      const avgAdkTobe = Math.round(curve.reduce((s, r) => s + r.adk_tobe_prompt_tokens, 0) / turns);
+      const avgBqcaMono = Math.round(curve.reduce((s, r) => s + r.bqca_monolithic_tokens, 0) / turns);
+      const avgBqcaTobe = Math.round(curve.reduce((s, r) => s + r.bqca_tobe_scoped_tokens, 0) / turns);
+
+      // Official PAYG rates
+      const BQ_NON_CACHE = 3.00, BQ_CACHED = 0.30, BQ_OUT = 20.00;
+      const VX_IN = 0.30, VX_OUT = 2.50;
+
+      const perTurnAsisNoCache =
+        (avgAdkAsis / 1e6) * VX_IN + (900 / 1e6) * VX_OUT +
+        (avgBqcaMono / 1e6) * BQ_NON_CACHE + (2200 / 1e6) * BQ_OUT;
+
+      const perTurnAsisCached =
+        (avgAdkAsis / 1e6) * VX_IN + (900 / 1e6) * VX_OUT +
+        ((avgBqcaMono * (1 - cacheRatio)) / 1e6) * BQ_NON_CACHE +
+        ((avgBqcaMono * cacheRatio) / 1e6) * BQ_CACHED +
+        (2200 / 1e6) * BQ_OUT;
+
+      const perTurnTobeCached =
+        (avgAdkTobe / 1e6) * VX_IN + (450 / 1e6) * VX_OUT +
+        ((avgBqcaTobe * (1 - cacheRatio)) / 1e6) * BQ_NON_CACHE +
+        ((avgBqcaTobe * cacheRatio) / 1e6) * BQ_CACHED +
+        (1050 / 1e6) * BQ_OUT;
+
+      const annualQueries = qpd * 365;
+      const yrAsisNoCache = annualQueries * perTurnAsisNoCache;
+      const yrAsisCached = annualQueries * perTurnAsisCached;
+      const yrTobeCached = annualQueries * perTurnTobeCached;
+      const netSavings = yrAsisCached - yrTobeCached;
+      const pct = ((1 - yrTobeCached / yrAsisCached) * 100).toFixed(1);
+
+      const fmtUsd = v => "$" + Math.round(v).toLocaleString();
+      document.getElementById("tco-annual-savings").textContent = `${fmtUsd(netSavings)} / yr`;
+      document.getElementById("tco-pct-note").textContent = S.tcoPctTemplate.replace("{PCT}", pct);
+      document.getElementById("tco-asis-nocache").textContent = fmtUsd(yrAsisNoCache);
+      document.getElementById("tco-asis-cached").textContent = fmtUsd(yrAsisCached);
+      document.getElementById("tco-tobe-cached").textContent = fmtUsd(yrTobeCached);
+      document.getElementById("tco-mono-tok").textContent = `${(avgAdkAsis + avgBqcaMono).toLocaleString()} tok/turn`;
+      document.getElementById("tco-scoped-tok").textContent = `${(avgAdkTobe + avgBqcaTobe).toLocaleString()} tok/turn`;
+    }
+
+    function initPortal() {
+      const S = UI_STRINGS;
+      document.getElementById("bench-ts").textContent = BENCHMARK_DATA.generated_at_utc;
+      renderHeroKpis();
+
+      document.querySelectorAll("#diagram-tabs .tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#diagram-tabs .tab-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          const f = S.figures[btn.dataset.fig];
+          document.getElementById("fig-img").src = f.src;
+          document.getElementById("fig-title").textContent = f.title;
+          document.getElementById("fig-caption").textContent = f.caption;
+        });
+      });
+
+      const modal = document.getElementById("fig-modal");
+      const openModal = () => {
+        document.getElementById("modal-img").src = document.getElementById("fig-img").src;
+        document.getElementById("modal-title").textContent = document.getElementById("fig-title").textContent;
+        modal.classList.add("open");
+      };
+      document.getElementById("zoom-fig-btn").addEventListener("click", openModal);
+      document.getElementById("fig-img").addEventListener("click", openModal);
+      document.getElementById("close-modal-btn").addEventListener("click", () => modal.classList.remove("open"));
+      modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("open"); });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.remove("open"); });
+
+      const tabContainer = document.getElementById("scenario-tabs");
+      BENCHMARK_DATA.scenarios.forEach((sc, idx) => {
+        const b = document.createElement("button");
+        b.className = "tab-btn" + (idx === 0 ? " active" : "");
+        b.textContent = S.shortTitles[sc.code] || sc.code;
+        b.addEventListener("click", () => renderScenario(idx));
+        tabContainer.appendChild(b);
+      });
+
+      renderScenario(0);
+      renderTurnScalingSvg();
+      renderAdkMeasuredSvg();
+      updateTcoCalculator();
+
+      ["rng-qpd", "rng-turns", "rng-cache"].forEach(id => {
+        document.getElementById(id).addEventListener("input", updateTcoCalculator);
+      });
+
+      if (window.location.protocol.startsWith("http")) {
+        fetch("/api/health").then(r => r.ok ? r.json() : null).then(d => {
+          if (d && d.status === "ok") {
+            liveApiAvailable = true;
+            document.getElementById("live-status-text").textContent = S.liveConnected.replace("{PROJ}", d.project_id);
+            renderScenario(activeScenarioIdx);
+          }
+        }).catch(() => {});
+      }
+    }
+
+    initPortal();
+
+  </script>
+</body>
+</html>

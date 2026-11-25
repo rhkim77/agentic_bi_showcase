@@ -1,0 +1,20 @@
+[project]
+name = "cymbal-agentic-bi-showcase"
+version = "1.0.0"
+description = "Cymbal Global Commerce — Governed Multi-Agent BI & FinOps Command Center (Google ADK + BigQuery CAA + Dataplex Knowledge Catalog)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "google-adk>=1.0.0",
+    "google-genai>=1.0.0",
+    "google-auth>=2.35.0",
+    "requests>=2.32.0",
+    "truststore>=0.10.0",
+    "certifi>=2024.8.30",
+    "pydantic>=2.9.0",
+]
+
+[tool.uv]
+constraint-dependencies = ["litellm>=1.84.0"]
