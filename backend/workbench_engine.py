@@ -372,6 +372,7 @@ def _tobe_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
             "markdown_table": table,
             "adk_usage": turn["usage"],
             "bqca_messages_sent": [c.get("multiturn_context_messages_sent") for c in ok],
+            "bqca_questions": [str(c.get("query", ""))[:600] for c in ok],
             "bqca_call_latency_ms": [c.get("latency_ms") for c in ok],
             "tool_calls": [e["name"] for e in turn["tool_events"] if e["kind"] == "call"],
             "errors": errors,
@@ -398,6 +399,7 @@ def _asis_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
             "adk_usage": turn["usage"],
             # ask_data_agent always sends exactly one userMessage per call.
             "bqca_messages_sent": [1 for _ in ask_calls],
+            "bqca_questions": [str(c["args"].get("query", ""))[:600] for c in ask_calls],
             "tool_calls": [e["name"] for e in turn["tool_events"] if e["kind"] == "call"],
             "tool_response_chars": sum(r["response_chars"] for r in ask_resps),
             "errors": errors,

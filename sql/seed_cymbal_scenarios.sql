@@ -8,8 +8,8 @@
 --        and high Cart Abandonment sessions in `Display`.
 --      - Domain 2 (Product & Profitability): High-margin (>50%) `Women` `Outerwear & Coats`
 --        products with a clear return (`Returned`) spike for executive anomaly detection.
---      - Domain 3 (Supply Chain & Logistics): Delivery lead-time bottleneck (6-7 days)
---        and unsold inventory holding cost at `Chicago IL` (DC #2) & `Memphis TN` (DC #1).
+--      - Domain 3 (Supply Chain & Logistics): 6-day delivery lead time at `Memphis TN` (DC #1)
+--        versus 2 days at `Chicago IL` (DC #2), and unsold inventory holding cost at both.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -73,8 +73,8 @@ FROM UNNEST(GENERATE_ARRAY(1, 20)) AS seq;
 -- -----------------------------------------------------------------------------
 -- 4. [Domain 1, 2, 3] Seed Recent Orders & Order Items (Last 30 Days)
 --    - Creates VIP spend (> $500) for seeded users
---    - Creates Return/Cancel spike on 'TheLook Atelier' high-margin coats
---    - Creates 6-day delivery lead-time bottleneck on DC #2 (Chicago IL)
+--    - Creates a 50% return/cancel rate on 'Nordic Luxe' coats (20% on 'TheLook Atelier')
+--    - Creates a 6-day delivery lead time on DC #1 (Memphis TN), 2 days on DC #2 (Chicago IL)
 -- -----------------------------------------------------------------------------
 INSERT INTO `__PROJECT_ID__.__DATASET_ID__.orders` (
   order_id, user_id, status, gender, created_at, returned_at, shipped_at, delivered_at, num_of_item
@@ -157,11 +157,12 @@ SELECT
   85.0 AS cost,
   'Outerwear & Coats' AS product_category,
   CONCAT('Signature Cashmere Trench Coat #', CAST(MOD(seq, 20) + 1 AS STRING)) AS product_name,
-  CASE WHEN MOD(seq, 2) = 0 THEN 'TheLook Atelier' ELSE 'Nordic Luxe' END AS product_brand,
+  -- Brand and distribution center follow the parity of the product number, same as in `products`.
+  CASE WHEN MOD(MOD(seq, 20) + 1, 2) = 0 THEN 'TheLook Atelier' ELSE 'Nordic Luxe' END AS product_brand,
   195.0 AS product_retail_price,
   'Women' AS product_department,
   CONCAT('SKU-DEMO-COAT-', CAST(MOD(seq, 20) + 1 AS STRING)) AS product_sku,
-  CASE WHEN MOD(seq, 2) = 0 THEN 2 ELSE 1 END AS product_distribution_center_id
+  CASE WHEN MOD(MOD(seq, 20) + 1, 2) = 0 THEN 2 ELSE 1 END AS product_distribution_center_id
 FROM UNNEST(GENERATE_ARRAY(1, 400)) AS seq;
 
 -- -----------------------------------------------------------------------------

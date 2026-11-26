@@ -35,21 +35,22 @@ Both pipelines ran on Google Cloud through the same engine as the portal's live 
 
 | Scenario | ADK prompt As-Is | ADK prompt To-Be | BQCA input As-Is | BQCA input To-Be | Total input As-Is | Total input To-Be | Total delta | Cost As-Is | Cost To-Be | BQCA calls As-Is / To-Be | Latency As-Is / To-Be |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
-| `S1` schema scoping | 5,909 | 1,607 | 107,752 | 53,350 | 113,661 | 54,957 | **-51.6%** | $0.3493 | $0.1824 | 1 / 1 | 19.8s / 18.2s |
-| `S2` follow-up question | 10,250 | 1,334 | 109,093 | 54,786 | 119,343 | 56,120 | **-53.0%** | $0.3726 | $0.2104 | 1 / 1 | 22.0s / 16.5s |
-| `S3` domain switch | 15,076 | 2,638 | 108,215 | 53,996 | 123,291 | 56,634 | **-54.1%** | $0.3567 | $0.1896 | 1 / 1 | 22.5s / 15.5s |
-| `S3` three-domain fan-out | 20,943 | 5,487 | 109,694 | 189,578 | 130,637 | 195,065 | **+49.3%** | $0.3839 | $0.5852 | 1 / 3 | 31.5s / 29.9s |
-| `S4` turn 8 of the session | 34,202 | 2,675 | 161,574 | 55,711 | 195,776 | 58,386 | **-70.2%** | $0.2346 | $0.2199 | 1 / 1 | 22.6s / 19.1s |
-| `S5` recall in a new session | 2,238 | 2,513 | 0 | 0 | 2,238 | 2,513 | **+12.3%** | $0.0011 | $0.0035 | 0 / 0 | 3.0s / 8.8s |
+| `S1` schema scoping | 6,593 | 1,712 | 162,669 | 81,090 | 169,262 | 82,802 | **-51.1%** | $0.2529 | $0.1645 | 1 / 1 | 24.0s / 23.3s |
+| `S2` follow-up question | 11,925 | 1,493 | 109,243 | 54,887 | 121,168 | 56,380 | **-53.5%** | $0.3779 | $0.2078 | 1 / 1 | 26.2s / 16.6s |
+| `S3` domain switch | 18,283 | 2,962 | 163,520 | 54,480 | 181,803 | 57,442 | **-68.4%** | $0.2617 | $0.1915 | 1 / 1 | 24.2s / 17.0s |
+| `S3` three-domain fan-out | 53,407 | 5,659 | 323,986 | 191,527 | 377,393 | 197,186 | **-47.8%** | $1.0603 | $0.6710 | 3 / 3 | 62.0s / 34.2s |
+| `S4` turn 8 of the session | 33,099 | 2,494 | 161,541 | 55,513 | 194,640 | 58,007 | **-70.2%** | $0.2381 | $0.2175 | 1 / 1 | 21.5s / 19.1s |
+| `S5` recall in a new session | 2,238 | 2,476 | 0 | 0 | 2,238 | 2,476 | **+10.6%** | $0.0019 | $0.0028 | 0 / 0 | 4.9s / 6.8s |
 
-`S4` over 8 turns with 8 different questions: average total input per turn 164,027 (`As-Is`) vs 85,299 (`To-Be`), **-48.0%**; average cost per turn $0.3286 vs $0.2597, **-21.0%**. The `To-Be` ADK prompt stayed between 1,202 and 3,393 tokens per turn; the `As-Is` ADK prompt went from 6,502 to a maximum of 34,202.
+`S4` over 8 turns with 8 different questions: average total input per turn 163,656 (`As-Is`) vs 75,406 (`To-Be`), **-53.9%**; average cost per turn $0.3302 vs $0.2316, **-29.8%**. The `To-Be` ADK prompt stayed between 1,282 and 3,630 tokens per turn; the `As-Is` ADK prompt went from 5,760 to a maximum of 33,099.
 
 How to read it:
 
 - **Where `To-Be` uses fewer tokens**: single-domain questions. The scoped data agent reads about half the BQCA input of the monolithic one, and the `To-Be` ADK prompt stays small while the `As-Is` prompt grows with the session.
-- **Where it does not**: a question spanning three domains makes three BQCA calls instead of one. When a question repeats one asked earlier in the session, the `As-Is` agent can answer from its own session history without calling BQCA, while the `To-Be` agents query again; this was observed in an earlier run and is why `S4` uses different questions.
+- **Where the result depends on the run**: for a question spanning three domains `To-Be` always makes one BQCA call per domain. The `As-Is` agent made 3 call(s) in this run (-47.8% for `To-Be`); in an earlier run it answered with a single call and `To-Be` used 49% more input tokens. When a question repeats one asked earlier in the session, the `As-Is` agent can answer from its own session history without calling BQCA, while the `To-Be` agents query again; this was observed in an earlier run and is why `S4` uses different questions.
 - **`S5`**: neither side calls BQCA. `To-Be` answers from memory; `As-Is` replies that it has no memory of earlier sessions.
-- **Limits**: one run per scenario on one day, and the answers of the two designs were not checked for correctness. BQCA input per turn varies between runs, partly because some turns report a second, mostly cache-read pass. The warehouse is a synthetic reproduction of an enterprise schema: 32 tables (thelook 7 and TPC-DS 25) with rule-generated table and column descriptions. On the original 7-table schema without descriptions the BQCA input of both designs was about the same.
+- **Answer check**: five preset questions have a hand-written reference query ([`backend/reference_answers.py`](./backend/reference_answers.py)); the portal shows its rows next to both answers. In 5 runs per question on 2026-11-26, a script checked whether every reference figure appeared in the answer. `To-Be`: `S1` 5 of 5, `S3` domain switch 5 of 5, three-domain question 4 of 5, `S4` preset 4 of 5, `S2` follow-up 0 of 5. `As-Is`: 0, 4, 1, 4 and 0 of 5. On the `S2` follow-up both designs usually computed revenue and AOV over all customers where the reference reads them as VIP-only, so that row is a difference in reading rather than a clear error. This is a spot check on five questions, not an accuracy evaluation, and the same question can give different answers on different runs.
+- **Limits**: one run per scenario on one day for the token figures. BQCA input per turn varies between runs, partly because some turns report a second, mostly cache-read pass. The warehouse is a synthetic reproduction of an enterprise schema: 32 tables (thelook 7 and TPC-DS 25) with rule-generated table and column descriptions. On the original 7-table schema without descriptions the BQCA input of both designs was about the same.
 
 ---
 

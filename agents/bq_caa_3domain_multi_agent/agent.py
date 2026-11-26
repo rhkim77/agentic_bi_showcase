@@ -1100,7 +1100,9 @@ def run_cross_domain_caa_analysis_sync(
 _SUB_AGENT_RULES = (
     "Rules:\n"
     "1. Call your data tool with a standalone English question that restates any filters, cohorts or columns "
-    "the user refers to from earlier turns. The tool result is shown to the user as the answer.\n"
+    "the user refers to from earlier turns. Keep every condition of the user's question as written: product "
+    "department, category and brand names, date ranges, and ID filters such as `order_id >= 9900000`. "
+    "Do not drop, shorten or generalize them. The tool result is shown to the user as the answer.\n"
     "2. If the question belongs to one other domain, call `transfer_to_agent` for that sub-agent instead of calling your tool: "
     "`customer_marketing_subagent` (customers, VIP, traffic source, AOV, cart abandonment), "
     "`product_profitability_subagent` (margin, profit, returns by product or brand), "
@@ -1149,7 +1151,9 @@ root_agent = LlmAgent(
     description="Root router for three domain-scoped BigQuery CAA sub-agents, with session state and cross-session memory.",
     instruction=(
         "You are the Enterprise Agentic BI root orchestrator.\n"
-        "1. Question spanning 2 or more domains: call `run_cross_domain_caa_analysis` with one targeted sub-question per domain, then give a short synthesis.\n"
+        "1. Question spanning 2 or more domains: call `run_cross_domain_caa_analysis` with one targeted sub-question per domain, then give a short synthesis. "
+        "Copy into each sub-question every condition the user gave for that part: product department, category and brand names, date ranges, "
+        "and ID filters such as `order_id >= 9900000`. Do not drop, shorten or generalize them.\n"
         "2. Saving a profile or preference, or recalling earlier sessions, the profile or pinned insights: call "
         "`save_user_preference_and_memory` or `inspect_session_and_memory_status` and answer from the result. Do not run SQL for recall.\n"
         "3. Single-domain question: delegate with `transfer_to_agent` to `customer_marketing_subagent` (customers, VIP, traffic source, AOV, "

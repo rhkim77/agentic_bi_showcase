@@ -127,7 +127,7 @@
   <text x="1200" y="108" font-size="13.2" font-weight="700" fill="#202124">Customer BQ CAA</text>
   <line x1="1160" y1="128" x2="1346" y2="128" stroke="#E8EAED" stroke-width="1"/>
   <text x="1162" y="150" font-size="11.4" font-weight="400" fill="#3C4043">• 4 Tables Only</text>
-  <text x="1162" y="171" font-size="11.4" font-weight="400" fill="#3C4043">• S1 Input -51.6%</text>
+  <text x="1162" y="171" font-size="11.4" font-weight="400" fill="#3C4043">• S1 Input -51.1%</text>
   <text x="1162" y="192" font-size="11.4" font-weight="400" fill="#3C4043">• vs 32-Table Mono</text>
   <line x1="273" y1="153" x2="378" y2="153" stroke="#1A73E8" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
   <rect x="291.0" y="119.0" width="76" height="25" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
@@ -170,7 +170,7 @@
   <text x="1200" y="360" font-size="13.2" font-weight="700" fill="#202124">Supply Chain CAA</text>
   <line x1="1160" y1="380" x2="1346" y2="380" stroke="#E8EAED" stroke-width="1"/>
   <text x="1162" y="402" font-size="11.4" font-weight="400" fill="#3C4043">• 5 Tables Scoped</text>
-  <text x="1162" y="423" font-size="11.4" font-weight="400" fill="#3C4043">• S3 Input -54.1%</text>
+  <text x="1162" y="423" font-size="11.4" font-weight="400" fill="#3C4043">• S3 Input -68.4%</text>
   <text x="1162" y="444" font-size="11.4" font-weight="400" fill="#3C4043">• No Conv Lock-in</text>
   <line x1="273" y1="405" x2="378" y2="405" stroke="#C56200" stroke-width="2.2" marker-end="url(#arrow-amber)"/>
   <rect x="291.0" y="371.0" width="76" height="25" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
@@ -184,7 +184,7 @@
   <text x="1097.0" y="385.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">:chat API</text>
   <rect x="20" y="520" width="1360" height="244" rx="12" ry="12" fill="#F6FBF7" stroke="#34A853" stroke-width="2"/>
   <line x1="40" y1="566" x2="1360" y2="566" stroke="#DADCE0" stroke-width="1"/>
-  <text x="40" y="550" font-size="15.5" font-weight="700" fill="#137333">Path C — Concurrent Multi-Domain Fan-out via ThreadPoolExecutor (One BQCA Call per Domain: Costs More Tokens)</text>
+  <text x="40" y="550" font-size="15.5" font-weight="700" fill="#137333">Path C — Concurrent Multi-Domain Fan-out via ThreadPoolExecutor (One BQCA Call per Domain)</text>
   <rect x="1183" y="531" width="177" height="24" rx="12" ry="12" fill="#E6F4EA"/>
   <text x="1271.5" y="547" text-anchor="middle" font-size="11.5" font-weight="700" fill="#137333">S3 · Three-Domain Fan-out</text>
   <rect x="40" y="582" width="230" height="162" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
@@ -214,10 +214,10 @@
   <use href="#icon-cloud-sql" x="1160" y="593" width="32" height="32"/>
   <text x="1200" y="614" font-size="13.2" font-weight="700" fill="#202124">Unified Synthesis</text>
   <line x1="1160" y1="634" x2="1346" y2="634" stroke="#E8EAED" stroke-width="1"/>
-  <text x="1162" y="656" font-size="11.4" font-weight="400" fill="#3C4043">• 195,065 Input Tok</text>
-  <text x="1162" y="677" font-size="11.4" font-weight="400" fill="#3C4043">• vs 130,637 Mono</text>
-  <text x="1162" y="698" font-size="11.4" font-weight="400" fill="#3C4043">• +49.3% Tokens</text>
-  <text x="1162" y="719" font-size="11.4" font-weight="400" fill="#3C4043">• 3 BQCA Calls vs 1</text>
+  <text x="1162" y="656" font-size="11.4" font-weight="400" fill="#3C4043">• 197,186 Input Tok</text>
+  <text x="1162" y="677" font-size="11.4" font-weight="400" fill="#3C4043">• vs 377,393 Mono</text>
+  <text x="1162" y="698" font-size="11.4" font-weight="400" fill="#3C4043">• -47.8% Tokens</text>
+  <text x="1162" y="719" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Calls 3 vs 3</text>
   <line x1="273" y1="663" x2="378" y2="663" stroke="#34A853" stroke-width="2.2" marker-end="url(#arrow-green)"/>
   <rect x="291.0" y="629.0" width="76" height="25" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
   <text x="329.0" y="643.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">1 Turn</text>

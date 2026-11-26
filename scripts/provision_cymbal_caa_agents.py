@@ -106,6 +106,11 @@ Strictly follow the Enterprise Business Glossary & Verified SQL Mapping Ruleset 
    - Verified SQL Formula: `COUNTIF(inventory_items.sold_at IS NULL) * 100.0 / NULLIF(COUNT(*), 0)`
 5. Unsold Inventory Holding Cost ($):
    - Verified SQL Formula: `SUM(CASE WHEN inventory_items.sold_at IS NULL THEN inventory_items.cost ELSE 0 END)`
+6. Lead Time by Distribution Center:
+   - Attribute an order item to the distribution center of its product: `order_items.product_id = products.id`, then `products.distribution_center_id = distribution_centers.id`.
+7. Merchandising Hierarchy (same values in `products` and in the `product_*` columns of `inventory_items`):
+   - Department: `Women`, `Men`. Category values are full names such as `Outerwear & Coats`; "Women's Outerwear" means department `Women` and category `Outerwear & Coats`. Brand examples: `TheLook Atelier`, `Nordic Luxe`.
+   - Match category and brand with the exact stored value. If unsure of the exact value, look it up with `SELECT DISTINCT` instead of guessing a shortened name.
 
 [Response Guidelines]
 - Respond in crisp executive English pinpointing distribution center lead-time bottlenecks (e.g., Chicago IL vs. Memphis TN) and unsold inventory capital exposure.

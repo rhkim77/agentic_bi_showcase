@@ -1,45 +1,45 @@
 {
-  "measured_at_utc": "2026-11-26T04:41:43Z",
+  "measured_at_utc": "2026-11-26T12:55:14Z",
   "source": "Cloud Trace generate_content spans (gen_ai.usage.*), one trace per :chat call",
   "gcp_project": "ryan-sandbox-agent",
   "window_hours": 48,
-  "window_since_utc": "2026-11-26T02:37:00Z",
-  "total_chat_turns": 58,
+  "window_since_utc": "2026-11-26T12:48:00Z",
+  "total_chat_turns": 30,
   "per_data_agent": {
     "cymbal_customer_marketing_ca": {
-      "chat_turns_sampled": 18,
-      "median_input_tokens_per_turn": 56158,
-      "min_input_tokens_per_turn": 53350,
-      "max_input_tokens_per_turn": 83637,
-      "median_cached_input_tokens_per_turn": 0,
-      "median_output_tokens_per_turn": 2121,
-      "median_llm_calls_per_turn": 2.0
+      "chat_turns_sampled": 7,
+      "median_input_tokens_per_turn": 80105,
+      "min_input_tokens_per_turn": 54701,
+      "max_input_tokens_per_turn": 85363,
+      "median_cached_input_tokens_per_turn": 24466,
+      "median_output_tokens_per_turn": 2152,
+      "median_llm_calls_per_turn": 2
     },
     "cymbal_enterprise_monolithic_ca": {
-      "chat_turns_sampled": 26,
-      "median_input_tokens_per_turn": 162144,
-      "min_input_tokens_per_turn": 107552,
-      "max_input_tokens_per_turn": 217728,
-      "median_cached_input_tokens_per_turn": 104168,
-      "median_output_tokens_per_turn": 2218,
+      "chat_turns_sampled": 14,
+      "median_input_tokens_per_turn": 109102,
+      "min_input_tokens_per_turn": 107442,
+      "max_input_tokens_per_turn": 224115,
+      "median_cached_input_tokens_per_turn": 0,
+      "median_output_tokens_per_turn": 2020,
       "median_llm_calls_per_turn": 2.0
     },
     "cymbal_product_profitability_ca": {
-      "chat_turns_sampled": 6,
-      "median_input_tokens_per_turn": 50287,
-      "min_input_tokens_per_turn": 24630,
-      "max_input_tokens_per_turn": 50936,
+      "chat_turns_sampled": 5,
+      "median_input_tokens_per_turn": 50279,
+      "min_input_tokens_per_turn": 49906,
+      "max_input_tokens_per_turn": 51572,
       "median_cached_input_tokens_per_turn": 0,
-      "median_output_tokens_per_turn": 1066,
-      "median_llm_calls_per_turn": 2.0
+      "median_output_tokens_per_turn": 1214,
+      "median_llm_calls_per_turn": 2
     },
     "cymbal_supply_chain_ca": {
-      "chat_turns_sampled": 8,
-      "median_input_tokens_per_turn": 68547,
-      "min_input_tokens_per_turn": 53996,
-      "max_input_tokens_per_turn": 174070,
-      "median_cached_input_tokens_per_turn": 12060,
-      "median_output_tokens_per_turn": 2106,
+      "chat_turns_sampled": 4,
+      "median_input_tokens_per_turn": 55015,
+      "min_input_tokens_per_turn": 54480,
+      "max_input_tokens_per_turn": 55850,
+      "median_cached_input_tokens_per_turn": 0,
+      "median_output_tokens_per_turn": 2035,
       "median_llm_calls_per_turn": 2.0
     }
   }

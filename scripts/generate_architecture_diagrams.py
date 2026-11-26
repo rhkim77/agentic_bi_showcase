@@ -49,6 +49,8 @@ def _load_numbers() -> dict:
         "s3_pct": pct(s3["total_input_delta_pct"]),
         "fan_tobe": fan["tobe_total_input_tokens"], "fan_asis": fan["asis_total_input_tokens"],
         "fan_pct": pct(fan["total_input_delta_pct"]),
+        "fan_calls_tobe": sc["S3"]["fanout"]["comparison_summary"]["measured"]["tobe_bqca_calls"],
+        "fan_calls_asis": sc["S3"]["fanout"]["comparison_summary"]["measured"]["asis_bqca_calls"],
         "t8_asis": s4["asis_total_input_tokens"], "t8_pct": pct(s4["total_input_delta_pct"]),
         "s4_avg_pct": pct((avg["tobe_total_input_tokens"] / avg["asis_total_input_tokens"] - 1) * 100),
         "asis_adk_first": asis_adk[0], "asis_adk_last": asis_adk[-1],
@@ -782,7 +784,7 @@ def build_fig3() -> None:
     # Path C Lane
     draw_lane(
         p, 20, 520, 1360, 244, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
-        "Path C — Concurrent Multi-Domain Fan-out via ThreadPoolExecutor (One BQCA Call per Domain: Costs More Tokens)",
+        "Path C — Concurrent Multi-Domain Fan-out via ThreadPoolExecutor (One BQCA Call per Domain)",
         "S3 · Three-Domain Fan-out", GREEN_LIGHT, GREEN_DARK
     )
     draw_card(p, 40, 582, 230, 162, BLUE, "icon-mdi-person", "Composite Exec Query", [
@@ -806,7 +808,7 @@ def build_fig3() -> None:
         f"• {N['fan_tobe']:,} Input Tok",
         f"• vs {N['fan_asis']:,} Mono",
         f"• {N['fan_pct']} Tokens",
-        "• 3 BQCA Calls vs 1",
+        f"• BQCA Calls {N['fan_calls_tobe']} vs {N['fan_calls_asis']}",
     ], fill=YELLOW_FILL)
     draw_h_arrow(p, 270, 663, 388, GREEN_BORDER, "arrow-green", ["1 Turn"])
     draw_h_arrow(p, 664, 663, 782, GREEN_BORDER, "arrow-green", ["3x Parallel", "ThreadPool"])
