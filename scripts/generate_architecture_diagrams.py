@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Generates 4 precision-aligned Official Google Cloud Architecture Diagrams (SVG + 3x PNG)
-in `docs/diagrams/` using verbatim GCP vector symbols (`gcp-icons.md`) and Material Outlined icons."""
+"""Generates the 4 architecture diagrams (SVG + 3x PNG) in `docs/diagrams/`.
+
+Icons come from `scripts/assets/diagram_icons.svg`. Every token figure printed on a diagram is read
+from `benchmarks/scenario_benchmark_results.json` and `benchmarks/bqca_trace_token_calibration.json`,
+so re-run this script after re-running the benchmarks. Requires PyGObject (Rsvg) and pycairo."""
 
 from __future__ import annotations
 
 import html
-import os
+import json
 from pathlib import Path
 import re
-import shutil
 import gi
 
 gi.require_version("Rsvg", "2.0")
@@ -19,8 +21,46 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = REPO_ROOT / "docs" / "diagrams"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-GCP_ICONS_MD = Path(os.environ.get("GCP_ICONS_MD", "gcp-icons.md"))
-MDI_DIR = Path(os.environ.get("MDI_ICONS_DIR", "material_design_icons/outlined"))
+ICONS_SVG = Path(__file__).resolve().parent / "assets" / "diagram_icons.svg"
+BENCH_JSON = REPO_ROOT / "benchmarks" / "scenario_benchmark_results.json"
+CALIB_JSON = REPO_ROOT / "benchmarks" / "bqca_trace_token_calibration.json"
+
+
+def _load_numbers() -> dict:
+    """Reads every number printed on the diagrams from the measured benchmark files."""
+    bench = json.loads(BENCH_JSON.read_text(encoding="utf-8"))
+    calib = json.loads(CALIB_JSON.read_text(encoding="utf-8"))["per_data_agent"]
+    sc = {s["code"]: s for s in bench["scenarios"]}
+
+    def est(code: str, key: str = "result") -> dict:
+        return sc[code][key]["comparison_summary"]["trace_estimate"]
+
+    def pct(v: float) -> str:
+        return f"{v:+.1f}%".replace("+-", "-")
+
+    curve = bench["s4_turn_curve"]
+    avg = bench["s4_average_per_turn"]
+    asis_adk = [t["asis_adk_prompt_tokens"] for t in curve]
+    tobe_adk = [t["tobe_adk_prompt_tokens"] for t in curve]
+    s1, s3, fan, s4 = est("S1"), est("S3"), est("S3", "fanout"), est("S4")
+    return {
+        "s1_tobe": s1["tobe_total_input_tokens"], "s1_asis": s1["asis_total_input_tokens"],
+        "s1_pct": pct(s1["total_input_delta_pct"]),
+        "s3_pct": pct(s3["total_input_delta_pct"]),
+        "fan_tobe": fan["tobe_total_input_tokens"], "fan_asis": fan["asis_total_input_tokens"],
+        "fan_pct": pct(fan["total_input_delta_pct"]),
+        "t8_asis": s4["asis_total_input_tokens"], "t8_pct": pct(s4["total_input_delta_pct"]),
+        "s4_avg_pct": pct((avg["tobe_total_input_tokens"] / avg["asis_total_input_tokens"] - 1) * 100),
+        "asis_adk_first": asis_adk[0], "asis_adk_last": asis_adk[-1],
+        "tobe_adk_min": min(tobe_adk), "tobe_adk_max": max(tobe_adk),
+        "med_customer": calib["cymbal_customer_marketing_ca"]["median_input_tokens_per_turn"],
+        "med_product": calib["cymbal_product_profitability_ca"]["median_input_tokens_per_turn"],
+        "med_supply": calib["cymbal_supply_chain_ca"]["median_input_tokens_per_turn"],
+        "med_mono": calib["cymbal_enterprise_monolithic_ca"]["median_input_tokens_per_turn"],
+    }
+
+
+N = _load_numbers()
 
 FONT_STACK = "Roboto, Arial, 'Liberation Sans', sans-serif"
 
@@ -72,34 +112,9 @@ def approx_w(text: str, fs: float) -> float:
     return w
 
 
-def load_gcp_symbol(sym_id: str) -> str:
-    txt = GCP_ICONS_MD.read_text(encoding="utf-8")
-    m = re.search(rf'(<symbol id="{re.escape(sym_id)}" viewBox="0 0 512 512">.*?</symbol>)', txt, re.S)
-    if not m:
-        raise RuntimeError(f"Missing symbol {sym_id}")
-    return m.group(1)
-
-
-def load_mdi_symbol(name: str, sym_id: str, color: str) -> str:
-    svg = (MDI_DIR / f"{name}.svg").read_text(encoding="utf-8")
-    inner = re.sub(r"^<svg[^>]*>|</svg>\s*$", "", svg).strip()
-    inner = re.sub(r"<path(?![^>]*fill=)", f'<path fill="{color}"', inner)
-    return f'<symbol id="{sym_id}" viewBox="0 0 24 24">{inner}</symbol>'
-
-
-SYMBOLS = "\n    ".join([
-    load_gcp_symbol("icon-vertex-ai"),
-    load_gcp_symbol("icon-cloud-sql"),
-    load_gcp_symbol("icon-bigquery"),
-    load_gcp_symbol("icon-cloud-run"),
-    load_gcp_symbol("icon-cloud-storage"),
-    load_gcp_symbol("icon-data-analytics"),
-    load_gcp_symbol("icon-agents"),
-    load_mdi_symbol("person", "icon-mdi-person", BLUE),
-    load_mdi_symbol("widgets", "icon-mdi-widgets", GREY),
-    load_mdi_symbol("forum", "icon-mdi-forum", BLUE),
-    load_mdi_symbol("laptop", "icon-mdi-laptop", BLUE),
-])
+SYMBOLS = "\n    ".join(
+    re.findall(r"<symbol .*?</symbol>", ICONS_SVG.read_text(encoding="utf-8"), re.S)
+)
 
 
 def marker_def(mid: str, color: str, reverse: bool = False) -> str:
@@ -220,7 +235,7 @@ def build_fig1() -> None:
     draw_lane(
         p, 20, 16, 1360, 232, BLUE, BLUE_TINT, BLUE_DARK,
         "Tier 1 — Google ADK Multi-Agent Orchestration & 4-Scope State Layer (Vertex AI Gemini 2.5 Flash)",
-        "Bounded Token Cost + Cross-Session Memory", BLUE_LIGHT, BLUE_DARK
+        "Flat ADK Prompt per Turn + Cross-Session Memory", BLUE_LIGHT, BLUE_DARK
     )
     draw_card(p, 44, 76, 260, 154, BLUE, "icon-mdi-person", "Enterprise Analyst / API", [
         "• Single & Multi-Domain Queries",
@@ -237,7 +252,7 @@ def build_fig1() -> None:
         "• temp:* : Raw SQL & 20-row preview buffer (auto-evicted post-turn)",
         "• session : Per-domain [-6:] (3-turn) sliding window & query history",
         "• user:* & app:* : Persistent role/KPI profile & execution telemetry",
-        "• MemoryService : after_agent_callback indexing + preload_memory recall",
+        "• MemoryService : after_agent_callback indexing + load_memory recall",
     ], fill=YELLOW_FILL)
     draw_h_arrow(p, 304, 153, 414, BLUE, "arrow-blue", ["NL Query"])
     draw_h_arrow(p, 730, 153, 844, AMBER_DARK, "arrow-amber", ["4-Scope R/W"], mstart="arrow-amber-start")
@@ -251,25 +266,25 @@ def build_fig1() -> None:
     draw_lane(
         p, 20, 296, 1360, 236, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
         "Tier 2 — Domain-Scoped BigQuery Conversational Analytics (CAA) Layer (geminidataanalytics.googleapis.com)",
-        "85%–92% Prompt Token Reduction vs Monolithic", GREEN_LIGHT, GREEN_DARK
+        f"S1 Total Input: {N['s1_tobe']:,} vs {N['s1_asis']:,} Tokens ({N['s1_pct']})", GREEN_LIGHT, GREEN_DARK
     )
     draw_card(p, 44, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 1: Customer & Funnel CAA", [
         "• ID : cymbal_customer_marketing_ca",
         "• Scoped Tables (4) : users, events, orders, order_items",
         "• Glossary : VIP (>= $500 / >= 5 orders), Churn, AOV, Cart%",
-        "• Base Prompt Footprint : ~11.4K tok (vs 110.8K Mono)",
+        f"• BQCA Input / Turn, Cloud Trace Median : {N['med_customer']:,}",
     ])
     draw_card(p, 508, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 2: Product & Margin CAA", [
         "• ID : cymbal_product_profitability_ca",
         "• Scoped Tables (3) : products, order_items, orders",
         "• Glossary : Gross Margin %, Net Rev, Realized Profit, Return%",
-        "• Base Prompt Footprint : ~9.8K tok (vs 110.8K Mono)",
+        f"• BQCA Input / Turn, Cloud Trace Median : {N['med_product']:,}",
     ])
     draw_card(p, 972, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 3: Supply Chain & DC CAA", [
         "• ID : cymbal_supply_chain_ca",
         "• Scoped Tables (5) : distribution_centers, inventory_items + 3",
         "• Glossary : Avg Delivery Lead Time, Unsold Inventory Cost",
-        "• Base Prompt Footprint : ~12.9K tok (vs 110.8K Mono)",
+        f"• BQCA Input / Turn, Cloud Trace Median : {N['med_supply']:,}",
     ])
 
     # Vertical Connectors Tier 2 -> Tier 3
@@ -281,32 +296,422 @@ def build_fig1() -> None:
     draw_lane(
         p, 20, 580, 1360, 208, GREY_BORDER, GREY_TINT, TEXT_MAIN,
         "Tier 3 — BigQuery Enterprise Data Warehouse & Dataplex Knowledge Catalog Governance Foundation",
-        "Zero Cross-Domain Schema Ambiguity", GREY_LIGHT, TEXT_SUB
+        "Synthetic Demo Schema Built from Public Datasets", GREY_LIGHT, TEXT_SUB
     )
-    draw_card(p, 44, 640, 620, 132, BLUE, "icon-bigquery", "BigQuery Dataset (thelook_ecommerce_agent · 7 Tables + Relative Seed)", [
-        "• Cloned via 15s CTAS from bigquery-public-data.thelook_ecommerce (or Terraform C2D)",
-        "• Anchored to CURRENT_TIMESTAMP() : 60 VIPs, 50% Atelier Return Spike, 6.0d Chicago DC #2 Delay",
-        "• Zero ambiguous created_at mis-joins thanks to per-domain table isolation",
+    draw_card(p, 44, 640, 620, 132, BLUE, "icon-bigquery", "BigQuery Dataset cymbal_enterprise_dw (32 Documented Tables · 504 Columns)", [
+        "• Copied from bigquery-public-data: thelook_ecommerce (7 tables) + tpc_ds_1g (25 tables)",
+        "• Table and column descriptions on every table; demo seed rows anchored to the current date",
+        f"• As-Is: one monolithic data agent on all 32 tables (median {N['med_mono']:,} BQCA input / turn)",
     ])
-    draw_card(p, 736, 640, 620, 132, YELLOW_BORDER, "icon-data-analytics", "Hop-1 Business Glossary & Verified SQL Formula Ruleset", [
-        "• Direct Hop-1 term-to-table definitions ensure 100% LookupContext recall (max_hops=1)",
-        "• Enforces deterministic SQL formulas for VIP, Cart Abandonment %, Gross Margin %, Lead Time",
-        "• Eliminates runtime list_accessible_data_agents / get_data_agent_info metadata calls",
+    draw_card(p, 736, 640, 620, 132, YELLOW_BORDER, "icon-data-analytics", "Business Glossary & Table / Column Descriptions", [
+        "• Each domain data agent carries only its own tables and glossary terms",
+        "• Glossary formulas for VIP, Cart Abandonment %, Gross Margin %, Delivery Lead Time",
+        "• Sub-agents bind static data agent IDs: no list / get discovery calls at runtime",
     ], fill=YELLOW_FILL)
 
     wrap_and_render("fig1_3tier_system_architecture", 1400, 804, p)
 
 
 # ==============================================================================
-# FIGURE 2: Copy Verified 3-Lane x 4-Column State Architecture Grid Comparison
+# FIGURE 2: 3-Lane x 4-Column State Architecture Comparison (1440 x 804)
 # ==============================================================================
 def build_fig2() -> None:
-    src_svg = Path(os.environ.get("FIG2_SRC_SVG", "fig2.svg"))
-    src_png = Path(os.environ.get("FIG2_SRC_PNG", "fig2.png"))
-    if src_svg.exists() and src_png.exists():
-        shutil.copyfile(src_svg, OUT_DIR / "fig2_state_architectures_comparison.svg")
-        shutil.copyfile(src_png, OUT_DIR / "fig2_state_architectures_comparison.png")
-        print("[OK] fig2_state_architectures_comparison.svg & .png copied from verified grid render")
+    # Canvas & Strict Grid Constants
+    W, H = 1440, 804
+
+    LANE_X, LANE_W, LANE_H = 20, 1400, 244
+    LANE_YS = [16, 280, 544]  # 16 + 244 = 260 (+20) -> 280 + 244 = 524 (+20) -> 544 + 244 = 788 (+16 = 804)
+
+    # 4 Strict Column Coordinates (inner x: 40 .. 1400, total inner width = 1360):
+    # Col1: 40..250 (w=210) | Gap1: 112 | Col2: 362..608 (w=246) | Gap2: 156 | Col3: 764..1010 (w=246) | Gap3: 144 | Col4: 1154..1400 (w=246)
+    COL_X = [40, 362, 764, 1154]
+    COL_W = [210, 246, 246, 246]
+    CARD_OFFSET_Y = 62
+    CARD_H = 164
+
+    # Google Cloud Brand Palette
+    BLUE = "#1A73E8"
+    BLUE_DARK = "#174EA6"
+    BLUE_LIGHT = "#E8F0FE"
+    BLUE_TINT = "#F4F8FE"
+
+    GREEN_DARK = "#137333"
+    GREEN_BORDER = "#34A853"
+    GREEN_LIGHT = "#E6F4EA"
+    GREEN_TINT = "#F6FBF7"
+
+    AMBER_DARK = "#C56200"
+    YELLOW_BORDER = "#F9AB00"
+    YELLOW_FILL = "#FFFDF5"
+
+    GREY = "#5F6368"
+    GREY_BORDER = "#80868B"
+    GREY_LIGHT = "#E8EAED"
+    GREY_TINT = "#F8F9FA"
+
+    TEXT_MAIN = "#202124"
+    TEXT_SUB = "#3C4043"
+    TEXT_MUTED = "#80868B"
+    DIVIDER = "#E8EAED"
+
+    parts: list[str] = []
+
+
+    def esc(s: str) -> str:
+        return html.escape(s, quote=True)
+
+
+    def approx_text_width(text: str, font_size: float) -> float:
+        w = 0.0
+        for ch in text:
+            if ch in "ilI.,:;|!·' ":
+                w += 0.30 * font_size
+            elif ch in "mwMW@%&":
+                w += 0.82 * font_size
+            elif ch.isupper() or ch.isdigit():
+                w += 0.62 * font_size
+            else:
+                w += 0.54 * font_size
+        return w
+
+
+    def add_lane(
+        y: int,
+        border_color: str,
+        fill_color: str,
+        title_color: str,
+        title: str,
+        badge_text: str,
+        badge_bg: str,
+        badge_fg: str,
+    ):
+        parts.append(
+            f'  <rect x="{LANE_X}" y="{y}" width="{LANE_W}" height="{LANE_H}" rx="12" ry="12" '
+            f'fill="{fill_color}" stroke="{border_color}" stroke-width="2"/>'
+        )
+        parts.append(
+            f'  <line x1="{LANE_X + 20}" y1="{y + 46}" x2="{LANE_X + LANE_W - 20}" y2="{y + 46}" '
+            f'stroke="#DADCE0" stroke-width="1"/>'
+        )
+        parts.append(
+            f'  <text x="{LANE_X + 20}" y="{y + 30}" font-size="15.5" font-weight="700" '
+            f'fill="{title_color}">{esc(title)}</text>'
+        )
+        bw = int(approx_text_width(badge_text, 11.5) + 28)
+        bx = LANE_X + LANE_W - 20 - bw
+        by = y + 11
+        parts.append(
+            f'  <rect x="{bx}" y="{by}" width="{bw}" height="24" rx="12" ry="12" '
+            f'fill="{badge_bg}"/>'
+        )
+        parts.append(
+            f'  <text x="{bx + bw / 2:.1f}" y="{by + 16}" text-anchor="middle" '
+            f'font-size="11.5" font-weight="700" fill="{badge_fg}">{esc(badge_text)}</text>'
+        )
+
+
+    def add_card(
+        col_idx: int,
+        lane_y: int,
+        border_color: str,
+        icon_id: str,
+        title: str,
+        bullets: list[str],
+        fill: str = "#FFFFFF",
+    ):
+        x = COL_X[col_idx]
+        w = COL_W[col_idx]
+        y = lane_y + CARD_OFFSET_Y
+        h = CARD_H
+
+        parts.append(
+            f'  <rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" ry="10" '
+            f'fill="{fill}" stroke="{border_color}" stroke-width="2" filter="url(#card-shadow)"/>'
+        )
+        # Icon + 1-line Header
+        parts.append(
+            f'  <use href="#{icon_id}" x="{x + 14}" y="{y + 11}" width="32" height="32"/>'
+        )
+        parts.append(
+            f'  <text x="{x + 54}" y="{y + 32}" font-size="13.2" font-weight="700" '
+            f'fill="{TEXT_MAIN}">{esc(title)}</text>'
+        )
+        # Consistent horizontal card header divider
+        parts.append(
+            f'  <line x1="{x + 14}" y1="{y + 52}" x2="{x + w - 14}" y2="{y + 52}" '
+            f'stroke="{DIVIDER}" stroke-width="1"/>'
+        )
+        # Full-width aligned bullet list
+        for j, bline in enumerate(bullets):
+            by = y + 74 + j * 21
+            parts.append(
+                f'  <text x="{x + 16}" y="{by}" font-size="11.5" font-weight="400" '
+                f'fill="{TEXT_SUB}">{esc(bline)}</text>'
+            )
+
+
+    def add_ghost_stateless_slot(col_idx: int, lane_y: int):
+        """Renders the Column 3 dashed Stateless Bypass slot in Lane 2, keeping exact 4-column symmetry."""
+        x = COL_X[col_idx]
+        w = COL_W[col_idx]
+        y = lane_y + CARD_OFFSET_Y
+        h = CARD_H
+        cx = x + w / 2.0
+
+        parts.append(
+            f'  <rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" ry="10" '
+            f'fill="#FFFFFF" fill-opacity="0.75" stroke="#BDC1C6" stroke-width="1.6" stroke-dasharray="6 4"/>'
+        )
+        # Small circle-slash icon at header left to mirror standard cards
+        parts.append(
+            f'  <circle cx="{x + 30}" cy="{y + 27}" r="11" fill="none" stroke="#9AA0A6" stroke-width="1.8"/>'
+        )
+        parts.append(
+            f'  <line x1="{x + 22.5}" y1="{y + 34.5}" x2="{x + 37.5}" y2="{y + 19.5}" stroke="#9AA0A6" stroke-width="1.8"/>'
+        )
+        parts.append(
+            f'  <text x="{x + 50}" y="{y + 32}" font-size="12.8" font-weight="700" '
+            f'fill="{TEXT_MUTED}">No Session / State Store</text>'
+        )
+        parts.append(
+            f'  <line x1="{x + 14}" y1="{y + 52}" x2="{x + w - 14}" y2="{y + 52}" '
+            f'stroke="#E8EAED" stroke-width="1" stroke-dasharray="4 3"/>'
+        )
+        parts.append(
+            f'  <text x="{cx:.1f}" y="{y + 146}" text-anchor="middle" font-size="11" '
+            f'font-weight="500" fill="#9AA0A6">Stateless Pass-Through (Zero DB)</text>'
+        )
+
+
+    def add_arrow(
+        x1: int,
+        y: int,
+        x2: int,
+        color: str,
+        marker_end: str,
+        label_lines: list[str],
+        marker_start: str = "",
+        dashed: bool = False,
+        label_cx: float | None = None,
+        label_on_line: bool = False,
+    ):
+        dash = ' stroke-dasharray="7 5"' if dashed else ""
+        ms = f' marker-start="url(#{marker_start})"' if marker_start else ""
+        sx = x1 + (10 if marker_start else 3)
+        ex = x2 - 10
+        parts.append(
+            f'  <line x1="{sx}" y1="{y}" x2="{ex}" y2="{y}" stroke="{color}" '
+            f'stroke-width="2.2"{dash}{ms} marker-end="url(#{marker_end})"/>'
+        )
+        if label_lines:
+            mx = label_cx if label_cx is not None else (x1 + x2) / 2.0
+            max_w = max(approx_text_width(s, 11.0) for s in label_lines)
+            lw = max(76, int(max_w + 20))
+            lh = 15 * len(label_lines) + 10
+            ly = (y - lh / 2.0) if label_on_line else (y - lh - 9)
+            parts.append(
+                f'  <rect x="{mx - lw / 2:.1f}" y="{ly:.1f}" width="{lw}" height="{lh}" '
+                f'rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>'
+            )
+            for idx, ll in enumerate(label_lines):
+                fw = "700" if idx == 0 else "500"
+                fc = TEXT_MAIN if idx == 0 else TEXT_SUB
+                parts.append(
+                    f'  <text x="{mx:.1f}" y="{ly + 14.5 + idx * 15:.1f}" text-anchor="middle" '
+                    f'font-size="10.8" font-weight="{fw}" fill="{fc}">{esc(ll)}</text>'
+                )
+
+
+    # ==============================================================================
+    # LANE 1: Architecture 1 — ADK Session + Memory Object (Multi-Agent Standard)
+    # ==============================================================================
+    L1 = LANE_YS[0]
+    CY1 = L1 + CARD_OFFSET_Y + 96
+
+    add_lane(
+        L1,
+        GREEN_BORDER,
+        GREEN_TINT,
+        GREEN_DARK,
+        "1. Architecture 1 — ADK Session Object + Memory Object (Multi-Agent Enterprise Standard)",
+        "Recommended for Multi-Domain BI",
+        GREEN_LIGHT,
+        GREEN_DARK,
+    )
+
+    add_card(
+        0, L1, BLUE, "icon-mdi-person", "Enterprise User",
+        [
+            "• Multi-Domain Analyst",
+            "• Cross-Domain Drill-Down",
+            "• Executive KPI Queries",
+            "• Persistent User Profile",
+        ],
+    )
+    add_card(
+        1, L1, GREEN_BORDER, "icon-vertex-ai", "ADK Root & Sub-Agents",
+        [
+            "• LlmAgent / BaseAgent",
+            "• transfer_to_agent (Enum)",
+            "• Parallel 3-Domain Fan-out",
+            "• Slim 20-Row Token Diet",
+        ],
+    )
+    add_card(
+        2, L1, YELLOW_BORDER, "icon-cloud-sql", "ADK Session & Memory",
+        [
+            "• temp:* : Single-Turn GC",
+            "• session : [-6:] (3-Turn Win)",
+            "• user:* & app:* : 4-Scope State",
+            "• MemoryService : Long-Term",
+        ],
+        fill=YELLOW_FILL,
+    )
+    add_card(
+        3, L1, GREEN_BORDER, "icon-bigquery", "Scoped Domain BQ CAAs",
+        [
+            "• Sales / Profit / Supply Chain",
+            "• Parallel Fan-out on Demand",
+            "• IAM : dataAgentUser",
+            "• Scoped Schema per Domain",
+        ],
+    )
+
+    add_arrow(COL_X[0] + COL_W[0], CY1, COL_X[1], GREEN_BORDER, "arrow-green", ["User Turn"])
+    add_arrow(
+        COL_X[1] + COL_W[1], CY1, COL_X[2], AMBER_DARK, "arrow-amber",
+        ["Read / Write", "4-Scope State"], marker_start="arrow-amber-start"
+    )
+    add_arrow(
+        COL_X[2] + COL_W[2], CY1, COL_X[3], GREEN_BORDER, "arrow-green",
+        ["DataAgentContext", "+ Curated 3-Turn Msgs"]
+    )
+
+    # ==============================================================================
+    # LANE 2: Architecture 2 — Default One-Shot Stateless Mode (Pure DataAgentContext)
+    # ==============================================================================
+    L2 = LANE_YS[1]
+    CY2 = L2 + CARD_OFFSET_Y + 96
+
+    add_lane(
+        L2,
+        GREY_BORDER,
+        GREY_TINT,
+        TEXT_MAIN,
+        "2. Architecture 2 — Default One-Shot Stateless Mode (Pure DataAgentContext / InlineContext)",
+        "Best for One-Shot Widgets & Batch",
+        GREY_LIGHT,
+        TEXT_SUB,
+    )
+
+    add_card(
+        0, L2, GREY_BORDER, "icon-mdi-widgets", "User or BI Widget",
+        [
+            "• Dashboard Summary Button",
+            "• Daily Scheduled Batch",
+            "• Isolated Single Question",
+            "• Stateless API Caller",
+        ],
+    )
+    add_card(
+        1, L2, BLUE, "icon-cloud-run", "Client App / Default ADK",
+        [
+            "• Direct SDK / REST Caller",
+            "• Built-in ask_data_agent",
+            "• Zero Custom Session DB",
+            "• No History Chaining",
+        ],
+    )
+    add_ghost_stateless_slot(2, L2)
+    add_card(
+        3, L2, GREY_BORDER, "icon-bigquery", "BQ CAA Service (:chat)",
+        [
+            "• Zero Server History Log",
+            "• Intra-Turn Cache Only",
+            "• No Multi-Turn Context",
+            "• IAM : dataAgentUser",
+        ],
+    )
+
+    add_arrow(COL_X[0] + COL_W[0], CY2, COL_X[1], GREY, "arrow-grey", ["Single Prompt"])
+    add_arrow(
+        COL_X[1] + COL_W[1],
+        CY2,
+        COL_X[3],
+        GREY,
+        "arrow-grey",
+        ["DataAgentContext (Stateless)", "1 UserMessage Only · No History"],
+        dashed=True,
+        label_cx=COL_X[2] + COL_W[2] / 2.0,
+        label_on_line=True,
+    )
+
+    # ==============================================================================
+    # LANE 3: Architecture 3 — Managed Conversation API Stateful Mode
+    # ==============================================================================
+    L3 = LANE_YS[2]
+    CY3 = L3 + CARD_OFFSET_Y + 96
+
+    add_lane(
+        L3,
+        BLUE,
+        BLUE_TINT,
+        BLUE_DARK,
+        "3. Architecture 3 — Managed Conversation API Stateful Mode (ConversationReference)",
+        "Best for Single-Domain No-DB Chatbot",
+        BLUE_LIGHT,
+        BLUE_DARK,
+    )
+
+    add_card(
+        0, L3, BLUE, "icon-mdi-forum", "Department Analyst",
+        [
+            "• Single-Domain User",
+            "• Interactive Follow-up Chat",
+            "• Ad-hoc SQL Exploration",
+            "•BQ Studio / Thin Web UI".replace("•BQ", "• BQ"),
+        ],
+    )
+    add_card(
+        1, L3, BLUE, "icon-mdi-laptop", "Thin Client / BQ Studio",
+        [
+            "• Zero Custom History DB",
+            "• Sends conversation_id",
+            "• 6-Turn / 15m Rotation",
+            "• Guardrail Recommended",
+        ],
+    )
+    add_card(
+        2, L3, BLUE, "icon-bigquery", "BQ CAA Service (:chat)",
+        [
+            "• Bound to 1 Fixed DataAgent",
+            "• Cross-Turn Cache (90% Off)",
+            "• Serialized Per-Conv Write",
+            "• Domain Switch Loses State",
+        ],
+    )
+    add_card(
+        3, L3, YELLOW_BORDER, "icon-cloud-storage", "Google Managed Store",
+        [
+            "• Auto-Injects Server History",
+            "• 180d Idle Auto-Expiration",
+            "• Regional CMEK (No global)",
+            "• Visible in BQ Studio UI",
+        ],
+        fill=YELLOW_FILL,
+    )
+
+    add_arrow(COL_X[0] + COL_W[0], CY3, COL_X[1], BLUE, "arrow-blue", ["Follow-up"])
+    add_arrow(
+        COL_X[1] + COL_W[1], CY3, COL_X[2], BLUE, "arrow-blue",
+        ["ConversationReference", "+ 1 New UserMessage"]
+    )
+    add_arrow(
+        COL_X[2] + COL_W[2], CY3, COL_X[3], AMBER_DARK, "arrow-amber",
+        ["Auto Load", "& Append"], marker_start="arrow-amber-start"
+    )
+
+    wrap_and_render("fig2_state_architectures_comparison", W, H, parts)
 
 
 # ==============================================================================
@@ -317,8 +722,8 @@ def build_fig3() -> None:
     # Path A Lane
     draw_lane(
         p, 20, 16, 1360, 232, BLUE, BLUE_TINT, BLUE_DARK,
-        "Path A — Single-Domain Delegation via Built-in ADK Enum transfer_to_agent (Zero Schema Hallucination)",
-        "Scenario 1 & Scenario 2", BLUE_LIGHT, BLUE_DARK
+        "Path A — Single-Domain Delegation via Built-in ADK transfer_to_agent",
+        "S1 · S2", BLUE_LIGHT, BLUE_DARK
     )
     draw_card(p, 40, 76, 230, 154, BLUE, "icon-mdi-person", "Single-Domain Query", [
         "• '30d VIP count & AOV'",
@@ -337,8 +742,8 @@ def build_fig3() -> None:
     ])
     draw_card(p, 1146, 76, 214, 154, GREEN_BORDER, "icon-bigquery", "Customer BQ CAA", [
         "• 4 Tables Only",
-        "• ~13.8K Input Tok",
-        "• Verified VIP SQL",
+        f"• S1 Input {N['s1_pct']}",
+        "• vs 32-Table Mono",
     ])
     draw_h_arrow(p, 270, 153, 388, BLUE, "arrow-blue", ["Turn 1"])
     draw_h_arrow(p, 664, 153, 782, GREEN_BORDER, "arrow-green", ["Enum Transfer", "(Same Turn)"])
@@ -348,7 +753,7 @@ def build_fig3() -> None:
     draw_lane(
         p, 20, 268, 1360, 232, AMBER_DARK, YELLOW_FILL, AMBER_DARK,
         "Path B — Direct Peer-to-Peer Sub-Agent Handoff on Domain Switch (Skips Extra Root Router LLM Hop)",
-        "Scenario 3 · Multi-Turn Pivot", YELLOW_LIGHT, AMBER_DARK
+        "S3 · Domain Switch", YELLOW_LIGHT, AMBER_DARK
     )
     draw_card(p, 40, 328, 230, 154, BLUE, "icon-mdi-forum", "Domain-Pivot Follow-up", [
         "• 'Now check DC lead time'",
@@ -367,18 +772,18 @@ def build_fig3() -> None:
     ])
     draw_card(p, 1146, 328, 214, 154, GREEN_BORDER, "icon-bigquery", "Supply Chain CAA", [
         "• 5 Tables Scoped",
-        "• DC #2 6.0d Delay",
+        f"• S3 Input {N['s3_pct']}",
         "• No Conv Lock-in",
     ])
     draw_h_arrow(p, 270, 405, 388, AMBER_DARK, "arrow-amber", ["Turn N+1"])
-    draw_h_arrow(p, 664, 405, 782, AMBER_DARK, "arrow-amber", ["Peer Handoff", "(1 Hop Saved)"])
+    draw_h_arrow(p, 664, 405, 782, AMBER_DARK, "arrow-amber", ["Peer Handoff", "(No Root Hop)"])
     draw_h_arrow(p, 1048, 405, 1146, GREEN_BORDER, "arrow-green", [":chat API"])
 
     # Path C Lane
     draw_lane(
         p, 20, 520, 1360, 244, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
-        "Path C — Lock-Free Concurrent 3-Domain Fan-out via ThreadPoolExecutor (~60% Wall-Clock Latency Cut)",
-        "Scenario 4 · Executive Root-Cause", GREEN_LIGHT, GREEN_DARK
+        "Path C — Concurrent Multi-Domain Fan-out via ThreadPoolExecutor (One BQCA Call per Domain: Costs More Tokens)",
+        "S3 · Three-Domain Fan-out", GREEN_LIGHT, GREEN_DARK
     )
     draw_card(p, 40, 582, 230, 162, BLUE, "icon-mdi-person", "Composite Exec Query", [
         "• 'Why did Outerwear",
@@ -392,16 +797,16 @@ def build_fig3() -> None:
         "• Synthesizes 1 unified brief",
     ])
     draw_card(p, 782, 582, 266, 162, GREEN_BORDER, "icon-bigquery", "3 Scoped CAAs in Parallel", [
-        "• Customer : 180 VIP orders",
-        "• Product : 50% Atelier return",
-        "• Supply : 6.0d Chicago DC #2",
-        "• Zero WriteLock contention",
+        "• Customer : VIP orders",
+        "• Product : returns, margin",
+        "• Supply : DC lead time",
+        "• One :chat call per domain",
     ])
     draw_card(p, 1146, 582, 214, 162, YELLOW_BORDER, "icon-cloud-sql", "Unified Synthesis", [
-        "• ~26.4K Total Tok",
-        "• vs 248.5K Mono",
-        "• -89.4% Cost Cut",
-        "• Auto-Pins Insight",
+        f"• {N['fan_tobe']:,} Input Tok",
+        f"• vs {N['fan_asis']:,} Mono",
+        f"• {N['fan_pct']} Tokens",
+        "• 3 BQCA Calls vs 1",
     ], fill=YELLOW_FILL)
     draw_h_arrow(p, 270, 663, 388, GREEN_BORDER, "arrow-green", ["1 Turn"])
     draw_h_arrow(p, 664, 663, 782, GREEN_BORDER, "arrow-green", ["3x Parallel", "ThreadPool"])
@@ -417,32 +822,32 @@ def build_fig4() -> None:
     p: list[str] = []
     draw_lane(
         p, 20, 16, 1360, 248, RED_BORDER, "#FFF8F7", RED_DARK,
-        "Before — Naive Unscoped Monolithic Agent or Unbounded Raw Tool History (Why Enterprise PoCs Fail Cost Gates)",
-        "110,764+ Input Tokens / Turn (~$0.47/Query)", RED_LIGHT, RED_DARK
+        "Before (As-Is) — One ADK Agent with Built-in Data Agent Tools on One Monolithic Data Agent",
+        f"{N['s1_asis']:,} Input Tokens / Turn (S1), {N['t8_asis']:,} at Turn 8", RED_LIGHT, RED_DARK
     )
     draw_card(p, 44, 78, 396, 166, RED_BORDER, "icon-bigquery", "1. Schema & Glossary Bloat", [
-        "• All warehouse tables/views bound to 1 agent",
-        "• Full DDL + sample values injected every turn",
-        "• Ambiguous created_at / status column collisions",
-        "• Runtime list/get_data_agent_info wastes tokens",
+        "• All 32 tables / 504 columns bound to 1 agent",
+        "• Schema and descriptions sent on every turn",
+        f"• Median {N['med_mono']:,} BQCA input tokens / turn",
+        "• list / get_data_agent_info calls at runtime",
     ])
-    draw_card(p, 502, 78, 396, 166, RED_BORDER, "icon-cloud-storage", "2. Unbounded Raw JSON & Thought Accumulation", [
-        "• Raw THOUGHT & PROGRESS chunks kept in history",
-        "• Hundreds of result rows serialized into Session DB",
-        "• Linear O(N) prompt growth across multi-turn chat",
-        "• Hits context ceiling & inflates TTFT latency",
+    draw_card(p, 502, 78, 396, 166, RED_BORDER, "icon-cloud-storage", "2. Unbounded ADK Prompt Growth", [
+        "• Full tool results stay in the ADK history",
+        "• No cap on result rows returned to the LLM",
+        f"• ADK prompt {N['asis_adk_first']:,} to {N['asis_adk_last']:,} over 8 turns",
+        "• Prompt keeps growing with every turn",
     ])
-    draw_card(p, 960, 78, 396, 166, RED_BORDER, "icon-mdi-widgets", "3. Conversation Lock-In or Amnesia", [
-        "• Default ask_data_agent sends 1 msg (amnesia)",
-        "• ConversationReference locks 1 Conv = 1 Agent",
-        "• + New Session wipes executive role & past findings",
-        "• ~$1.7M/yr run-rate at 10,000 daily queries",
+    draw_card(p, 960, 78, 396, 166, RED_BORDER, "icon-mdi-widgets", "3. No Cross-Session Memory", [
+        "• ask_data_agent sends 1 user message per call",
+        "• Context comes only from ADK history replay",
+        "• New session: no profile, no earlier findings",
+        "• S5: cannot recall an insight from a past session",
     ])
 
     draw_lane(
         p, 20, 288, 1360, 256, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
         "After — Proposed 4-Layer Token Diet + ADK 4-Scope Session.state & MemoryService Architecture",
-        "13,812–26,420 Input Tokens (-85% to -92% Cost)", GREEN_LIGHT, GREEN_DARK
+        f"Total Input: S1 {N['s1_pct']} · S4 Avg {N['s4_avg_pct']} · Turn 8 {N['t8_pct']}", GREEN_LIGHT, GREEN_DARK
     )
     draw_card(p, 40, 352, 306, 172, GREEN_BORDER, "icon-bigquery", "1. temp:* Scope (Turn GC)", [
         "• Strips THOUGHT & PROGRESS",
@@ -452,7 +857,7 @@ def build_fig4() -> None:
     ])
     draw_card(p, 378, 352, 306, 172, BLUE, "icon-vertex-ai", "2. session Scope ([-6:] Cap)", [
         "• Per-agent [-6:] (3-turn) window",
-        "• Flat O(1) bounded token ceiling",
+        f"• ADK prompt {N['tobe_adk_min']:,}–{N['tobe_adk_max']:,} over 8 turns",
         "• domain_query_history enables",
         "  cross-domain query rewriting",
     ])
@@ -465,8 +870,8 @@ def build_fig4() -> None:
     draw_card(p, 1054, 352, 306, 172, GREEN_BORDER, "icon-cloud-sql", "4. ADK MemoryService Bank", [
         "• after_agent_callback indexes",
         "  completed sessions automatically",
-        "• preload_memory & load_memory",
-        "  rehydrate insights on Turn 1",
+        "• load_memory recalls insights",
+        "  in a new session (S5)",
     ])
 
     wrap_and_render("fig4_token_diet_4scope_lifecycle", 1400, 560, p)

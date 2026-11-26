@@ -99,8 +99,8 @@
   <rect x="20" y="16" width="1360" height="232" rx="12" ry="12" fill="#F4F8FE" stroke="#1A73E8" stroke-width="2"/>
   <line x1="40" y1="62" x2="1360" y2="62" stroke="#DADCE0" stroke-width="1"/>
   <text x="40" y="46" font-size="15.5" font-weight="700" fill="#174EA6">Tier 1 — Google ADK Multi-Agent Orchestration &amp; 4-Scope State Layer (Vertex AI Gemini 2.5 Flash)</text>
-  <rect x="1083" y="27" width="277" height="24" rx="12" ry="12" fill="#E8F0FE"/>
-  <text x="1221.5" y="43" text-anchor="middle" font-size="11.5" font-weight="700" fill="#174EA6">Bounded Token Cost + Cross-Session Memory</text>
+  <rect x="1048" y="27" width="312" height="24" rx="12" ry="12" fill="#E8F0FE"/>
+  <text x="1204.0" y="43" text-anchor="middle" font-size="11.5" font-weight="700" fill="#174EA6">Flat ADK Prompt per Turn + Cross-Session Memory</text>
   <rect x="44" y="76" width="260" height="154" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-mdi-person" x="58" y="87" width="32" height="32"/>
   <text x="98" y="108" font-size="13.2" font-weight="700" fill="#202124">Enterprise Analyst / API</text>
@@ -123,7 +123,7 @@
   <text x="860" y="150" font-size="11.4" font-weight="400" fill="#3C4043">• temp:* : Raw SQL &amp; 20-row preview buffer (auto-evicted post-turn)</text>
   <text x="860" y="171" font-size="11.4" font-weight="400" fill="#3C4043">• session : Per-domain [-6:] (3-turn) sliding window &amp; query history</text>
   <text x="860" y="192" font-size="11.4" font-weight="400" fill="#3C4043">• user:* &amp; app:* : Persistent role/KPI profile &amp; execution telemetry</text>
-  <text x="860" y="213" font-size="11.4" font-weight="400" fill="#3C4043">• MemoryService : after_agent_callback indexing + preload_memory recall</text>
+  <text x="860" y="213" font-size="11.4" font-weight="400" fill="#3C4043">• MemoryService : after_agent_callback indexing + load_memory recall</text>
   <line x1="307" y1="153" x2="404" y2="153" stroke="#1A73E8" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
   <rect x="321.0" y="119.0" width="76" height="25" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
   <text x="359.0" y="133.5" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">NL Query</text>
@@ -142,8 +142,8 @@
   <rect x="20" y="296" width="1360" height="236" rx="12" ry="12" fill="#F6FBF7" stroke="#34A853" stroke-width="2"/>
   <line x1="40" y1="342" x2="1360" y2="342" stroke="#DADCE0" stroke-width="1"/>
   <text x="40" y="326" font-size="15.5" font-weight="700" fill="#137333">Tier 2 — Domain-Scoped BigQuery Conversational Analytics (CAA) Layer (geminidataanalytics.googleapis.com)</text>
-  <rect x="1065" y="307" width="295" height="24" rx="12" ry="12" fill="#E6F4EA"/>
-  <text x="1212.5" y="323" text-anchor="middle" font-size="11.5" font-weight="700" fill="#137333">85%–92% Prompt Token Reduction vs Monolithic</text>
+  <rect x="1044" y="307" width="316" height="24" rx="12" ry="12" fill="#E6F4EA"/>
+  <text x="1202.0" y="323" text-anchor="middle" font-size="11.5" font-weight="700" fill="#137333">S1 Total Input: 54,957 vs 113,661 Tokens (-51.6%)</text>
   <rect x="44" y="358" width="384" height="156" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="58" y="369" width="32" height="32"/>
   <text x="98" y="390" font-size="13.2" font-weight="700" fill="#202124">Domain 1: Customer &amp; Funnel CAA</text>
@@ -151,7 +151,7 @@
   <text x="60" y="432" font-size="11.4" font-weight="400" fill="#3C4043">• ID : cymbal_customer_marketing_ca</text>
   <text x="60" y="453" font-size="11.4" font-weight="400" fill="#3C4043">• Scoped Tables (4) : users, events, orders, order_items</text>
   <text x="60" y="474" font-size="11.4" font-weight="400" fill="#3C4043">• Glossary : VIP (&gt;= $500 / &gt;= 5 orders), Churn, AOV, Cart%</text>
-  <text x="60" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• Base Prompt Footprint : ~11.4K tok (vs 110.8K Mono)</text>
+  <text x="60" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn, Cloud Trace Median : 56,158</text>
   <rect x="508" y="358" width="384" height="156" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="522" y="369" width="32" height="32"/>
   <text x="562" y="390" font-size="13.2" font-weight="700" fill="#202124">Domain 2: Product &amp; Margin CAA</text>
@@ -159,7 +159,7 @@
   <text x="524" y="432" font-size="11.4" font-weight="400" fill="#3C4043">• ID : cymbal_product_profitability_ca</text>
   <text x="524" y="453" font-size="11.4" font-weight="400" fill="#3C4043">• Scoped Tables (3) : products, order_items, orders</text>
   <text x="524" y="474" font-size="11.4" font-weight="400" fill="#3C4043">• Glossary : Gross Margin %, Net Rev, Realized Profit, Return%</text>
-  <text x="524" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• Base Prompt Footprint : ~9.8K tok (vs 110.8K Mono)</text>
+  <text x="524" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn, Cloud Trace Median : 50,287</text>
   <rect x="972" y="358" width="384" height="156" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="986" y="369" width="32" height="32"/>
   <text x="1026" y="390" font-size="13.2" font-weight="700" fill="#202124">Domain 3: Supply Chain &amp; DC CAA</text>
@@ -167,7 +167,7 @@
   <text x="988" y="432" font-size="11.4" font-weight="400" fill="#3C4043">• ID : cymbal_supply_chain_ca</text>
   <text x="988" y="453" font-size="11.4" font-weight="400" fill="#3C4043">• Scoped Tables (5) : distribution_centers, inventory_items + 3</text>
   <text x="988" y="474" font-size="11.4" font-weight="400" fill="#3C4043">• Glossary : Avg Delivery Lead Time, Unsold Inventory Cost</text>
-  <text x="988" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• Base Prompt Footprint : ~12.9K tok (vs 110.8K Mono)</text>
+  <text x="988" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn, Cloud Trace Median : 68,547</text>
   <line x1="236" y1="535" x2="236" y2="570" stroke="#1A73E8" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
   <rect x="189.0" y="545.0" width="94" height="22" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
   <text x="236" y="560.0" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">Governed SQL</text>
@@ -180,20 +180,20 @@
   <rect x="20" y="580" width="1360" height="208" rx="12" ry="12" fill="#F8F9FA" stroke="#80868B" stroke-width="2"/>
   <line x1="40" y1="626" x2="1360" y2="626" stroke="#DADCE0" stroke-width="1"/>
   <text x="40" y="610" font-size="15.5" font-weight="700" fill="#202124">Tier 3 — BigQuery Enterprise Data Warehouse &amp; Dataplex Knowledge Catalog Governance Foundation</text>
-  <rect x="1124" y="591" width="236" height="24" rx="12" ry="12" fill="#E8EAED"/>
-  <text x="1242.0" y="607" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3C4043">Zero Cross-Domain Schema Ambiguity</text>
+  <rect x="1050" y="591" width="310" height="24" rx="12" ry="12" fill="#E8EAED"/>
+  <text x="1205.0" y="607" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3C4043">Synthetic Demo Schema Built from Public Datasets</text>
   <rect x="44" y="640" width="620" height="132" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="58" y="651" width="32" height="32"/>
-  <text x="98" y="672" font-size="13.2" font-weight="700" fill="#202124">BigQuery Dataset (thelook_ecommerce_agent · 7 Tables + Relative Seed)</text>
+  <text x="98" y="672" font-size="13.2" font-weight="700" fill="#202124">BigQuery Dataset cymbal_enterprise_dw (32 Documented Tables · 504 Columns)</text>
   <line x1="58" y1="692" x2="650" y2="692" stroke="#E8EAED" stroke-width="1"/>
-  <text x="60" y="714" font-size="11.4" font-weight="400" fill="#3C4043">• Cloned via 15s CTAS from bigquery-public-data.thelook_ecommerce (or Terraform C2D)</text>
-  <text x="60" y="735" font-size="11.4" font-weight="400" fill="#3C4043">• Anchored to CURRENT_TIMESTAMP() : 60 VIPs, 50% Atelier Return Spike, 6.0d Chicago DC #2 Delay</text>
-  <text x="60" y="756" font-size="11.4" font-weight="400" fill="#3C4043">• Zero ambiguous created_at mis-joins thanks to per-domain table isolation</text>
+  <text x="60" y="714" font-size="11.4" font-weight="400" fill="#3C4043">• Copied from bigquery-public-data: thelook_ecommerce (7 tables) + tpc_ds_1g (25 tables)</text>
+  <text x="60" y="735" font-size="11.4" font-weight="400" fill="#3C4043">• Table and column descriptions on every table; demo seed rows anchored to the current date</text>
+  <text x="60" y="756" font-size="11.4" font-weight="400" fill="#3C4043">• As-Is: one monolithic data agent on all 32 tables (median 162,144 BQCA input / turn)</text>
   <rect x="736" y="640" width="620" height="132" rx="10" ry="10" fill="#FFFDF5" stroke="#F9AB00" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-data-analytics" x="750" y="651" width="32" height="32"/>
-  <text x="790" y="672" font-size="13.2" font-weight="700" fill="#202124">Hop-1 Business Glossary &amp; Verified SQL Formula Ruleset</text>
+  <text x="790" y="672" font-size="13.2" font-weight="700" fill="#202124">Business Glossary &amp; Table / Column Descriptions</text>
   <line x1="750" y1="692" x2="1342" y2="692" stroke="#E8EAED" stroke-width="1"/>
-  <text x="752" y="714" font-size="11.4" font-weight="400" fill="#3C4043">• Direct Hop-1 term-to-table definitions ensure 100% LookupContext recall (max_hops=1)</text>
-  <text x="752" y="735" font-size="11.4" font-weight="400" fill="#3C4043">• Enforces deterministic SQL formulas for VIP, Cart Abandonment %, Gross Margin %, Lead Time</text>
-  <text x="752" y="756" font-size="11.4" font-weight="400" fill="#3C4043">• Eliminates runtime list_accessible_data_agents / get_data_agent_info metadata calls</text>
+  <text x="752" y="714" font-size="11.4" font-weight="400" fill="#3C4043">• Each domain data agent carries only its own tables and glossary terms</text>
+  <text x="752" y="735" font-size="11.4" font-weight="400" fill="#3C4043">• Glossary formulas for VIP, Cart Abandonment %, Gross Margin %, Delivery Lead Time</text>
+  <text x="752" y="756" font-size="11.4" font-weight="400" fill="#3C4043">• Sub-agents bind static data agent IDs: no list / get discovery calls at runtime</text>
 </svg>
