@@ -877,8 +877,124 @@ def build_fig4() -> None:
     wrap_and_render("fig4_token_diet_4scope_lifecycle", 1400, 560, p)
 
 
+# ==============================================================================
+# FIGURE 5: Live Execution Flow (1400 x 694). Every node and edge carries an id
+# (`lf-<side>-n-<node>` / `lf-<side>-e-<from>--<to>`); the portal inlines this SVG
+# and lights the elements from the ADK events of a live run.
+# ==============================================================================
+def build_fig5() -> None:
+    w, h = 1400, 694
+    idle = "#BDC1C6"
+    lanes: list[str] = []
+    edges: list[str] = []
+    nodes: list[str] = []
+
+    def node(side: str, nid: str, x: int, y: int, bw: int, bh: int, title: str, sub: str = "", icon: str = "") -> None:
+        g = [
+            f'  <g id="lf-{side}-n-{nid}" class="lf-node">',
+            f'    <rect class="lf-box" x="{x}" y="{y}" width="{bw}" height="{bh}" rx="9" ry="9" fill="#FFFFFF" stroke="{idle}" stroke-width="2"/>',
+        ]
+        tx = x + 13
+        if icon:
+            g.append(f'    <use href="#{icon}" x="{x + 10}" y="{y + (bh - 26) / 2:.1f}" width="26" height="26"/>')
+            tx = x + 45
+        cy = y + bh / 2
+        if sub:
+            g.append(f'    <text x="{tx}" y="{cy - 3:.1f}" font-size="12.3" font-weight="700" fill="{TEXT_MAIN}">{esc(title)}</text>')
+            g.append(f'    <text x="{tx}" y="{cy + 12.5:.1f}" font-size="10" font-weight="400" fill="{TEXT_SUB}">{esc(sub)}</text>')
+        else:
+            g.append(f'    <text x="{tx}" y="{cy + 4.3:.1f}" font-size="11.6" font-weight="600" fill="{TEXT_MAIN}">{esc(title)}</text>')
+        g.append("  </g>")
+        nodes.append("\n".join(g))
+
+    def bq_node(side: str, x: int, y: int, bw: int, bh: int) -> None:
+        cy = y + bh / 2
+        nodes.append("\n".join([
+            f'  <g id="lf-{side}-n-bq" class="lf-node">',
+            f'    <rect class="lf-box" x="{x}" y="{y}" width="{bw}" height="{bh}" rx="9" ry="9" fill="#FFFFFF" stroke="{idle}" stroke-width="2"/>',
+            f'    <use href="#icon-bigquery" x="{x + 10}" y="{cy - 26:.1f}" width="24" height="24"/>',
+            f'    <text x="{x + 40}" y="{cy - 9:.1f}" font-size="12.3" font-weight="700" fill="{TEXT_MAIN}">BigQuery</text>',
+            f'    <text x="{x + 12}" y="{cy + 13:.1f}" font-size="10" font-weight="400" fill="{TEXT_SUB}">cymbal_enterprise_dw</text>',
+            "  </g>",
+        ]))
+
+    def edge(side: str, eid: str, pts: list[tuple[int, int]], head: bool = True) -> None:
+        (x1, y1), (x2, y2) = pts[-2], pts[-1]
+        g = [f'  <g id="lf-{side}-e-{eid}" class="lf-edge">']
+        line_pts = list(pts)
+        if head:
+            length = max(1.0, ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5)
+            ux, uy = (x2 - x1) / length, (y2 - y1) / length
+            bx, by = x2 - ux * 9, y2 - uy * 9
+            line_pts[-1] = (round(x2 - ux * 7), round(y2 - uy * 7))
+            tri = f"{x2},{y2} {bx - uy * 5:.1f},{by + ux * 5:.1f} {bx + uy * 5:.1f},{by - ux * 5:.1f}"
+        path = " ".join(f"{px},{py}" for px, py in line_pts)
+        g.append(f'    <polyline class="lf-line" points="{path}" fill="none" stroke="{idle}" stroke-width="2" stroke-linejoin="round"/>')
+        if head:
+            g.append(f'    <polygon class="lf-head" points="{tri}" fill="{idle}"/>')
+        g.append("  </g>")
+        edges.append("\n".join(g))
+
+    # ---- To-Be lane ----
+    draw_lane(
+        lanes, 20, 16, 1360, 430, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
+        "To-Be — Root Router + Domain Sub-Agents + Domain-Scoped Data Agents",
+        "Lit from the ADK events of the live run", GREEN_LIGHT, GREEN_DARK,
+    )
+    rows = [104, 172, 240, 308, 376]
+    node("tobe", "user", 44, rows[2] - 26, 156, 52, "User Prompt", icon="icon-mdi-person")
+    node("tobe", "root", 264, rows[2] - 26, 220, 52, "Root Router", "cymbal_enterprise_root_router", "icon-vertex-ai")
+    node("tobe", "sub-customer", 552, rows[0] - 26, 260, 52, "Customer Sub-Agent", "customer_marketing_subagent", "icon-agents")
+    node("tobe", "sub-product", 552, rows[1] - 26, 260, 52, "Product Sub-Agent", "product_profitability_subagent", "icon-agents")
+    node("tobe", "sub-supply", 552, rows[2] - 26, 260, 52, "Supply Chain Sub-Agent", "supply_chain_logistics_subagent", "icon-agents")
+    node("tobe", "fan", 552, rows[3] - 26, 260, 52, "Cross-Domain Fan-out Tool", "run_cross_domain_caa_analysis", "icon-mdi-widgets")
+    node("tobe", "mem", 552, rows[4] - 26, 260, 52, "Memory & State Tools", "load_memory · save · inspect", "icon-cloud-sql")
+    node("tobe", "ca-customer", 892, rows[0] - 26, 270, 52, "Customer Data Agent · 4 tables", "cymbal_customer_marketing_ca", "icon-data-analytics")
+    node("tobe", "ca-product", 892, rows[1] - 26, 270, 52, "Product Data Agent · 3 tables", "cymbal_product_profitability_ca", "icon-data-analytics")
+    node("tobe", "ca-supply", 892, rows[2] - 26, 270, 52, "Supply Data Agent · 5 tables", "cymbal_supply_chain_ca", "icon-data-analytics")
+    bq_node("tobe", 1216, rows[0] - 26, 140, rows[2] - rows[0] + 52)
+
+    edge("tobe", "user--root", [(200, rows[2]), (264, rows[2])])
+    for nid, ry in (("sub-customer", rows[0]), ("sub-product", rows[1]), ("fan", rows[3]), ("mem", rows[4])):
+        edge("tobe", f"root--{nid}", [(484, rows[2]), (518, rows[2]), (518, ry), (552, ry)])
+    edge("tobe", "root--sub-supply", [(484, rows[2]), (552, rows[2])])
+    for dom, ry in (("customer", rows[0]), ("product", rows[1]), ("supply", rows[2])):
+        edge("tobe", f"fan--ca-{dom}", [(812, rows[3]), (852, rows[3]), (852, ry), (892, ry)])
+        edge("tobe", f"sub-{dom}--ca-{dom}", [(812, ry), (892, ry)])
+        edge("tobe", f"ca-{dom}--bq", [(1162, ry), (1216, ry)])
+    edge("tobe", "peer-cp", [(682, rows[0] + 26), (682, rows[1] - 26)], head=False)
+    edge("tobe", "peer-ps", [(682, rows[1] + 26), (682, rows[2] - 26)], head=False)
+
+    # ---- As-Is lane ----
+    draw_lane(
+        lanes, 20, 464, 1360, 214, GREY_BORDER, GREY_TINT, TEXT_MAIN,
+        "As-Is — One ADK Agent with Built-in Data Agent Tools on One Monolithic Data Agent",
+        "Lit from the ADK events of the live run", GREY_LIGHT, TEXT_SUB,
+    )
+    arows = [545, 593, 641]
+    node("asis", "user", 44, arows[1] - 26, 156, 52, "User Prompt", icon="icon-mdi-person")
+    node("asis", "agent", 264, arows[1] - 26, 220, 52, "ADK Agent (single)", "asis_default_data_agent_tools", "icon-vertex-ai")
+    node("asis", "tool-list", 552, arows[0] - 19, 260, 38, "list_accessible_data_agents")
+    node("asis", "tool-info", 552, arows[1] - 19, 260, 38, "get_data_agent_info")
+    node("asis", "tool-ask", 552, arows[2] - 19, 260, 38, "ask_data_agent")
+    node("asis", "ca", 892, 574, 270, 86, "Monolithic Data Agent · 32 tables", "cymbal_enterprise_monolithic_ca", "icon-data-analytics")
+    bq_node("asis", 1216, 574, 140, 86)
+
+    edge("asis", "user--agent", [(200, arows[1]), (264, arows[1])])
+    edge("asis", "agent--tool-list", [(484, arows[1]), (518, arows[1]), (518, arows[0]), (552, arows[0])])
+    edge("asis", "agent--tool-info", [(484, arows[1]), (552, arows[1])])
+    edge("asis", "agent--tool-ask", [(484, arows[1]), (518, arows[1]), (518, arows[2]), (552, arows[2])])
+    edge("asis", "tool-info--ca", [(812, arows[1]), (892, arows[1])])
+    edge("asis", "tool-ask--ca", [(812, arows[2]), (892, arows[2])])
+    edge("asis", "ca--bq", [(1162, 617), (1216, 617)])
+
+    body = lanes + ['  <g id="lf-edges">'] + edges + ["  </g>"] + nodes
+    wrap_and_render("fig5_live_execution_flow", w, h, body)
+
+
 if __name__ == "__main__":
     build_fig1()
     build_fig2()
     build_fig3()
     build_fig4()
+    build_fig5()

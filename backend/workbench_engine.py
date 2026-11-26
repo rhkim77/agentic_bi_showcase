@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 import json
 import re
 import time
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Callable
 
 import google.adk
 from google.adk.agents import LlmAgent
@@ -188,7 +188,21 @@ def _summarize_adk_usage(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def _run_turn(runner: Runner, user_id: str, session_id: str, prompt: str) -> dict[str, Any]:
+_FANOUT_ARG_DOMAINS = {
+    "customer_marketing_query": "customer_marketing",
+    "product_profitability_query": "product_profitability",
+    "supply_chain_logistics_query": "supply_chain",
+}
+
+
+async def _run_turn(
+    runner: Runner,
+    user_id: str,
+    session_id: str,
+    prompt: str,
+    on_step: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
+    """Runs one turn. `on_step` receives each ADK event as it arrives (agent, tool call, tool response)."""
     usage_bucket: list[dict[str, Any]] = []
     caa_bucket: list[dict[str, Any]] = []
     tool_events: list[dict[str, Any]] = []
@@ -197,22 +211,44 @@ async def _run_turn(runner: Runner, user_id: str, session_id: str, prompt: str) 
     tok_caa = CAA_CALL_COLLECTOR_VAR.set(caa_bucket)
     t0 = time.monotonic()
     started_at = datetime.now(timezone.utc)
+
+    def step(kind: str, **fields: Any) -> None:
+        if on_step is None:
+            return
+        try:
+            on_step({"kind": kind, "t_ms": int((time.monotonic() - t0) * 1000), **fields})
+        except Exception:  # pylint: disable=broad-except
+            pass  # the visual stream must never break a run
+
+    step("start", prompt=prompt[:160])
     try:
         msg = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
         async for ev in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
             parts = ev.content.parts if ev.content and ev.content.parts else []
+            author = str(getattr(ev, "author", "") or "")
             for p in parts:
                 fc = getattr(p, "function_call", None)
                 if fc is not None:
-                    tool_events.append({"kind": "call", "name": fc.name, "args": dict(fc.args or {})})
+                    args = dict(fc.args or {})
+                    tool_events.append({"kind": "call", "name": fc.name, "args": args})
+                    step(
+                        "call",
+                        agent=author,
+                        name=fc.name,
+                        target=str(args.get("agent_name") or args.get("data_agent_name") or "").rsplit("/", 1)[-1],
+                        domains=[d for k, d in _FANOUT_ARG_DOMAINS.items() if str(args.get(k) or "").strip()],
+                    )
                 fr = getattr(p, "function_response", None)
                 if fr is not None:
                     tool_events.append({"kind": "response", "name": fr.name, "response": fr.response})
+                    step("response", agent=author, name=fr.name)
             if ev.is_final_response() and parts:
                 t = "\n".join(p.text for p in parts if getattr(p, "text", None)).strip()
                 if t:
                     texts.append(t)
+                    step("final", agent=author)
     finally:
+        step("end")
         ADK_USAGE_COLLECTOR_VAR.reset(tok_usage)
         CAA_CALL_COLLECTOR_VAR.reset(tok_caa)
     return {
@@ -226,10 +262,16 @@ async def _run_turn(runner: Runner, user_id: str, session_id: str, prompt: str) 
     }
 
 
-def _run_asis_turn_blocking(session_svc: InMemorySessionService, user_id: str, session_id: str, prompt: str) -> dict[str, Any]:
+def _run_asis_turn_blocking(
+    session_svc: InMemorySessionService,
+    user_id: str,
+    session_id: str,
+    prompt: str,
+    on_step: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     async def _go() -> dict[str, Any]:
         runner = Runner(app_name=ASIS_APP_NAME, agent=_build_asis_agent(), session_service=session_svc)
-        return await _run_turn(runner, user_id, session_id, prompt)
+        return await _run_turn(runner, user_id, session_id, prompt, on_step)
 
     return asyncio.run(_go())
 
@@ -529,15 +571,21 @@ async def stream_dual_ab_scenario(
     def emit(side: str, detail: str) -> None:
         loop.call_soon_threadsafe(event_queue.put_nowait, {"kind": "progress", "side": side, "detail": detail})
 
+    def emit_step(side: str, st: dict[str, Any]) -> None:
+        # Called from the To-Be loop and from the As-Is worker thread.
+        loop.call_soon_threadsafe(event_queue.put_nowait, {"kind": "step", "side": side, "step": st})
+
     async def run_tobe(sid: str, text: str, label: str) -> dict[str, Any]:
         runner = vsess.ensure_runner()
-        turn = await _run_turn(runner, vsess.user_id, sid, text)
+        turn = await _run_turn(runner, vsess.user_id, sid, text, lambda st: emit_step("tobe", st))
         side = _tobe_side(turn, label)
         emit("tobe", f"Finished in {side['latency_ms'] / 1000:.1f}s: ADK prompt {side['adk_usage']['prompt_tokens']:,} tok (measured), {side['bqca_calls']} BQCA call(s), agents {' > '.join(side['adk_usage']['agents_invoked'])}")
         return side
 
     async def run_asis(sid: str, text: str, label: str) -> dict[str, Any]:
-        turn = await asyncio.to_thread(_run_asis_turn_blocking, vsess.asis_session_svc, vsess.user_id, sid, text)
+        turn = await asyncio.to_thread(
+            _run_asis_turn_blocking, vsess.asis_session_svc, vsess.user_id, sid, text, lambda st: emit_step("asis", st)
+        )
         side = _asis_side(turn, label)
         emit("asis", f"Finished in {side['latency_ms'] / 1000:.1f}s: ADK prompt {side['adk_usage']['prompt_tokens']:,} tok (measured), {side['bqca_calls']} BQCA call(s), tools {', '.join(side['tool_calls']) or 'none'}")
         return side
@@ -687,6 +735,8 @@ async def stream_dual_ab_scenario(
                 continue
             if item["kind"] == "progress":
                 yield _sse_event("progress", {"side": item["side"], "detail": item["detail"]})
+            elif item["kind"] == "step":
+                yield _sse_event("step", {"side": item["side"], **item["step"]})
             elif item["kind"] == "complete":
                 yield _sse_event("complete", {"payload": item["result"]})
                 break

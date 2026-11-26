@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -746,6 +747,29 @@ SHARED_CSS = r"""
       cursor: pointer;
     }
     .btn-next-step:hover { background: var(--blue); color: #FFFFFF; }
+
+    /* Live execution flow */
+    .flow-box { margin: 14px 0 12px; background: #FFFFFF; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+    .flow-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .flow-title { font-size: 13.5px; font-weight: 700; }
+    .flow-desc { font-size: 12.3px; color: var(--text-secondary); margin-top: 2px; max-width: 860px; }
+    .flow-svg-wrap { overflow-x: auto; }
+    .flow-svg-wrap svg { width: 100%; min-width: 720px; height: auto; display: block; }
+    .flow-status { font-size: 12px; margin-top: 6px; overflow-wrap: anywhere; color: var(--text-secondary); }
+    .flow-status b { color: var(--text); }
+    .flow-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.6px; color: var(--text-secondary); margin-top: 8px; }
+    .flow-chip { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 2px solid #BDC1C6; margin-right: 5px; vertical-align: -2px; background: #FFFFFF; }
+    .flow-chip.active { border-color: #1A73E8; background: #E8F0FE; }
+    .flow-chip.done { border-color: #34A853; background: #F1F9F3; }
+    .lf-node.lf-active .lf-box { stroke: #1A73E8; stroke-width: 3.4; fill: #E8F0FE; animation: lfPulse 1.1s ease-in-out infinite; }
+    .lf-node.lf-done .lf-box { stroke: #34A853; stroke-width: 2.4; fill: #F1F9F3; }
+    .lf-edge.lf-active .lf-line { stroke: #1A73E8; stroke-width: 3.4; stroke-dasharray: 8 6; animation: lfDash 0.7s linear infinite; }
+    .lf-edge.lf-active .lf-head { fill: #1A73E8; }
+    .lf-edge.lf-done .lf-line { stroke: #34A853; stroke-width: 2.6; }
+    .lf-edge.lf-done .lf-head { fill: #34A853; }
+    @keyframes lfPulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.3; } }
+    @keyframes lfDash { to { stroke-dashoffset: -14; } }
+
     .sse-log-box {
       background: #1E222A;
       color: #E8EAED;
@@ -1143,6 +1167,8 @@ uv run adk web agents --port 8000</pre>
   <script>
     const BENCHMARK_DATA = __BENCHMARK_JSON_PAYLOAD__;
     const UI_STRINGS = __UI_STRINGS_PAYLOAD__;
+    const FLOW_MAP = __FLOW_MAP_PAYLOAD__;
+    const FLOW_SVG = __FLOW_SVG_PAYLOAD__;
     __PORTAL_JS__
   </script>
 </body>
@@ -1437,11 +1463,103 @@ uv run adk web agents --port 8000</pre>
   <script>
     const BENCHMARK_DATA = __BENCHMARK_JSON_PAYLOAD__;
     const UI_STRINGS = __UI_STRINGS_PAYLOAD__;
+    const FLOW_MAP = __FLOW_MAP_PAYLOAD__;
+    const FLOW_SVG = __FLOW_SVG_PAYLOAD__;
     __PORTAL_JS__
   </script>
 </body>
 </html>
 """
+
+
+
+# Ties ADK agent and tool names (as they appear in run events) to element ids of
+# docs/diagrams/fig5_live_execution_flow.svg. build_page() checks every id against the SVG.
+FLOW_SVG_PATH = REPO_ROOT / "docs" / "diagrams" / "fig5_live_execution_flow.svg"
+FLOW_MAP = {
+    "tobe": {
+        "user": "user",
+        "entry": "root",
+        "entryEdge": "user--root",
+        "agents": {
+            "cymbal_enterprise_root_router": "root",
+            "customer_marketing_subagent": "sub-customer",
+            "product_profitability_subagent": "sub-product",
+            "supply_chain_logistics_subagent": "sub-supply",
+        },
+        "transfers": {
+            "root|sub-customer": ["root--sub-customer"],
+            "root|sub-product": ["root--sub-product"],
+            "root|sub-supply": ["root--sub-supply"],
+            "sub-customer|sub-product": ["peer-cp"],
+            "sub-product|sub-supply": ["peer-ps"],
+            "sub-customer|sub-supply": ["peer-cp", "peer-ps"],
+        },
+        "tools": {
+            "ask_customer_marketing_caa": {"nodes": ["ca-customer", "bq"], "edges": ["sub-customer--ca-customer", "ca-customer--bq"]},
+            "ask_product_profitability_caa": {"nodes": ["ca-product", "bq"], "edges": ["sub-product--ca-product", "ca-product--bq"]},
+            "ask_supply_chain_logistics_caa": {"nodes": ["ca-supply", "bq"], "edges": ["sub-supply--ca-supply", "ca-supply--bq"]},
+            "load_memory": {"nodes": ["mem"], "edges": ["root--mem"]},
+            "save_user_preference_and_memory": {"nodes": ["mem"], "edges": ["root--mem"]},
+            "inspect_session_and_memory_status": {"nodes": ["mem"], "edges": ["root--mem"]},
+        },
+        "fanout": {
+            "tool": "run_cross_domain_caa_analysis",
+            "node": "fan",
+            "edge": "root--fan",
+            "domains": {
+                "customer_marketing": {"nodes": ["ca-customer", "bq"], "edges": ["fan--ca-customer", "ca-customer--bq"]},
+                "product_profitability": {"nodes": ["ca-product", "bq"], "edges": ["fan--ca-product", "ca-product--bq"]},
+                "supply_chain": {"nodes": ["ca-supply", "bq"], "edges": ["fan--ca-supply", "ca-supply--bq"]},
+            },
+        },
+    },
+    "asis": {
+        "user": "user",
+        "entry": "agent",
+        "entryEdge": "user--agent",
+        "agents": {"asis_default_data_agent_tools": "agent"},
+        "transfers": {},
+        "tools": {
+            "list_accessible_data_agents": {"nodes": ["tool-list"], "edges": ["agent--tool-list"]},
+            "get_data_agent_info": {"nodes": ["tool-info", "ca"], "edges": ["agent--tool-info", "tool-info--ca"]},
+            "ask_data_agent": {"nodes": ["tool-ask", "ca", "bq"], "edges": ["agent--tool-ask", "tool-ask--ca", "ca--bq"]},
+        },
+    },
+}
+
+
+def load_flow_svg() -> str:
+    """Returns fig5 as inline SVG markup and checks that every id in FLOW_MAP exists in it."""
+    svg = FLOW_SVG_PATH.read_text(encoding="utf-8")
+    svg = svg[svg.index("<svg"):]
+    head_end = svg.index(">")
+    head = re.sub(r'\s(width|height)="[^"]*"', "", svg[:head_end])
+    svg = head + ' role="img" aria-label="Live execution flow"' + svg[head_end:]
+
+    def check(side: str, kind: str, ident: str) -> None:
+        if f'id="lf-{side}-{kind}-{ident}"' not in svg:
+            raise RuntimeError(f"FLOW_MAP refers to missing diagram element lf-{side}-{kind}-{ident}")
+
+    for side, m in FLOW_MAP.items():
+        check(side, "n", m["user"])
+        check(side, "n", m["entry"])
+        check(side, "e", m["entryEdge"])
+        for n in m["agents"].values():
+            check(side, "n", n)
+        groups = list(m["tools"].values()) + list(m.get("fanout", {}).get("domains", {}).values())
+        for g in groups:
+            for n in g["nodes"]:
+                check(side, "n", n)
+            for e in g["edges"]:
+                check(side, "e", e)
+        for es in m["transfers"].values():
+            for e in es:
+                check(side, "e", e)
+        if "fanout" in m:
+            check(side, "n", m["fanout"]["node"])
+            check(side, "e", m["fanout"]["edge"])
+    return svg
 
 
 PORTAL_JS = r"""
@@ -1630,6 +1748,7 @@ PORTAL_JS = r"""
             </div>
           </div>
 
+          ${flowBoxHtml(sc.code)}
           <div id="wb-sse-stream-container"></div>
           <div id="wb-live-dual-card-container">${savedLive ? buildDualComparisonCardHtml(savedLive) : ""}</div>
         </div>
@@ -1641,6 +1760,7 @@ PORTAL_JS = r"""
       `;
 
       renderProgressiveTracker();
+      flowBind(sc.code);
 
       const ta = document.getElementById("wb-prompt-input");
       if (ta) {
@@ -1984,6 +2104,188 @@ PORTAL_JS = r"""
       `;
     }
 
+
+    // ------------------------------------------------------------------------------------------
+    // Live execution flow. The backend streams each ADK event of the run as a `step`
+    // (agent, tool call, tool response). FLOW_MAP ties ADK names to diagram elements; a name
+    // that is not in the map lights nothing and is only named in the status line.
+    // ------------------------------------------------------------------------------------------
+    const FLOW_MIN_STEP_MS = 350;
+    const flowRecorded = {};
+    const flowState = {};
+    const flowQueues = { tobe: { items: [], timer: null }, asis: { items: [], timer: null } };
+    let flowRunningCode = null;
+
+    function flowBoxHtml(code) {
+      const S = UI_STRINGS;
+      const hasRun = (flowRecorded[code] || []).length > 0;
+      return `
+        <div class="flow-box" id="wb-flow-box">
+          <div class="flow-head">
+            <div>
+              <div class="flow-title">${S.flowTitle}</div>
+              <div class="flow-desc">${S.flowDesc}</div>
+            </div>
+            <button type="button" class="btn-outline" id="flow-replay-btn" style="${hasRun ? "" : "display:none;"}">${S.flowReplay}</button>
+          </div>
+          <div class="flow-svg-wrap">${FLOW_SVG}</div>
+          <div class="flow-status mono" id="flow-status-tobe"><b>[To-Be]</b> ${S.flowIdle}</div>
+          <div class="flow-status mono" id="flow-status-asis"><b>[As-Is]</b> ${S.flowIdle}</div>
+          <div class="flow-legend">
+            <span><span class="flow-chip active"></span>${S.flowLegendActive}</span>
+            <span><span class="flow-chip done"></span>${S.flowLegendDone}</span>
+            <span><span class="flow-chip"></span>${S.flowLegendIdle}</span>
+          </div>
+          <div class="flow-desc" style="margin-top:6px;">${S.flowNote}</div>
+        </div>`;
+    }
+
+    function flowRenderStatus(side) {
+      const el = document.getElementById("flow-status-" + side);
+      const st = flowState[side];
+      if (!el) return;
+      const tag = side === "tobe" ? "[To-Be]" : "[As-Is]";
+      if (!st || !st.text) { el.innerHTML = `<b>${tag}</b> ${UI_STRINGS.flowIdle}`; return; }
+      const secs = st.running ? " · " + ((Date.now() - st.stepAt) / 1000).toFixed(1) + "s" : "";
+      el.innerHTML = `<b>${tag}</b> ${escapeHtml(st.text)}${secs}`;
+    }
+
+    function flowTick() { flowRenderStatus("tobe"); flowRenderStatus("asis"); }
+
+    function flowReset(side) {
+      document.querySelectorAll(`[id^="lf-${side}-"]`).forEach(el => el.classList.remove("lf-active", "lf-done"));
+      flowState[side] = { entered: false, text: "", stepAt: Date.now(), running: false };
+    }
+
+    function flowSettle(side) {
+      document.querySelectorAll(`[id^="lf-${side}-"].lf-active`).forEach(el => {
+        el.classList.remove("lf-active");
+        el.classList.add("lf-done");
+      });
+    }
+
+    function flowMark(side, nodes, edges) {
+      (nodes || []).forEach(id => {
+        const el = document.getElementById(`lf-${side}-n-${id}`);
+        if (el) { el.classList.remove("lf-done"); el.classList.add("lf-active"); }
+      });
+      (edges || []).forEach(id => {
+        const el = document.getElementById(`lf-${side}-e-${id}`);
+        if (el) {
+          el.classList.remove("lf-done");
+          el.classList.add("lf-active");
+          el.parentNode.appendChild(el);   // edges share segments: draw the lit one on top
+        }
+      });
+    }
+
+    function flowApply(side, st) {
+      const M = FLOW_MAP[side];
+      const S = UI_STRINGS;
+      if (!M) return;
+      if (st.kind === "start") {
+        flowReset(side);
+        flowMark(side, [M.user], []);
+        Object.assign(flowState[side], { text: S.flowStepStart + " " + (st.prompt || ""), stepAt: Date.now(), running: true });
+        flowRenderStatus(side);
+        return;
+      }
+      const state = flowState[side] || (flowState[side] = { entered: false, text: "", stepAt: Date.now(), running: true });
+      const a = M.agents[st.agent];
+      let note = "";
+      if (!state.entered && a) {
+        state.entered = true;
+        flowSettle(side);
+        flowMark(side, [a], a === M.entry ? [M.entryEdge] : []);
+        if (a !== M.entry) note = " (" + S.flowNoRootHop + ")";
+      }
+      let text = state.text;
+      if (st.kind === "call") {
+        flowSettle(side);
+        const nodes = a ? [a] : [];
+        const edges = [];
+        let known = true;
+        if (st.name === "transfer_to_agent") {
+          const t = M.agents[st.target];
+          if (a && t) {
+            nodes.push(t);
+            (M.transfers[a + "|" + t] || M.transfers[t + "|" + a] || []).forEach(e => edges.push(e));
+          } else { known = false; }
+        } else if (M.fanout && st.name === M.fanout.tool) {
+          nodes.push(M.fanout.node);
+          edges.push(M.fanout.edge);
+          (st.domains || []).forEach(d => {
+            const x = M.fanout.domains[d];
+            if (x) { x.nodes.forEach(n => nodes.push(n)); x.edges.forEach(e => edges.push(e)); }
+          });
+        } else if (M.tools[st.name]) {
+          M.tools[st.name].nodes.forEach(n => nodes.push(n));
+          M.tools[st.name].edges.forEach(e => edges.push(e));
+        } else { known = false; }
+        flowMark(side, nodes, edges);
+        const arg = st.target ? "(" + st.target + ")" : ((st.domains || []).length ? "(" + st.domains.join(", ") + ")" : "");
+        const fanCalls = (M.fanout && st.name === M.fanout.tool && (st.domains || []).length) ? " · " + S.flowFanCalls.replace("{N}", st.domains.length) : "";
+        text = st.agent + " → " + st.name + arg + fanCalls + (known ? "" : " " + S.flowNotOnDiagram) + note;
+      } else if (st.kind === "response") {
+        if (st.name !== "transfer_to_agent") {
+          flowSettle(side);
+          if (a) flowMark(side, [a], []);
+          text = st.name + " → " + st.agent + " (" + S.flowReturned + ")";
+        }
+      } else if (st.kind === "final") {
+        flowSettle(side);
+        flowMark(side, [M.user], []);
+        text = st.agent + ": " + S.flowFinal + note;
+      } else if (st.kind === "end") {
+        flowSettle(side);
+        text = S.flowDone + " " + ((st.t_ms || 0) / 1000).toFixed(1) + "s";
+      }
+      state.text = text;
+      state.stepAt = Date.now();
+      state.running = st.kind !== "end";
+      flowRenderStatus(side);
+    }
+
+    function flowDrain(side) {
+      const q = flowQueues[side];
+      const item = q.items.shift();
+      if (!item) { q.timer = null; return; }
+      flowApply(side, item);
+      q.timer = setTimeout(() => flowDrain(side), FLOW_MIN_STEP_MS);
+    }
+
+    function flowEnqueue(side, st) {
+      const q = flowQueues[side];
+      if (!q) return;
+      q.items.push(st);
+      if (!q.timer) flowDrain(side);
+    }
+
+    function flowClearQueues() {
+      Object.values(flowQueues).forEach(q => { q.items = []; if (q.timer) clearTimeout(q.timer); q.timer = null; });
+    }
+
+    function flowOnStep(code, evt) {
+      (flowRecorded[code] = flowRecorded[code] || []).push(evt);
+      const shown = BENCHMARK_DATA.scenarios[activeScenarioIdx];
+      if (shown && shown.code === code) flowEnqueue(evt.side, evt);
+    }
+
+    // Re-applies the recorded steps of a scenario: at once after a re-render, or step by step for a replay.
+    function flowRestore(code, animate) {
+      flowClearQueues();
+      const steps = flowRecorded[code] || [];
+      if (!steps.length) return;
+      if (animate) { flowReset("tobe"); flowReset("asis"); steps.forEach(s => flowEnqueue(s.side, s)); }
+      else { steps.forEach(s => flowApply(s.side, s)); }
+    }
+
+    function flowBind(code) {
+      const btn = document.getElementById("flow-replay-btn");
+      if (btn) btn.addEventListener("click", () => { if (flowRunningCode !== code) flowRestore(code, true); });
+      flowRestore(code, false);
+    }
+
     async function triggerWorkbenchDualStream(scenarioCode, s4Mode) {
       if (workbenchRunning) return;
       const S = UI_STRINGS;
@@ -2007,6 +2309,12 @@ PORTAL_JS = r"""
 
       const startMs = Date.now();
       const logs = [];
+      flowClearQueues();
+      flowRecorded[scenarioCode] = [];
+      flowRunningCode = scenarioCode;
+      flowReset("tobe");
+      flowReset("asis");
+      flowTick();
       const renderLogs = () => {
         if (!sseContainer) return;
         const elapsed = ((Date.now() - startMs) / 1000).toFixed(1);
@@ -2030,7 +2338,7 @@ PORTAL_JS = r"""
 
       logs.push({ side: "both", detail: S.callingEndpoint + " (" + BENCHMARK_DATA.environment.gcp_project + ")..." });
       renderLogs();
-      const timerId = setInterval(renderLogs, 400);
+      const timerId = setInterval(() => { renderLogs(); flowTick(); }, 400);
 
       try {
         const resp = await fetch("/api/workbench/stream", {
@@ -2071,6 +2379,8 @@ PORTAL_JS = r"""
             if (evt.type === "progress") {
               logs.push({ side: evt.side || "both", detail: evt.detail || "" });
               renderLogs();
+            } else if (evt.type === "step") {
+              flowOnStep(scenarioCode, evt);
             } else if (evt.type === "complete" && evt.payload) {
               clearInterval(timerId);
               liveRunResults[scenarioCode] = evt.payload;
@@ -2093,6 +2403,9 @@ PORTAL_JS = r"""
       } finally {
         clearInterval(timerId);
         workbenchRunning = false;
+        flowRunningCode = null;
+        const replayBtn = document.getElementById("flow-replay-btn");
+        if (replayBtn && (flowRecorded[scenarioCode] || []).length) replayBtn.style.display = "";
         if (dualBtn) {
           dualBtn.disabled = false;
           dualBtn.textContent = S.wbBtnRunDual.replace("{CODE}", scenarioCode);
@@ -2362,6 +2675,21 @@ UI_EN = {
     "wbBtnNextStep": "Continue to Next Layer ({NEXT} →)",
     "wbBtnReset": "Reset Live Session & Tracker",
     "wbSseHeader": "Live GCP Parallel SSE Execution Stream",
+    "flowTitle": "Live execution flow",
+    "flowDesc": "Each ADK event of your run (agent, tool call, tool response) lights the matching element as it arrives, for both pipelines at once.",
+    "flowIdle": "Run a step to see the path.",
+    "flowReplay": "Replay recorded path",
+    "flowLegendActive": "Running now",
+    "flowLegendDone": "Used in this turn",
+    "flowLegendIdle": "Not used",
+    "flowNote": "Each step stays on screen for at least 0.35 s, so the display can trail the run slightly. Steps inside a BQCA chat call (SQL generation, BigQuery execution) are not streamed: the data agent and BigQuery stay lit for the whole call. Session state and callbacks emit no events and are not shown. A replay uses the recorded order, not the recorded timing.",
+    "flowStepStart": "Prompt received:",
+    "flowNotOnDiagram": "(not on the diagram)",
+    "flowReturned": "result returned",
+    "flowFanCalls": "{N} BQCA chat calls in parallel",
+    "flowFinal": "final answer",
+    "flowDone": "Turn finished in",
+    "flowNoRootHop": "turn resumed at this sub-agent, no Root Router call",
     "wbLiveCardBadge": "Live Dual A/B Execution Result",
     "wbExecutedPromptLabel": "Custom Prompt Executed",
     "wbLiveS4TableTitle": "Measured ADK prompt tokens per turn in this live session",
@@ -2498,6 +2826,21 @@ UI_KO = {
     "wbBtnNextStep": "다음 개선 단계({NEXT} →)로 이어서 진행",
     "wbBtnReset": "실시간 Session 및 그래프 초기화",
     "wbSseHeader": "실시간 GCP Dual A/B 병렬 SSE 실행 타임라인",
+    "flowTitle": "실시간 실행 흐름",
+    "flowDesc": "실행 중 발생하는 ADK Event(Agent, Tool 호출, Tool 응답)가 도착하는 순서대로 해당 요소를 켭니다. 두 Pipeline을 동시에 표시합니다.",
+    "flowIdle": "단계를 실행하면 경로가 표시됩니다.",
+    "flowReplay": "기록된 경로 다시 보기",
+    "flowLegendActive": "현재 실행 중",
+    "flowLegendDone": "이번 Turn에서 사용됨",
+    "flowLegendIdle": "사용 안 됨",
+    "flowNote": "각 단계는 최소 0.35초 동안 표시되므로 화면이 실제 실행보다 조금 늦을 수 있습니다. BQCA Chat 호출 내부 단계(SQL 생성, BigQuery 실행)는 Stream되지 않아, 호출이 끝날 때까지 Data Agent와 BigQuery가 켜진 상태로 유지됩니다. Session State와 Callback은 Event를 내지 않으므로 표시하지 않습니다. 다시 보기는 기록된 순서를 따르며 실제 소요 시간은 반영하지 않습니다.",
+    "flowStepStart": "Prompt 수신:",
+    "flowNotOnDiagram": "(Diagram에 없는 항목)",
+    "flowReturned": "결과 반환",
+    "flowFanCalls": "BQCA Chat 호출 {N}건 병렬 실행",
+    "flowFinal": "최종 답변",
+    "flowDone": "Turn 완료, 소요 시간",
+    "flowNoRootHop": "이 Sub-Agent에서 Turn 재개, Root Router 호출 없음",
     "wbLiveCardBadge": "심사자 입력 실시간 Dual A/B 실행 결과",
     "wbExecutedPromptLabel": "실행된 입력 Prompt",
     "wbLiveS4TableTitle": "이번 실시간 Session의 Turn별 ADK Prompt Token 실측치",
@@ -2624,6 +2967,8 @@ def render_page(template: str, data_obj: dict, ui_obj: dict) -> str:
         template.replace("__SHARED_CSS__", SHARED_CSS)
         .replace("__BENCHMARK_JSON_PAYLOAD__", json.dumps(data_obj, ensure_ascii=False))
         .replace("__UI_STRINGS_PAYLOAD__", json.dumps(ui_obj, ensure_ascii=False))
+        .replace("__FLOW_MAP_PAYLOAD__", json.dumps(FLOW_MAP))
+        .replace("__FLOW_SVG_PAYLOAD__", json.dumps(load_flow_svg(), ensure_ascii=False).replace("</", "<\\/"))
         .replace("__PORTAL_JS__", PORTAL_JS)
     )
 
