@@ -63,6 +63,8 @@ from agents.bq_caa_3domain_multi_agent.agent import (
     root_agent,
 )
 
+from backend.reference_answers import find_reference, run_reference
+
 MAX_PROMPT_CHARS = 600
 MAX_VISITORS_CACHE = 120
 VISITOR_TTL_SECONDS = 7200
@@ -607,6 +609,9 @@ async def stream_dual_ab_scenario(
         extra: dict[str, Any] = {}
         try:
             emit("both", f"Running To-Be and As-Is in parallel on {PROJECT_ID}.{DATASET_ID} (google-adk {google.adk.__version__})")
+            # Preset questions have a hand-written reference query; it runs on BigQuery next to the two pipelines.
+            ref_entry = find_reference(prompt)
+            ref_task = asyncio.create_task(asyncio.to_thread(run_reference, ref_entry)) if ref_entry else None
 
             async def ensure_turn1() -> dict[str, Any] | None:
                 if vsess.main_turns > 0:
@@ -693,6 +698,12 @@ async def stream_dual_ab_scenario(
                     "rehydrated_pinned_insights": len(state.get("user:pinned_insights") or []),
                 }
 
+            reference: dict[str, Any] | None = None
+            if ref_task is not None and ref_entry is not None:
+                try:
+                    reference = await ref_task
+                except Exception as exc:  # pylint: disable=broad-except
+                    reference = {"id": ref_entry["id"], "note": ref_entry["note"], "queries": [], "error": f"{type(exc).__name__}: {exc}"[:300]}
             cal = load_bqca_trace_calibration()
             sides_failed = [s["status"] == "ERROR" for s in (asis, tobe)]
             await event_queue.put({
@@ -713,6 +724,7 @@ async def stream_dual_ab_scenario(
                         "per_data_agent": cal.get("per_data_agent", {}),
                     },
                     "adk_version": google.adk.__version__,
+                    "reference": reference,
                     **extra,
                 },
             })

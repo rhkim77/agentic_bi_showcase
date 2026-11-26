@@ -74,6 +74,7 @@ uv run python scripts/refresh_demo_seed.py
 uv run python scripts/provision_cymbal_caa_agents.py       # 3 domain-scoped To-Be data agents
 uv run python scripts/04_run_scenario_benchmarks.py        # measured S1-S5 baseline
 uv run python scripts/05_measure_bqca_tokens_from_trace.py # Cloud Trace medians used by the live workbench
+uv run python scripts/06_build_reference_answers.py        # reference query snapshot for the preset questions (shown next to both answers)
 uv run python scripts/build_outcome_portal.py
 ```
 

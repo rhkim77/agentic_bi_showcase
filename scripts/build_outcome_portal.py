@@ -1168,6 +1168,7 @@ uv run adk web agents --port 8000</pre>
     const BENCHMARK_DATA = __BENCHMARK_JSON_PAYLOAD__;
     const UI_STRINGS = __UI_STRINGS_PAYLOAD__;
     const FLOW_MAP = __FLOW_MAP_PAYLOAD__;
+    const REFERENCE_SNAPSHOT = __REFERENCE_PAYLOAD__;
     const FLOW_SVG = __FLOW_SVG_PAYLOAD__;
     __PORTAL_JS__
   </script>
@@ -1464,6 +1465,7 @@ uv run adk web agents --port 8000</pre>
     const BENCHMARK_DATA = __BENCHMARK_JSON_PAYLOAD__;
     const UI_STRINGS = __UI_STRINGS_PAYLOAD__;
     const FLOW_MAP = __FLOW_MAP_PAYLOAD__;
+    const REFERENCE_SNAPSHOT = __REFERENCE_PAYLOAD__;
     const FLOW_SVG = __FLOW_SVG_PAYLOAD__;
     __PORTAL_JS__
   </script>
@@ -1527,6 +1529,16 @@ FLOW_MAP = {
         },
     },
 }
+
+
+REFERENCE_JSON = REPO_ROOT / "benchmarks" / "reference_answers.json"
+
+
+def load_reference_snapshot() -> dict:
+    """Snapshot written by scripts/06_build_reference_answers.py; empty if it has not been run."""
+    if REFERENCE_JSON.is_file():
+        return json.loads(REFERENCE_JSON.read_text(encoding="utf-8"))
+    return {"references": []}
 
 
 def load_flow_svg() -> str:
@@ -1930,6 +1942,56 @@ PORTAL_JS = r"""
       }
     }
 
+
+    // Reference values: rows of a hand-written query for a preset question. Shown for comparison; nothing is graded.
+    function findReferenceSnapshot(prompt) {
+      const key = String(prompt || "").replace(/\s+/g, " ").trim().toLowerCase();
+      return (REFERENCE_SNAPSHOT.references || []).find(r => (r.questions || []).includes(key)) || null;
+    }
+
+    function referenceBoxHtml(ref, isSnapshot) {
+      if (!ref) return "";
+      const S = UI_STRINGS;
+      const L = S.lang === "ko" ? "ko" : "en";
+      const fmtCell = v => {
+        if (v === null || v === undefined) return "–";
+        const s = String(v);
+        return /^-?\d+(\.\d+)?$/.test(s) ? Number(s).toLocaleString("en-US", { maximumFractionDigits: 2 }) : s;
+      };
+      const blocks = (ref.queries || []).map(q => {
+        const label = (q.label && (q.label[L] || q.label.en)) || "";
+        let body;
+        if (q.error) {
+          body = `<div style="color:var(--red);font-size:12.5px;">${S.refError}: ${escapeHtml(q.error)}</div>`;
+        } else {
+          const head = (q.columns || []).map(c => `<th class="mono">${escapeHtml(c)}</th>`).join("");
+          const rows = (q.rows || []).map(r => `<tr>${r.map(c => `<td class="mono">${escapeHtml(fmtCell(c))}</td>`).join("")}</tr>`).join("");
+          const capped = (q.total_rows || 0) > (q.rows || []).length ? `<div style="font-size:11.8px;color:var(--text-secondary);margin-top:3px;">${S.refRowsCapped.replace("{N}", (q.rows || []).length).replace("{T}", q.total_rows)}</div>` : "";
+          body = `<div class="table-wrap"><table class="data-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>${capped}`;
+        }
+        return `
+          <div style="margin-top:10px;">
+            <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">${escapeHtml(label)}</div>
+            ${body}
+            <details style="margin-top:5px;font-size:12px;">
+              <summary style="cursor:pointer;color:var(--blue);font-weight:600;">${S.refSqlSummary}</summary>
+              <pre class="sql-block" style="margin-top:5px;">${escapeHtml(q.sql || "")}</pre>
+            </details>
+          </div>`;
+      }).join("");
+      const note = (ref.note && (ref.note[L] || ref.note.en)) || "";
+      return `
+        <div class="sub-box" style="margin-bottom:16px;">
+          <span class="tag tag-blue">${S.refTitle}</span>
+          <div style="font-size:12.6px;margin-top:6px;">${escapeHtml(note)}</div>
+          ${ref.error ? `<div style="color:var(--red);font-size:12.5px;margin-top:6px;">${S.refError}: ${escapeHtml(ref.error)}</div>` : ""}
+          ${blocks}
+          <div style="font-size:12.2px;color:var(--text-secondary);margin-top:9px;">
+            ${isSnapshot ? S.refSnapshotNote : S.refLiveNote} <span class="mono">${escapeHtml(ref.executed_at_utc || "")}</span>. ${S.refDisclaimer}
+          </div>
+        </div>`;
+    }
+
     function buildDualComparisonCardHtml(res, isBaseline) {
       const S = UI_STRINGS;
       const cs = res.comparison_summary || {};
@@ -2071,6 +2133,7 @@ PORTAL_JS = r"""
           ${traceHtml}
           ${turnCurveHtml}
           ${stateHtml}
+          ${referenceBoxHtml(res.reference || (isBaseline ? findReferenceSnapshot(res.prompt_executed) : null), !res.reference)}
 
           <div class="stack-list" style="margin-bottom:0;">
             <div class="sub-box asis-border" style="background:#FFFBFB;">
@@ -2675,6 +2738,14 @@ UI_EN = {
     "wbBtnNextStep": "Continue to Next Layer ({NEXT} →)",
     "wbBtnReset": "Reset Live Session & Tracker",
     "wbSseHeader": "Live GCP Parallel SSE Execution Stream",
+    "lang": "en",
+    "refTitle": "Reference values for this preset question",
+    "refSqlSummary": "Show the reference SQL",
+    "refError": "Reference query failed",
+    "refRowsCapped": "First {N} of {T} rows.",
+    "refLiveNote": "Hand-written query, run on BigQuery during this run at (UTC)",
+    "refSnapshotNote": "Hand-written query, run on BigQuery after the baseline run, at (UTC)",
+    "refDisclaimer": "It is one reading of the question, built from the glossary definitions, and neither answer is graded against it automatically. Compare the two answers with these rows yourself. Figures over rolling date windows change as time passes, so a snapshot can differ slightly from an earlier run.",
     "flowTitle": "Live execution flow",
     "flowDesc": "Each ADK event of your run (agent, tool call, tool response) lights the matching element as it arrives, for both pipelines at once.",
     "flowIdle": "Run a step to see the path.",
@@ -2826,6 +2897,14 @@ UI_KO = {
     "wbBtnNextStep": "다음 개선 단계({NEXT} →)로 이어서 진행",
     "wbBtnReset": "실시간 Session 및 그래프 초기화",
     "wbSseHeader": "실시간 GCP Dual A/B 병렬 SSE 실행 타임라인",
+    "lang": "ko",
+    "refTitle": "이 Preset 질문의 기준 값",
+    "refSqlSummary": "기준 SQL 보기",
+    "refError": "기준 Query 실행 실패",
+    "refRowsCapped": "전체 {T}행 중 처음 {N}행.",
+    "refLiveNote": "직접 작성한 Query를 이번 실행 중 BigQuery에서 실행한 결과입니다. 실행 시각(UTC):",
+    "refSnapshotNote": "직접 작성한 Query를 기준치 실행 이후 BigQuery에서 실행한 결과입니다. 실행 시각(UTC):",
+    "refDisclaimer": "Glossary 정의를 따른 한 가지 해석이며, 두 답변을 이 값과 자동으로 채점하지 않습니다. 두 답변을 아래 행과 직접 비교해 주세요. 기간이 현재 시각 기준인 수치는 시간이 지나면 달라지므로, 기준 값이 앞선 실행 결과와 조금 다를 수 있습니다.",
     "flowTitle": "실시간 실행 흐름",
     "flowDesc": "실행 중 발생하는 ADK Event(Agent, Tool 호출, Tool 응답)가 도착하는 순서대로 해당 요소를 켭니다. 두 Pipeline을 동시에 표시합니다.",
     "flowIdle": "단계를 실행하면 경로가 표시됩니다.",
@@ -2968,6 +3047,7 @@ def render_page(template: str, data_obj: dict, ui_obj: dict) -> str:
         .replace("__BENCHMARK_JSON_PAYLOAD__", json.dumps(data_obj, ensure_ascii=False))
         .replace("__UI_STRINGS_PAYLOAD__", json.dumps(ui_obj, ensure_ascii=False))
         .replace("__FLOW_MAP_PAYLOAD__", json.dumps(FLOW_MAP))
+        .replace("__REFERENCE_PAYLOAD__", json.dumps(load_reference_snapshot(), ensure_ascii=False).replace("</", "<\\/"))
         .replace("__FLOW_SVG_PAYLOAD__", json.dumps(load_flow_svg(), ensure_ascii=False).replace("</", "<\\/"))
         .replace("__PORTAL_JS__", PORTAL_JS)
     )
