@@ -17,10 +17,15 @@ Nothing in the output is modeled. If a chat call cannot be matched to a trace, t
 `bqca_basis: "unmatched"` and carries no BQCA numbers.
 
 Output: `benchmarks/scenario_benchmark_results.json`
+
+Usage:
+    python scripts/04_run_scenario_benchmarks.py            # all scenarios
+    python scripts/04_run_scenario_benchmarks.py --only S4  # re-measure the S4 session, keep the rest
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 from datetime import datetime, timedelta, timezone
 import json
@@ -121,11 +126,13 @@ SCENARIOS: list[dict[str, Any]] = [
             "each data call, and end single-domain turns on the tool result without a second summarization call."
         ),
         "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center for Women's Outerwear (order_id >= 9900000).",
+        # Eight different questions. A question that repeats an earlier one lets the As-Is agent answer
+        # from its own session history without calling BQCA, which measures something else.
         "append_prompts": [
             "Which distribution center has the longest average delivery lead time, and how many delivered orders does it have?",
             "Show the return and cancellation rate (%) by brand for Women's Outerwear & Coats (order_id >= 9900000).",
-            "Show VIP customer count and total gross revenue by traffic source over the last 30 days.",
-            "Show the 14-day cart abandonment rate (%) by traffic source.",
+            "Show gross margin % and realized gross profit by brand for Women's Outerwear & Coats (order_id >= 9900000).",
+            "Count dormant customers with zero orders in the last 90 days by traffic source.",
         ],
     },
     {
@@ -249,40 +256,29 @@ def turn_cost(adk_prompt: int, adk_cached: int, adk_out: int, bq: dict[str, Any]
     return round(adk + bqca, 5)
 
 
-async def main() -> None:
-    run_started = datetime.now(timezone.utc)
-    print(f"Measured S1-S5 baseline on {PROJECT_ID}.{DATASET_ID} (google-adk {google.adk.__version__})")
-    await reset_visitor_session(VISITOR)
-    results: dict[str, dict[str, Any]] = {}
-    extra: dict[str, dict[str, Any]] = {}
-    spec = {s["code"]: s for s in SCENARIOS}
-
-    for code in ("S1", "S2", "S3"):
-        print(f"[{code}]")
-        results[code] = await run_step(code, spec[code]["prompt"])
-    print("[S3 fan-out]")
-    extra["S3"] = {"fanout": await run_step("S3", spec["S3"]["fanout_prompt"])}
-    print("[S5]")
-    results["S5"] = await run_step("S5", spec["S5"]["prompt"])
-    print("[S4] 3 warm-up turns + reference prompt")
-    results["S4"] = await run_step("S4", spec["S4"]["prompt"], "burst")
-    for p in spec["S4"]["append_prompts"]:
-        print("[S4] appended turn")
-        results["S4"] = await run_step("S4", p, "append")
-
-    payloads = list(results.values()) + [extra["S3"]["fanout"]]
-    curve = results["S4"]["turn_curve"]
-    expected = sum(len(p[s]["bqca_agents"]) for p in payloads if p is not results["S4"] for s in ("asis", "tobe"))
-    expected += sum(len(r["asis_bqca_agents"]) + len(r["tobe_bqca_agents"]) for r in curve)
+def wait_for_traces(run_started: datetime, expected: int) -> list[dict[str, Any]]:
     traces: list[dict[str, Any]] = []
     for attempt in range(10):
         time.sleep(30)
-        traces = [t for t in fetch_chat_traces(run_started)]
+        traces = fetch_chat_traces(run_started)
         print(f"Cloud Trace: {len(traces)} chat trace(s) found, {expected} expected (attempt {attempt + 1})")
         if len(traces) >= expected:
             break
+    return traces
 
-    # S4 first: its turns own their chat calls; the last S4 payload is the final appended turn.
+
+async def run_s4(spec: dict[str, Any]) -> dict[str, Any]:
+    print("[S4] 3 warm-up turns + reference prompt")
+    payload = await run_step("S4", spec["prompt"], "burst")
+    for p in spec["append_prompts"]:
+        print("[S4] appended turn")
+        payload = await run_step("S4", p, "append")
+    return payload
+
+
+def finalize_s4(s4: dict[str, Any], traces: list[dict[str, Any]]) -> dict[str, Any]:
+    """Attaches measured BQCA usage to every S4 turn and returns the per-turn average."""
+    curve = s4["turn_curve"]
     for row in curve:
         a = match(traces, row["asis_bqca_agents"], row["asis_window_utc"])
         b = match(traces, row["tobe_bqca_agents"], row["tobe_window_utc"])
@@ -294,7 +290,6 @@ async def main() -> None:
             row["asis_cost_usd"] = turn_cost(row["asis_adk_prompt_tokens"], row["asis_adk_cached_tokens"], row["asis_adk_output_tokens"], a)
             row["tobe_cost_usd"] = turn_cost(row["tobe_adk_prompt_tokens"], row["tobe_adk_cached_tokens"], row["tobe_adk_output_tokens"], b)
     last = curve[-1]
-    s4 = results["S4"]
     for side in ("asis", "tobe"):
         measured = last.get(f"{side}_bqca")
         s4[side]["bqca_trace_estimate"] = measured
@@ -303,14 +298,86 @@ async def main() -> None:
     s4["comparison_summary"] = _comparison(s4["asis"], s4["tobe"])
     s4["bqca_basis"] = last["bqca_basis"]
     s4.pop("calibration", None)
-    for p in payloads:
-        if p is not s4:
-            apply_measured(p, traces)
+    rows = [r for r in curve if r["bqca_basis"] == "measured"]
+    n = len(rows)
+    return {
+        "turns_measured": n,
+        "asis_total_input_tokens": int(sum(r["asis_total_input_tokens"] for r in rows) / n) if n else None,
+        "tobe_total_input_tokens": int(sum(r["tobe_total_input_tokens"] for r in rows) / n) if n else None,
+        "asis_adk_prompt_tokens": int(sum(r["asis_adk_prompt_tokens"] for r in rows) / n) if n else None,
+        "tobe_adk_prompt_tokens": int(sum(r["tobe_adk_prompt_tokens"] for r in rows) / n) if n else None,
+        "asis_cost_usd": round(sum(r["asis_cost_usd"] for r in rows) / n, 5) if n else None,
+        "tobe_cost_usd": round(sum(r["tobe_cost_usd"] for r in rows) / n, 5) if n else None,
+        "asis_bqca_calls": sum(len(r["asis_bqca_agents"]) for r in curve),
+        "tobe_bqca_calls": sum(len(r["tobe_bqca_agents"]) for r in curve),
+    }
 
-    measured_rows = [r for r in curve if r["bqca_basis"] == "measured"]
+
+def curve_calls(curve: list[dict[str, Any]]) -> int:
+    return sum(len(r["asis_bqca_agents"]) + len(r["tobe_bqca_agents"]) for r in curve)
+
+
+def print_summary(doc: dict[str, Any]) -> None:
+    for s in doc["scenarios"]:
+        m = s["result"]["comparison_summary"]["measured"]
+        t = s["result"]["comparison_summary"]["trace_estimate"] or {}
+        print(
+            f"  {s['code']} [{s['result']['bqca_basis']}] ADK prompt To-Be {m['tobe_adk_prompt_tokens']:,} vs As-Is {m['asis_adk_prompt_tokens']:,} | "
+            f"BQCA input To-Be {t.get('tobe_bqca_input_tokens')} vs As-Is {t.get('asis_bqca_input_tokens')} | total delta {t.get('total_input_delta_pct')}% | "
+            f"BQCA calls {m['tobe_bqca_calls']} vs {m['asis_bqca_calls']}"
+        )
+    print("  S4 average per turn:", doc["s4_average_per_turn"])
+
+
+async def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--only", choices=["S4"], default=None, help="Re-measure only this scenario and keep the others.")
+    args = ap.parse_args()
+    run_started = datetime.now(timezone.utc)
+    spec = {s["code"]: s for s in SCENARIOS}
+    print(f"Measured baseline on {PROJECT_ID}.{DATASET_ID} (google-adk {google.adk.__version__})")
+    await reset_visitor_session(VISITOR)
+
+    if args.only == "S4":
+        doc = json.loads(OUT_JSON.read_text(encoding="utf-8"))
+        s4 = await run_s4(spec["S4"])
+        traces = wait_for_traces(run_started, curve_calls(s4["turn_curve"]))
+        doc["s4_average_per_turn"] = finalize_s4(s4, traces)
+        doc["s4_turn_curve"] = s4["turn_curve"]
+        doc["s4_measured_at_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for sc in doc["scenarios"]:
+            if sc["code"] == "S4":
+                sc.update({k: v for k, v in spec["S4"].items() if k != "append_prompts"})
+                sc["result"] = s4
+        OUT_JSON.write_text(json.dumps(doc, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+        print(f"\nUpdated S4 in {OUT_JSON}")
+        print_summary(doc)
+        return
+
+    results: dict[str, dict[str, Any]] = {}
+    extra: dict[str, dict[str, Any]] = {}
+    for code in ("S1", "S2", "S3"):
+        print(f"[{code}]")
+        results[code] = await run_step(code, spec[code]["prompt"])
+    print("[S3 fan-out]")
+    extra["S3"] = {"fanout": await run_step("S3", spec["S3"]["fanout_prompt"])}
+    print("[S5]")
+    results["S5"] = await run_step("S5", spec["S5"]["prompt"])
+    results["S4"] = await run_s4(spec["S4"])
+
+    s4 = results["S4"]
+    others = [p for p in list(results.values()) + [extra["S3"]["fanout"]] if p is not s4]
+    expected = sum(len(p[side]["bqca_agents"]) for p in others for side in ("asis", "tobe")) + curve_calls(s4["turn_curve"])
+    traces = wait_for_traces(run_started, expected)
+    s4_average = finalize_s4(s4, traces)  # S4 first: its turns own their chat calls
+    for p in others:
+        apply_measured(p, traces)
+
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     doc = {
         "schema_version": 2,
-        "generated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at_utc": now_utc,
+        "s4_measured_at_utc": now_utc,
         "environment": {
             "gcp_project": PROJECT_ID,
             "bigquery_dataset": f"{PROJECT_ID}.{DATASET_ID}",
@@ -332,27 +399,12 @@ async def main() -> None:
             {**{k: v for k, v in s.items() if k not in ("fanout_prompt", "append_prompts")}, "result": results[s["code"]], **extra.get(s["code"], {})}
             for s in SCENARIOS
         ],
-        "s4_turn_curve": curve,
-        "s4_average_per_turn": {
-            "turns_measured": len(measured_rows),
-            "asis_total_input_tokens": int(sum(r["asis_total_input_tokens"] for r in measured_rows) / len(measured_rows)) if measured_rows else None,
-            "tobe_total_input_tokens": int(sum(r["tobe_total_input_tokens"] for r in measured_rows) / len(measured_rows)) if measured_rows else None,
-            "asis_cost_usd": round(sum(r["asis_cost_usd"] for r in measured_rows) / len(measured_rows), 5) if measured_rows else None,
-            "tobe_cost_usd": round(sum(r["tobe_cost_usd"] for r in measured_rows) / len(measured_rows), 5) if measured_rows else None,
-        },
+        "s4_turn_curve": s4["turn_curve"],
+        "s4_average_per_turn": s4_average,
     }
     OUT_JSON.write_text(json.dumps(doc, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
-
     print(f"\nWrote {OUT_JSON}")
-    for s in doc["scenarios"]:
-        m = s["result"]["comparison_summary"]["measured"]
-        t = s["result"]["comparison_summary"]["trace_estimate"] or {}
-        print(
-            f"  {s['code']} [{s['result']['bqca_basis']}] ADK prompt To-Be {m['tobe_adk_prompt_tokens']:,} vs As-Is {m['asis_adk_prompt_tokens']:,} | "
-            f"BQCA input To-Be {t.get('tobe_bqca_input_tokens')} vs As-Is {t.get('asis_bqca_input_tokens')} | total delta {t.get('total_input_delta_pct')}% | "
-            f"BQCA calls {m['tobe_bqca_calls']} vs {m['asis_bqca_calls']}"
-        )
-    print("  S4 average per turn:", doc["s4_average_per_turn"])
+    print_summary(doc)
 
 
 if __name__ == "__main__":

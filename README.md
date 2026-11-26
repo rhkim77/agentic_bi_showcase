@@ -39,17 +39,17 @@ Both pipelines ran on Google Cloud through the same engine as the portal's live 
 | `S2` follow-up question | 10,250 | 1,334 | 109,093 | 54,786 | 119,343 | 56,120 | **-53.0%** | $0.3726 | $0.2104 | 1 / 1 | 22.0s / 16.5s |
 | `S3` domain switch | 15,076 | 2,638 | 108,215 | 53,996 | 123,291 | 56,634 | **-54.1%** | $0.3567 | $0.1896 | 1 / 1 | 22.5s / 15.5s |
 | `S3` three-domain fan-out | 20,943 | 5,487 | 109,694 | 189,578 | 130,637 | 195,065 | **+49.3%** | $0.3839 | $0.5852 | 1 / 3 | 31.5s / 29.9s |
-| `S4` turn 8 of the session | 15,914 | 1,522 | 0 | 83,041 | 15,914 | 84,563 | **+431.4%** | $0.0024 | $0.1980 | 0 / 1 | 4.2s / 20.7s |
+| `S4` turn 8 of the session | 34,202 | 2,675 | 161,574 | 55,711 | 195,776 | 58,386 | **-70.2%** | $0.2346 | $0.2199 | 1 / 1 | 22.6s / 19.1s |
 | `S5` recall in a new session | 2,238 | 2,513 | 0 | 0 | 2,238 | 2,513 | **+12.3%** | $0.0011 | $0.0035 | 0 / 0 | 3.0s / 8.8s |
 
-`S4` over all 8 turns: average total input per turn 133,241 (`As-Is`) vs 81,221 (`To-Be`), **-39.0%**; average cost per turn $0.2414 vs $0.2155, **-10.7%**.
+`S4` over 8 turns with 8 different questions: average total input per turn 164,027 (`As-Is`) vs 85,299 (`To-Be`), **-48.0%**; average cost per turn $0.3286 vs $0.2597, **-21.0%**. The `To-Be` ADK prompt stayed between 1,202 and 3,393 tokens per turn; the `As-Is` ADK prompt went from 6,502 to a maximum of 34,202.
 
 How to read it:
 
-- **Where `To-Be` uses fewer tokens**: single-domain questions (`S1` to `S3`). The scoped data agent reads about half the BQCA input of the monolithic one, and the `To-Be` ADK prompt stays small while the `As-Is` prompt grows with the session.
-- **Where it does not**: a question spanning three domains makes three BQCA calls instead of one. In turns 7 and 8 of `S4` the `As-Is` agent answered a repeated question from its own session history without calling BQCA, while `To-Be` queried again.
+- **Where `To-Be` uses fewer tokens**: single-domain questions. The scoped data agent reads about half the BQCA input of the monolithic one, and the `To-Be` ADK prompt stays small while the `As-Is` prompt grows with the session.
+- **Where it does not**: a question spanning three domains makes three BQCA calls instead of one. When a question repeats one asked earlier in the session, the `As-Is` agent can answer from its own session history without calling BQCA, while the `To-Be` agents query again; this was observed in an earlier run and is why `S4` uses different questions.
 - **`S5`**: neither side calls BQCA. `To-Be` answers from memory; `As-Is` replies that it has no memory of earlier sessions.
-- **Limits**: one run per scenario on one day. BQCA input per turn varies between runs, partly because some turns report a second, mostly cache-read pass. The warehouse is a synthetic reproduction of an enterprise schema: 32 tables (thelook 7 and TPC-DS 25) with rule-generated table and column descriptions. On the original 7-table schema without descriptions the BQCA input of both designs was about the same.
+- **Limits**: one run per scenario on one day, and the answers of the two designs were not checked for correctness. BQCA input per turn varies between runs, partly because some turns report a second, mostly cache-read pass. The warehouse is a synthetic reproduction of an enterprise schema: 32 tables (thelook 7 and TPC-DS 25) with rule-generated table and column descriptions. On the original 7-table schema without descriptions the BQCA input of both designs was about the same.
 
 ---
 

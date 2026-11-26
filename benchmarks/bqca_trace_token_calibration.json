@@ -1,44 +1,44 @@
 {
-  "measured_at_utc": "2026-11-26T02:44:06Z",
+  "measured_at_utc": "2026-11-26T04:41:43Z",
   "source": "Cloud Trace generate_content spans (gen_ai.usage.*), one trace per :chat call",
   "gcp_project": "ryan-sandbox-agent",
   "window_hours": 48,
   "window_since_utc": "2026-11-26T02:37:00Z",
-  "total_chat_turns": 24,
+  "total_chat_turns": 58,
   "per_data_agent": {
     "cymbal_customer_marketing_ca": {
-      "chat_turns_sampled": 8,
+      "chat_turns_sampled": 18,
       "median_input_tokens_per_turn": 56158,
       "min_input_tokens_per_turn": 53350,
-      "max_input_tokens_per_turn": 83041,
+      "max_input_tokens_per_turn": 83637,
       "median_cached_input_tokens_per_turn": 0,
-      "median_output_tokens_per_turn": 2347,
+      "median_output_tokens_per_turn": 2121,
       "median_llm_calls_per_turn": 2.0
     },
     "cymbal_enterprise_monolithic_ca": {
-      "chat_turns_sampled": 10,
-      "median_input_tokens_per_turn": 109393,
+      "chat_turns_sampled": 26,
+      "median_input_tokens_per_turn": 162144,
       "min_input_tokens_per_turn": 107552,
-      "max_input_tokens_per_turn": 217568,
-      "median_cached_input_tokens_per_turn": 0,
-      "median_output_tokens_per_turn": 2005,
+      "max_input_tokens_per_turn": 217728,
+      "median_cached_input_tokens_per_turn": 104168,
+      "median_output_tokens_per_turn": 2218,
       "median_llm_calls_per_turn": 2.0
     },
     "cymbal_product_profitability_ca": {
-      "chat_turns_sampled": 2,
-      "median_input_tokens_per_turn": 50398,
-      "min_input_tokens_per_turn": 50284,
-      "max_input_tokens_per_turn": 50513,
+      "chat_turns_sampled": 6,
+      "median_input_tokens_per_turn": 50287,
+      "min_input_tokens_per_turn": 24630,
+      "max_input_tokens_per_turn": 50936,
       "median_cached_input_tokens_per_turn": 0,
       "median_output_tokens_per_turn": 1066,
       "median_llm_calls_per_turn": 2.0
     },
     "cymbal_supply_chain_ca": {
-      "chat_turns_sampled": 4,
+      "chat_turns_sampled": 8,
       "median_input_tokens_per_turn": 68547,
       "min_input_tokens_per_turn": 53996,
       "max_input_tokens_per_turn": 174070,
-      "median_cached_input_tokens_per_turn": 23903,
+      "median_cached_input_tokens_per_turn": 12060,
       "median_output_tokens_per_turn": 2106,
       "median_llm_calls_per_turn": 2.0
     }
