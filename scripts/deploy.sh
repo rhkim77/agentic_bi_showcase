@@ -9,7 +9,7 @@ if [[ -z "${PROJECT}" || "${PROJECT}" == "(unset)" ]]; then
   PROJECT="ryan-sandbox-agent"
 fi
 REGION="${REGION:-us-central1}"
-DATASET_ID="${BQ_DATASET_ID:-thelook_ecommerce_agent}"
+DATASET_ID="${BQ_DATASET_ID:-cymbal_enterprise_dw}"
 REPO="${REPO:-demo-eng-images}"
 SERVICE="${SERVICE:-cymbal-agentic-bi-showcase}"
 SA_NAME="${SA_NAME:-cymbal-bi-showcase-sa}"

@@ -1,5 +1,8 @@
 # Scenario Walkthrough & Empirical PoC A/B Benchmark Report (`S1` – `S5`)
 
+> **Superseded numbers.** This document was written for the first benchmark, which used a 7-table dataset, a synthetic As-Is harness and assumption constants for BQCA tokens. Its figures do not apply to the current setup. Current measured results are in [`benchmarks/scenario_benchmark_results.json`](../benchmarks/scenario_benchmark_results.json), the README scorecard and the portals. The architecture description still applies, with these changes: the warehouse is `cymbal_enterprise_dw` (32 documented tables), the As-Is side uses ADK's built-in data agent tools on one monolithic data agent, and the To-Be agents use static instructions, one tool per Sub-Agent and no summarization call after a data call.
+
+
 All five PoC verification scenarios below contrast **As-Is Anti-Patterns** directly against **To-Be Best Practices** on live Google Cloud infrastructure (`ryan-sandbox-agent.thelook_ecommerce_agent`, Vertex AI `gemini-2.5-flash` instrumented via ADK `after_model_callback` `usage_metadata`, and `geminidataanalytics.googleapis.com/v1` `:chat`). Machine-readable telemetry is stored in [`benchmarks/scenario_benchmark_results.json`](../benchmarks/scenario_benchmark_results.json) and rendered interactively in [`docs/index.html`](./index.html) (`EN`) and [`docs/index_ko.html`](./index_ko.html) (`KO`).
 
 ---

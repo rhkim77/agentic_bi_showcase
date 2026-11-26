@@ -166,7 +166,7 @@ def _build_asis_agent() -> LlmAgent:
         instruction=(
             "You are a BI analytics assistant for Cymbal Global Commerce. Answer data questions with the "
             f"data agent tools. The organization's data agent is `{BASELINE_AGENT_RESOURCE}`, which covers "
-            f"all 7 warehouse tables in `{PROJECT_ID}.{DATASET_ID}`."
+            f"the whole enterprise warehouse `{PROJECT_ID}.{DATASET_ID}`."
         ),
         tools=[list_accessible_data_agents, get_data_agent_info, ask_data_agent],
         after_model_callback=_asis_usage_callback,
@@ -196,6 +196,7 @@ async def _run_turn(runner: Runner, user_id: str, session_id: str, prompt: str) 
     tok_usage = ADK_USAGE_COLLECTOR_VAR.set(usage_bucket)
     tok_caa = CAA_CALL_COLLECTOR_VAR.set(caa_bucket)
     t0 = time.monotonic()
+    started_at = datetime.now(timezone.utc)
     try:
         msg = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
         async for ev in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
@@ -218,6 +219,8 @@ async def _run_turn(runner: Runner, user_id: str, session_id: str, prompt: str) 
         "answer": "\n\n".join(texts).strip(),
         "usage": _summarize_adk_usage(usage_bucket),
         "latency_ms": int((time.monotonic() - t0) * 1000),
+        "started_at_utc": started_at.isoformat(),
+        "ended_at_utc": datetime.now(timezone.utc).isoformat(),
         "caa_calls": caa_bucket,
         "tool_events": tool_events,
     }
@@ -317,7 +320,10 @@ def _tobe_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
         {
             "label": label,
             "latency_ms": turn["latency_ms"],
-            "answer": turn["answer"],
+            "started_at_utc": turn["started_at_utc"],
+            "ended_at_utc": turn["ended_at_utc"],
+            # Single-domain turns end on the tool result (no summarization call), so the answer is BQCA's own text.
+            "answer": turn["answer"] or "\n\n".join(c.get("ca_final_answer", "") for c in ok if c.get("ca_final_answer")),
             "generated_sql": sql,
             "markdown_table": table,
             "adk_usage": turn["usage"],
@@ -340,6 +346,8 @@ def _asis_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
         {
             "label": label,
             "latency_ms": turn["latency_ms"],
+            "started_at_utc": turn["started_at_utc"],
+            "ended_at_utc": turn["ended_at_utc"],
             "answer": turn["answer"],
             "generated_sql": "\n\n".join(f"-- [ask_data_agent call {i + 1}]\n{s}" for i, s in enumerate(sqls)) if len(sqls) > 1 else (sqls[0] if sqls else ""),
             "markdown_table": "",
@@ -540,8 +548,8 @@ async def stream_dual_ab_scenario(
         asis = res[1] if isinstance(res[1], dict) else _failed_side(asis_label, res[1])
         return tobe, asis
 
-    tobe_label = "To-Be: Root Router + domain Sub-Agents (sliding window, compaction, memory)"
-    asis_label = f"As-Is: ADK built-in data agent tools on monolithic {BASELINE_CA_ID}"
+    tobe_label = "To-Be: Root Router + domain-scoped Sub-Agents (sliding window, compaction, memory)"
+    asis_label = f"As-Is: ADK built-in data agent tools on one monolithic data agent ({BASELINE_CA_ID})"
 
     async def worker() -> None:
         v_tok = VISITOR_ID_VAR.set(vid)
@@ -595,6 +603,14 @@ async def stream_dual_ab_scenario(
                         "tobe_compacted_dropped": tb["adk_usage"]["compacted_contents_dropped"],
                         "asis_latency_ms": ai["latency_ms"],
                         "tobe_latency_ms": tb["latency_ms"],
+                        "asis_bqca_agents": ai["bqca_agents"],
+                        "tobe_bqca_agents": tb["bqca_agents"],
+                        "asis_adk_cached_tokens": ai["adk_usage"]["cached_tokens"],
+                        "tobe_adk_cached_tokens": tb["adk_usage"]["cached_tokens"],
+                        "asis_adk_output_tokens": ai["adk_usage"]["output_and_thoughts_tokens"],
+                        "tobe_adk_output_tokens": tb["adk_usage"]["output_and_thoughts_tokens"],
+                        "asis_window_utc": [ai.get("started_at_utc"), ai.get("ended_at_utc")],
+                        "tobe_window_utc": [tb.get("started_at_utc"), tb.get("ended_at_utc")],
                         "errors": tb["errors"] + ai["errors"],
                     })
 

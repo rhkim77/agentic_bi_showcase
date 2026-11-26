@@ -32,16 +32,16 @@ from google.adk.apps import App
 from google.adk.events import Event
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
-from google.adk.tools import load_memory, preload_memory
+from google.adk.tools import load_memory
 from google.adk.tools.tool_context import ToolContext
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "ryan-sandbox-agent") or "ryan-sandbox-agent"
-DATASET_ID = os.environ.get("BQ_DATASET_ID", "thelook_ecommerce_agent") or "thelook_ecommerce_agent"
+DATASET_ID = os.environ.get("BQ_DATASET_ID", "cymbal_enterprise_dw") or "cymbal_enterprise_dw"
 
 CUSTOMER_CA_ID = os.environ.get("CYMBAL_CUSTOMER_CA_ID", "cymbal_customer_marketing_ca")
 PRODUCT_CA_ID = os.environ.get("CYMBAL_PRODUCT_CA_ID", "cymbal_product_profitability_ca")
 SUPPLY_CA_ID = os.environ.get("CYMBAL_SUPPLY_CA_ID", "cymbal_supply_chain_ca")
-BASELINE_CA_ID = os.environ.get("CYMBAL_BASELINE_CA_ID", "thelook_baseline_ca_agent")
+BASELINE_CA_ID = os.environ.get("CYMBAL_BASELINE_CA_ID", "cymbal_enterprise_monolithic_ca")
 
 CUSTOMER_CA_RESOURCE = f"projects/{PROJECT_ID}/locations/global/dataAgents/{CUSTOMER_CA_ID}"
 PRODUCT_CA_RESOURCE = f"projects/{PROJECT_ID}/locations/global/dataAgents/{PRODUCT_CA_ID}"
@@ -951,40 +951,45 @@ async def inspect_session_and_memory_status(
 
 # The tool functions are async and run the blocking HTTP call in a worker thread. ADK invokes sync
 # tools on the event loop, so a sync tool that waits 20-40s on `:chat` stalls every other request.
-async def ask_customer_marketing_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
-    """Queries Cymbal Domain 1 BigQuery CAA (`cymbal_customer_marketing_ca`: users, events, orders, order_items)."""
-    return await asyncio.to_thread(
+def _llm_view(res: dict[str, Any]) -> dict[str, Any]:
+    """What the calling LLM sees and what stays in session history: the answer and the capped table.
+
+    SQL, THOUGHT text, raw rows and metadata are left out. They are replayed on every later LLM call
+    and add nothing the model needs to route or to restate a follow-up question.
+    """
+    if res.get("status") != "SUCCESS":
+        return {"status": res.get("status", "ERROR"), "error_details": res.get("error_details", "")}
+    return {"status": "SUCCESS", "answer": res.get("ca_final_answer", ""), "markdown_table": res.get("markdown_table", "")}
+
+
+async def _ask_domain(agent_id: str, domain_id: str, domain_label: str, query: str, tool_context: ToolContext | None) -> dict[str, Any]:
+    res = await asyncio.to_thread(
         _query_domain_caa_agent,
-        agent_id=CUSTOMER_CA_ID,
-        domain_id="customer_marketing",
-        domain_label="Customer CRM & Marketing Funnel",
+        agent_id=agent_id,
+        domain_id=domain_id,
+        domain_label=domain_label,
         query=query,
         tool_context=tool_context,
     )
+    if res.get("status") == "SUCCESS" and tool_context is not None:
+        # BQCA already wrote the answer. Skipping the summarization call saves one LLM round trip per turn.
+        tool_context.actions.skip_summarization = True
+    return _llm_view(res)
+
+
+async def ask_customer_marketing_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+    """Queries the Customer & Marketing data agent (users, events, orders, order_items)."""
+    return await _ask_domain(CUSTOMER_CA_ID, "customer_marketing", "Customer CRM & Marketing Funnel", query, tool_context)
 
 
 async def ask_product_profitability_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
-    """Queries Cymbal Domain 2 BigQuery CAA (`cymbal_product_profitability_ca`: products, order_items, orders)."""
-    return await asyncio.to_thread(
-        _query_domain_caa_agent,
-        agent_id=PRODUCT_CA_ID,
-        domain_id="product_profitability",
-        domain_label="Product, Margin & Return Analytics",
-        query=query,
-        tool_context=tool_context,
-    )
+    """Queries the Product & Profitability data agent (products, order_items, orders)."""
+    return await _ask_domain(PRODUCT_CA_ID, "product_profitability", "Product, Margin & Return Analytics", query, tool_context)
 
 
 async def ask_supply_chain_logistics_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
-    """Queries Cymbal Domain 3 BigQuery CAA (`cymbal_supply_chain_ca`: distribution_centers, inventory_items, order_items, orders, products)."""
-    return await asyncio.to_thread(
-        _query_domain_caa_agent,
-        agent_id=SUPPLY_CA_ID,
-        domain_id="supply_chain",
-        domain_label="Supply Chain, Inventory & Fulfillment",
-        query=query,
-        tool_context=tool_context,
-    )
+    """Queries the Supply Chain data agent (distribution_centers, inventory_items, order_items, orders, products)."""
+    return await _ask_domain(SUPPLY_CA_ID, "supply_chain", "Supply Chain, Inventory & Fulfillment", query, tool_context)
 
 
 async def run_cross_domain_caa_analysis(
@@ -993,14 +998,18 @@ async def run_cross_domain_caa_analysis(
     supply_chain_logistics_query: str = "",
     tool_context: ToolContext | None = None,
 ) -> dict[str, Any]:
-    """Executes 2 or 3 Domain-Scoped BigQuery CAA Data Agents concurrently over stateless `:chat`."""
-    return await asyncio.to_thread(
+    """Runs 2 or 3 domain data agents concurrently. Pass one targeted sub-question per domain needed."""
+    full = await asyncio.to_thread(
         run_cross_domain_caa_analysis_sync,
         customer_marketing_query,
         product_profitability_query,
         supply_chain_logistics_query,
         tool_context,
     )
+    return {
+        "status": full.get("status"),
+        "domain_results": {label: _llm_view(res) for label, res in full.get("domain_results", {}).items()},
+    }
 
 
 def run_cross_domain_caa_analysis_sync(
@@ -1085,93 +1094,67 @@ def run_cross_domain_caa_analysis_sync(
     }
 
 
-# Notice: `_SHARED_STATE_PROMPT` injects ONLY `{compact_routing_digest?}` (<= 3 1-line entries, < 90 tokens),
-# NEVER full SQL strings or raw rows!
-_SHARED_STATE_PROMPT = """
-### [Active ADK 4-Scope Session & Memory Context]
-- **Analyst Profile (`user:profile`)**: {user:profile?}
-- **Preferred KPIs (`user:preferred_kpis`)**: {user:preferred_kpis?}
-- **Pinned Insights (`user:pinned_insights`)**: {user:pinned_insights?}
-- **Turn (`session_turn_count`)**: {session_turn_count?}
-- **Compact Cross-Domain Digest (`compact_routing_digest`)**: {compact_routing_digest?}
-"""
+# Agent instructions are fully static. Session state, the user profile and memory are NOT templated
+# into the system instruction: a prefix that changes every turn cannot be served from the prompt cache
+# and is re-sent on every LLM call. Profile and memory are read on demand through tools on the root.
+_SUB_AGENT_RULES = (
+    "Rules:\n"
+    "1. Call your data tool with a standalone English question that restates any filters, cohorts or columns "
+    "the user refers to from earlier turns. The tool result is shown to the user as the answer.\n"
+    "2. If the question belongs to one other domain, call `transfer_to_agent` for that sub-agent instead of calling your tool: "
+    "`customer_marketing_subagent` (customers, VIP, traffic source, AOV, cart abandonment), "
+    "`product_profitability_subagent` (margin, profit, returns by product or brand), "
+    "`supply_chain_logistics_subagent` (distribution centers, delivery lead time, inventory).\n"
+    "3. If the question spans several domains, or asks to save a preference or recall earlier sessions, "
+    "call `transfer_to_agent` for `cymbal_enterprise_root_router`."
+)
 
-customer_marketing_subagent = LlmAgent(
-    model="gemini-2.5-flash",
-    name="customer_marketing_subagent",
-    description=(
-        "Domain 1 Sub-Agent (`cymbal_customer_marketing_ca`): Customer CRM, VIP cohorts, acquisition traffic_source, AOV, cart abandonment."
-    ),
-    instruction=(
-        "You are **Customer CRM & Marketing Sub-Agent (`customer_marketing_subagent`)**.\n"
-        + _SHARED_STATE_PROMPT
-        + "\nRules:\n"
-        "1. If the question belongs to Supply Chain (distribution centers, delivery lead time, inventory holding cost), "
-        "immediately call `transfer_to_agent(agent_name='supply_chain_logistics_subagent')` directly without calling any other tool.\n"
-        "2. If the question belongs to Product Margin/Returns, call `transfer_to_agent(agent_name='product_profitability_subagent')`.\n"
-        "3. Otherwise call `ask_customer_marketing_caa(query=...)` with a standalone English question resolving pronouns from `compact_routing_digest`, and present a concise summary."
-    ),
-    tools=[preload_memory, load_memory, ask_customer_marketing_caa, save_user_preference_and_memory, inspect_session_and_memory_status],
+_AGENT_CALLBACKS = dict(
     before_agent_callback=_initialize_session_and_rehydrate_memory,
     after_agent_callback=_save_session_to_long_term_memory,
     before_model_callback=_compact_adk_llm_request_window,
     after_model_callback=_record_vertex_llm_usage_telemetry,
+)
+
+customer_marketing_subagent = LlmAgent(
+    model="gemini-2.5-flash",
+    name="customer_marketing_subagent",
+    description="Customer CRM and marketing: VIP cohorts, acquisition traffic source, AOV, cart abandonment.",
+    instruction="You are the Customer CRM & Marketing sub-agent.\n" + _SUB_AGENT_RULES,
+    tools=[ask_customer_marketing_caa],
+    **_AGENT_CALLBACKS,
 )
 
 product_profitability_subagent = LlmAgent(
     model="gemini-2.5-flash",
     name="product_profitability_subagent",
-    description=(
-        "Domain 2 Sub-Agent (`cymbal_product_profitability_ca`): Product gross margin %, realized profit, return & cancellation rates."
-    ),
-    instruction=(
-        "You are **Product & Profitability Sub-Agent (`product_profitability_subagent`)**.\n"
-        + _SHARED_STATE_PROMPT
-        + "\nRules:\n"
-        "1. Transfer directly to sibling sub-agents via `transfer_to_agent` if the question belongs to Customer CRM or Supply Chain.\n"
-        "2. Otherwise call `ask_product_profitability_caa(query=...)` with a standalone English question and summarize concisely."
-    ),
-    tools=[preload_memory, load_memory, ask_product_profitability_caa, save_user_preference_and_memory, inspect_session_and_memory_status],
-    before_agent_callback=_initialize_session_and_rehydrate_memory,
-    after_agent_callback=_save_session_to_long_term_memory,
-    before_model_callback=_compact_adk_llm_request_window,
-    after_model_callback=_record_vertex_llm_usage_telemetry,
+    description="Product and profitability: gross margin %, realized profit, return and cancellation rates.",
+    instruction="You are the Product & Profitability sub-agent.\n" + _SUB_AGENT_RULES,
+    tools=[ask_product_profitability_caa],
+    **_AGENT_CALLBACKS,
 )
 
 supply_chain_logistics_subagent = LlmAgent(
     model="gemini-2.5-flash",
     name="supply_chain_logistics_subagent",
-    description=(
-        "Domain 3 Sub-Agent (`cymbal_supply_chain_ca`): Distribution center delivery lead time & unsold inventory holding cost."
-    ),
-    instruction=(
-        "You are **Supply Chain & Fulfillment Sub-Agent (`supply_chain_logistics_subagent`)**.\n"
-        + _SHARED_STATE_PROMPT
-        + "\nRules:\n"
-        "1. Transfer directly to sibling sub-agents via `transfer_to_agent` if the question belongs to Customer CRM or Product Margin.\n"
-        "2. Otherwise call `ask_supply_chain_logistics_caa(query=...)` with a standalone English question and summarize concisely."
-    ),
-    tools=[preload_memory, load_memory, ask_supply_chain_logistics_caa, save_user_preference_and_memory, inspect_session_and_memory_status],
-    before_agent_callback=_initialize_session_and_rehydrate_memory,
-    after_agent_callback=_save_session_to_long_term_memory,
-    before_model_callback=_compact_adk_llm_request_window,
-    after_model_callback=_record_vertex_llm_usage_telemetry,
+    description="Supply chain: distribution center delivery lead time and unsold inventory holding cost.",
+    instruction="You are the Supply Chain & Fulfillment sub-agent.\n" + _SUB_AGENT_RULES,
+    tools=[ask_supply_chain_logistics_caa],
+    **_AGENT_CALLBACKS,
 )
 
 root_agent = LlmAgent(
     model="gemini-2.5-flash",
     name="cymbal_enterprise_root_router",
-    description=(
-        "Enterprise Root Router orchestrating 3 Domain-Scoped BigQuery CAA Sub-Agents with 4-Scope Session State, "
-        "Upstream 3-Turn Compaction, and Cross-Session MemoryService."
-    ),
+    description="Root router for three domain-scoped BigQuery CAA sub-agents, with session state and cross-session memory.",
     instruction=(
-        "You are **Enterprise Agentic BI Root Orchestrator (`cymbal_enterprise_root_router`)**.\n"
-        + _SHARED_STATE_PROMPT
-        + "\nRouting & Memory Rules:\n"
-        "1. **Cross-Domain Questions (2+ domains)**: Call `run_cross_domain_caa_analysis(...)` passing targeted sub-questions concurrently, then synthesize a crisp root-cause summary.\n"
-        "2. **Profile / Preference / Cross-Session Recall**: Call `save_user_preference_and_memory(...)` or `inspect_session_and_memory_status(...)` without running BigQuery SQL, and answer directly from recalled memory.\n"
-        "3. **Single-Domain Questions**: Delegate immediately via `transfer_to_agent` to `customer_marketing_subagent`, `product_profitability_subagent`, or `supply_chain_logistics_subagent`."
+        "You are the Enterprise Agentic BI root orchestrator.\n"
+        "1. Question spanning 2 or more domains: call `run_cross_domain_caa_analysis` with one targeted sub-question per domain, then give a short synthesis.\n"
+        "2. Saving a profile or preference, or recalling earlier sessions, the profile or pinned insights: call "
+        "`save_user_preference_and_memory` or `inspect_session_and_memory_status` and answer from the result. Do not run SQL for recall.\n"
+        "3. Single-domain question: delegate with `transfer_to_agent` to `customer_marketing_subagent` (customers, VIP, traffic source, AOV, "
+        "cart abandonment), `product_profitability_subagent` (margin, profit, returns by product or brand), or "
+        "`supply_chain_logistics_subagent` (distribution centers, delivery lead time, inventory)."
     ),
     sub_agents=[
         customer_marketing_subagent,
@@ -1179,21 +1162,16 @@ root_agent = LlmAgent(
         supply_chain_logistics_subagent,
     ],
     tools=[
-        preload_memory,
         load_memory,
         run_cross_domain_caa_analysis,
         save_user_preference_and_memory,
         inspect_session_and_memory_status,
     ],
-    before_agent_callback=_initialize_session_and_rehydrate_memory,
-    after_agent_callback=_save_session_to_long_term_memory,
-    before_model_callback=_compact_adk_llm_request_window,
-    after_model_callback=_record_vertex_llm_usage_telemetry,
+    **_AGENT_CALLBACKS,
 )
 
 
-# ADK Best Practice: Configure `App` with `ContextCacheConfig` so each agent (`Root` + 3 `Sub-Agents`)
-# maintains its own isolated prefix cache across `transfer_to_agent` swaps!
+# `App` with `ContextCacheConfig` keeps a separate prefix cache per agent across `transfer_to_agent`.
 adk_app = App(
     name="bq_caa_3domain_multi_agent",
     root_agent=root_agent,

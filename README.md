@@ -17,26 +17,39 @@ When integrating **Google Agent Development Kit (`google-adk`)** with **BigQuery
    - ADK's built-in `DataAgentToolset` (`ask_data_agent`) invokes runtime discovery (`_get_data_agent_info`) every turn and sends `[1 UserMessage]` only—causing **Turn-2 context amnesia**.
    - Conversely, BQCA's server-managed `ConversationReference` locks **`1 Conversation = 1 Fixed DataAgent`**, blocking cross-domain pivots, serializing multi-domain queries, and lacking `CMEK` support in `global`.
    - Without `App(context_cache_config=...)`, ADK `transfer_to_agent` swaps system instructions and invalidates prefix caches on every agent handoff.
-2. **Challenge 2 — 2-Tier Token Explosion (`ADK Tier` + `BQCA Tier`)**:
-   - Binding an entire warehouse schema into one monolithic `DataAgent` burns **`110,764+` BQCA input tokens/turn**, while ADK's default `include_contents='default'` replays raw JSON rows and `THOUGHT` logs—driving upstream ADK `prompt_token_count` from `5,807` (Turn 1) to **`51,376` (Turn 5)** and beyond.
+2. **Challenge 2 — Token use in two tiers (`ADK` and `BQCA`)**:
+   - BQCA re-reads the schema and glossary bound to a data agent on each of its internal LLM calls, so one data agent bound to a whole documented warehouse costs about twice the BQCA input of a domain-scoped one in the measurements below.
+   - The default ADK agent replays the full session, including each raw `ask_data_agent` response, on every LLM call, so its prompt grows with the number of turns.
 
 ---
 
-## 2. `As-Is` vs. `To-Be` Benchmark Scorecard (Pre-Run Baseline)
+## 2. `As-Is` vs. `To-Be` Scorecard (Measured 2026-11-26)
 
-> **How to read these numbers.** ADK-tier token counts are measured from `Vertex AI usage_metadata`. BQCA-tier token counts, the 2-tier totals and reduction percentages, and the cost figures in this table are computed from fixed assumption constants and were **not measured**: the Conversational Analytics `:chat` API returns no token usage. The `As-Is` runs behind this table used a synthetic harness with padded tool payloads, not the real ADK data agent tools.
->
-> Real BQCA token usage can be read from Cloud Trace with [`scripts/05_measure_bqca_tokens_from_trace.py`](./scripts/05_measure_bqca_tokens_from_trace.py), which writes [`benchmarks/bqca_trace_token_calibration.json`](./benchmarks/bqca_trace_token_calibration.json). On this 7-table dataset the measured median BQCA input per chat turn is of the same order for the monolithic data agent and for the scoped data agents, so the schema-scoping saving in the table below is not confirmed by measurement here. The live workbench reports measured ADK-tier values and these Cloud Trace medians, and runs `As-Is` with ADK's built-in data agent tools.
+Both pipelines ran on Google Cloud through the same engine as the portal's live workbench ([`scripts/04_run_scenario_benchmarks.py`](./scripts/04_run_scenario_benchmarks.py), results in [`benchmarks/scenario_benchmark_results.json`](./benchmarks/scenario_benchmark_results.json)). Nothing in this table is modeled.
 
-Produced by [`scripts/04_run_scenario_benchmarks.py`](./scripts/04_run_scenario_benchmarks.py) ([`benchmarks/scenario_benchmark_results.json`](./benchmarks/scenario_benchmark_results.json)):
+- **`As-Is`**: a plain ADK agent using the built-in data agent tools (`ask_data_agent`) on one data agent bound to all 32 tables and the glossary of every domain.
+- **`To-Be`**: the Root Router with three Sub-Agents, each calling a data agent bound to 3 to 5 tables and its own glossary.
+- **ADK tokens**: `Vertex AI usage_metadata` prompt tokens of every LLM call in the turn.
+- **BQCA tokens**: `gen_ai.usage.*` of the `generate_content` spans that BQCA wrote to Cloud Trace for the chat calls of the turn.
+- **Cost**: measured tokens at list prices (BQCA `$3.00` input, `$0.30` cached input, `$20.00` output per 1M; `gemini-2.5-flash` `$0.30`, `$0.03`, `$2.50`). BigQuery query cost is not included.
 
-| PoC Scenario | As-Is Anti-Pattern (Measured) | To-Be Best Practice (Measured) | Measured Improvement |
-| :--- | :--- | :--- | :--- |
-| **`S1` · Routing & Schema Diet** | Discovery + Monolithic CAA (`122,137` 2-tier tok; ADK `11,373` tok; guessed `spend >= 100`) | Static `enum transfer_to_agent` + 4-Table Customer CAA (`15,737` 2-tier tok; ADK `4,298` tok) | **`-87.1%` Combined Tokens** (`-62.2%` ADK Prompt) + exact Hop-1 VIP SQL |
-| **`S2` · Stateless Multi-Turn** | Default `ask_data_agent` (`[1 Msg]` -> dropped Turn-1 VIP cohort & revenue) | Stateless `:chat` + ADK `[-6:]` Window (`[3 Msgs]`, `18,701` 2-tier tok) | **100% Context Retention** (`FULL OUTER JOIN` generated) + **`-85.8%` Tokens** |
-| **`S3` · Peer Switch & Parallel `:chat`** | `1 Conv = 1 Agent` lock-in; `34.25 s` sequential 3-domain execution | Direct Peer Transfer (`0` Root bounce) + `ThreadPoolExecutor(3)` (**`13.47 s`**) | **`2.54x` Faster (`-60.7%` Latency)** + **`-82.1%` Tokens** |
-| **`S4` · 5-Turn ADK `usage_metadata` & `90%` Cache** | Unbounded ADK (`Turn 5 = 51,376` prompt tok; `$0.3065/turn` w/ cache) | `before_model_callback` 3-Turn Cap + Slim 20-Row + `90%` Cache (`Turn 5 = 3,807` ADK tok; **`$0.0406/turn`**) | **`-92.6%` ADK Prompt Tokens** (`O(1)` ceiling) + **`-86.7%` Effective Cost** |
-| **`S5` · 4-Scope State & Memory Recall** | `+ New Session` amnesia -> `110K+` BQCA re-scan | `temp:*` evicted + `MemoryService` Turn-1 recall (`6,753` ADK tok, **`0` BQCA tok**) | **`0` BQCA Tokens / `0` BQ Bytes Scanned** (`6.05 s`, `$0.0039/turn`) |
+| Scenario | ADK prompt As-Is | ADK prompt To-Be | BQCA input As-Is | BQCA input To-Be | Total input As-Is | Total input To-Be | Total delta | Cost As-Is | Cost To-Be | BQCA calls As-Is / To-Be | Latency As-Is / To-Be |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
+| `S1` schema scoping | 5,909 | 1,607 | 107,752 | 53,350 | 113,661 | 54,957 | **-51.6%** | $0.3493 | $0.1824 | 1 / 1 | 19.8s / 18.2s |
+| `S2` follow-up question | 10,250 | 1,334 | 109,093 | 54,786 | 119,343 | 56,120 | **-53.0%** | $0.3726 | $0.2104 | 1 / 1 | 22.0s / 16.5s |
+| `S3` domain switch | 15,076 | 2,638 | 108,215 | 53,996 | 123,291 | 56,634 | **-54.1%** | $0.3567 | $0.1896 | 1 / 1 | 22.5s / 15.5s |
+| `S3` three-domain fan-out | 20,943 | 5,487 | 109,694 | 189,578 | 130,637 | 195,065 | **+49.3%** | $0.3839 | $0.5852 | 1 / 3 | 31.5s / 29.9s |
+| `S4` turn 8 of the session | 15,914 | 1,522 | 0 | 83,041 | 15,914 | 84,563 | **+431.4%** | $0.0024 | $0.1980 | 0 / 1 | 4.2s / 20.7s |
+| `S5` recall in a new session | 2,238 | 2,513 | 0 | 0 | 2,238 | 2,513 | **+12.3%** | $0.0011 | $0.0035 | 0 / 0 | 3.0s / 8.8s |
+
+`S4` over all 8 turns: average total input per turn 133,241 (`As-Is`) vs 81,221 (`To-Be`), **-39.0%**; average cost per turn $0.2414 vs $0.2155, **-10.7%**.
+
+How to read it:
+
+- **Where `To-Be` uses fewer tokens**: single-domain questions (`S1` to `S3`). The scoped data agent reads about half the BQCA input of the monolithic one, and the `To-Be` ADK prompt stays small while the `As-Is` prompt grows with the session.
+- **Where it does not**: a question spanning three domains makes three BQCA calls instead of one. In turns 7 and 8 of `S4` the `As-Is` agent answered a repeated question from its own session history without calling BQCA, while `To-Be` queried again.
+- **`S5`**: neither side calls BQCA. `To-Be` answers from memory; `As-Is` replies that it has no memory of earlier sessions.
+- **Limits**: one run per scenario on one day. BQCA input per turn varies between runs, partly because some turns report a second, mostly cache-read pass. The warehouse is a synthetic reproduction of an enterprise schema: 32 tables (thelook 7 and TPC-DS 25) with rule-generated table and column descriptions. On the original 7-table schema without descriptions the BQCA input of both designs was about the same.
 
 ---
 
@@ -46,7 +59,7 @@ Produced by [`scripts/04_run_scenario_benchmarks.py`](./scripts/04_run_scenario_
 - **[`backend/main.py`](./backend/main.py)** & **[`backend/workbench_engine.py`](./backend/workbench_engine.py)**: FastAPI + real-time `SSE` (`POST /api/workbench/stream`) engine powering the **Interactive S1–S5 Progressive Dual A/B Workbench**, executing both `As-Is` (Monolithic / One-Shot / Unbounded) and `To-Be` (Scoped / Sliding Window / Compacted / Memory-Rehydrated) pipelines in parallel on Google Cloud for any custom evaluator prompt.
 - **[`agents/bq_caa_streaming_agent/agent.py`](./agents/bq_caa_streaming_agent/agent.py)** & **[`agents/bq_caa_toolset_agent/agent.py`](./agents/bq_caa_toolset_agent/agent.py)**: Companion `SequentialAgent` custom `:chat` streamer and built-in `DataAgentToolset` baseline packages.
 - **[`docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md`](./docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md)** & **[`docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md`](./docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md)**: Full architectural specification and A/B SQL/telemetry walkthrough.
-- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Self-contained Outcome Verification & Live Progressive Dual A/B Workbench Portals with interactive `90%` Cached Input FinOps simulator.
+- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Portals with the measured baseline, the live Dual A/B workbench and a list-price cost calculator.
 
 ```bash
 gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform"
@@ -56,9 +69,11 @@ export GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
 git clone https://github.com/rhkim77/agentic_bi_showcase.git
 cd agentic_bi_showcase
 uv sync
+uv run python scripts/provision_enterprise_warehouse.py   # 32-table warehouse + monolithic As-Is data agent
 uv run python scripts/refresh_demo_seed.py
-uv run python scripts/provision_cymbal_caa_agents.py
-uv run python scripts/04_run_scenario_benchmarks.py
+uv run python scripts/provision_cymbal_caa_agents.py       # 3 domain-scoped To-Be data agents
+uv run python scripts/04_run_scenario_benchmarks.py        # measured S1-S5 baseline
+uv run python scripts/05_measure_bqca_tokens_from_trace.py # Cloud Trace medians used by the live workbench
 uv run python scripts/build_outcome_portal.py
 ```
 

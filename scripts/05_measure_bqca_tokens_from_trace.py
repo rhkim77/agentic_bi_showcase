@@ -9,7 +9,9 @@ by Data Agent, and writes medians to `benchmarks/bqca_trace_token_calibration.js
 Requires `roles/cloudtrace.user` on the project. Read-only.
 
 Usage:
-    python scripts/05_measure_bqca_tokens_from_trace.py [--hours 48]
+    python scripts/05_measure_bqca_tokens_from_trace.py [--hours 48] [--since 2026-11-26T02:37:00Z]
+
+Use `--since` after re-provisioning data agents so that only turns of the current configuration count.
 """
 
 from __future__ import annotations
@@ -36,14 +38,14 @@ def _int(labels: dict[str, str], key: str) -> int:
         return 0
 
 
-def fetch_chat_turns(hours: int) -> list[dict[str, Any]]:
+def fetch_chat_turns(hours: int, since: str | None = None) -> list[dict[str, Any]]:
     creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
     if hasattr(creds, "with_quota_project"):
         creds = creds.with_quota_project(PROJECT_ID)
     sess = AuthorizedSession(creds)
     now = datetime.now(timezone.utc)
     params: dict[str, Any] = {
-        "startTime": (now - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "startTime": since or (now - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "endTime": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "view": "COMPLETE",
         "pageSize": 200,
@@ -115,13 +117,15 @@ def summarize(turns: list[dict[str, Any]]) -> dict[str, Any]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=int, default=48)
+    ap.add_argument("--since", type=str, default=None, help="UTC start time, e.g. 2026-11-26T02:37:00Z")
     args = ap.parse_args()
-    turns = fetch_chat_turns(args.hours)
+    turns = fetch_chat_turns(args.hours, args.since)
     doc = {
         "measured_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": "Cloud Trace generate_content spans (gen_ai.usage.*), one trace per :chat call",
         "gcp_project": PROJECT_ID,
         "window_hours": args.hours,
+        "window_since_utc": args.since,
         "total_chat_turns": len(turns),
         "per_data_agent": summarize(turns),
     }

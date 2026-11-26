@@ -5,7 +5,7 @@
 from `benchmarks/scenario_benchmark_results.json`, featuring:
   - Live `As-Is` vs `To-Be` A/B comparisons across Scenarios S1–S5
   - Real `Vertex AI usage_metadata` (`prompt_token_count`) measurements
-  - Interactive 2-Tier + `BQCA 90% Cached Input ($0.30/1M)` Effective Cost Simulator
+  - Token development over the S4 session and a list-price cost calculator, both from measured data
 """
 
 from __future__ import annotations
@@ -879,7 +879,7 @@ HTML_EN = r"""<!DOCTYPE html>
         <a href="#overview">1. PoC Challenges &amp; KPIs</a>
         <a href="#architecture">2. Best-Practice Architecture</a>
         <a href="#scenarios">3. As-Is vs To-Be Scenarios (S1–S5)</a>
-        <a href="#benchmarks">4. 2-Tier Token &amp; 90% Cache TCO</a>
+        <a href="#benchmarks">4. Tokens over 8 Turns &amp; Cost</a>
         <a href="#repository">5. Git Repo &amp; Quickstart</a>
       </nav>
       <div class="topbar-right">
@@ -903,15 +903,16 @@ HTML_EN = r"""<!DOCTYPE html>
         <span class="eyebrow">PoC Engineering Verification Blueprint · Google ADK + BigQuery CAA</span>
         <h1>Best-Practice State, Stateless, Memory &amp; Routing Architecture + End-to-End 2-Tier Token Optimization</h1>
         <p class="lead">
-          Purpose-built to resolve the two core engineering bottlenecks encountered in enterprise NL2SQL platform PoCs:
-          <strong>(1) State, Stateless, Memory &amp; Routing orchestration between a Google ADK Root Agent and BigQuery Conversational Analytics (BQCA) Sub-Agents</strong>, and
-          <strong>(2) 2-Tier Token Optimization combining upstream ADK compaction (measured via real <span class="mono">Vertex AI usage_metadata</span>) with downstream BQCA schema scoping and <span class="mono">90%</span> Cached Input Token discounts (<span class="mono">$0.30/1M</span>)</strong>.
+          Built for two engineering questions that come up when a Google ADK agent is put in front of BigQuery Conversational Analytics (BQCA):
+          <strong>(1) how to handle state, memory and routing between a root agent and BQCA data agents</strong>, and
+          <strong>(2) how many tokens each design uses in both tiers</strong>.
+          Every number on this page was measured on Google Cloud: ADK tokens from <span class="mono">Vertex AI usage_metadata</span>, BQCA tokens from Cloud Trace.
         </p>
 
         <div class="meta-strip">
-          <span class="meta-chip"><strong>Track 1:</strong> Root ↔ Sub-Agent State · Stateless 3-Turn Window · 4-Scope Memory · Hybrid Routing</span>
-          <span class="meta-chip"><strong>Track 2:</strong> Measured <span class="mono">Vertex AI usage_metadata</span> + BQCA <span class="mono">90%</span> Cached Input Cost Model</span>
-          <span class="meta-chip"><strong>Timestamp:</strong> <span class="mono" id="bench-ts"></span></span>
+          <span class="meta-chip"><strong>Track 1:</strong> Root and Sub-Agent state · 3-turn message window · memory · routing</span>
+          <span class="meta-chip"><strong>Track 2:</strong> Measured tokens in the ADK tier and the BQCA tier</span>
+          <span class="meta-chip"><strong>Measured (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
         </div>
 
         <div class="kpi-grid" id="hero-kpi-grid"></div>
@@ -919,22 +920,22 @@ HTML_EN = r"""<!DOCTYPE html>
 
       <div class="stack-list" style="margin-top:20px;margin-bottom:0;">
         <div class="info-card">
-          <span class="tag tag-blue">PoC Objective 1 · State, Stateless, Memory &amp; Routing</span>
-          <h3>Why Default ADK Toolsets &amp; Stateful Conversations Stall</h3>
+          <span class="tag tag-blue">PoC objective 1 · State, memory and routing</span>
+          <h3>What each setup does</h3>
           <ul style="font-size:13.8px;padding-left:18px;color:var(--text-secondary);margin-top:6px;">
-            <li style="margin-bottom:6px;"><strong>Default <span class="mono">ask_data_agent</span> (One-Shot Stateless):</strong> Calls <span class="mono">_get_data_agent_info</span> discovery every turn and sends <span class="mono">single UserMessage</span>—causing Turn-2 context amnesia.</li>
-            <li style="margin-bottom:6px;"><strong>Managed <span class="mono">ConversationReference</span> (Stateful):</strong> Locks <span class="mono">1 Conversation = 1 Fixed DataAgent</span>, blocking cross-domain pivots and serializing multi-domain queries.</li>
-            <li><strong>Proposed Best Practice:</strong> Static <span class="mono">enum transfer_to_agent</span> + Peer Handoff + <span class="mono">ThreadPoolExecutor</span> parallel <span class="mono">Chat API</span> + ADK <span class="mono">4-Scope State</span> &amp; <span class="mono">MemoryService</span> + <span class="mono">App(context_cache_config=...)</span>.</li>
+            <li style="margin-bottom:6px;"><strong>Built-in <span class="mono">ask_data_agent</span>:</strong> looks up the data agent on every call and sends only the current question to BQCA.</li>
+            <li style="margin-bottom:6px;"><strong>Managed conversation (<span class="mono">ConversationReference</span>):</strong> keeps history on the server but is tied to one data agent.</li>
+            <li><strong>This repository:</strong> a Root Router with three domain Sub-Agents, direct hand-over between Sub-Agents, parallel fan-out, a 3-turn message window per domain, session state and a memory service.</li>
           </ul>
         </div>
 
         <div class="info-card">
-          <span class="tag tag-green">PoC Objective 2 · 2-Tier Token Diet &amp; 90% Cache Cost</span>
-          <h3>5-Stage End-to-End Token Optimization Pipeline</h3>
+          <span class="tag tag-green">PoC objective 2 · Token use in both tiers</span>
+          <h3>Where the tokens go</h3>
           <ul style="font-size:13.8px;padding-left:18px;color:var(--text-secondary);margin-top:6px;">
-            <li style="margin-bottom:6px;"><strong>Stage 1–2 (BQCA Schema Diet):</strong> Remove runtime discovery tools and split 110K-token monolithic DDL into 3 least-privilege Domain Agents (<span class="mono">4 / 3 / 5</span> tables).</li>
-            <li style="margin-bottom:6px;"><strong>Stage 3–4 (Dual O(1) Sliding Windows):</strong> Strip <span class="mono">THOUGHT</span> logs, cap tool tables at 20 rows (Turn Scope auto-eviction), bound BQCA 3-Turn Sliding Window (6 Messages), and compact upstream ADK <span class="mono">llm_request.contents</span> via <span class="mono">before_model_callback</span>.</li>
-            <li><strong>Stage 5 (Effective Billed Cost):</strong> Maximize BQCA <span class="mono">90%</span> Cached Input (<span class="mono">$0.30/1M</span> vs <span class="mono">$3.00/1M</span>) and short-circuit repeat session recalls via <span class="mono">MemoryService</span> (<span class="mono">0</span> BQCA tokens).</li>
+            <li style="margin-bottom:6px;"><strong>BQCA tier:</strong> a chat turn usually makes two internal LLM calls, and each call reads the schema and glossary bound to the data agent. Binding fewer documented tables to a data agent is the main lever.</li>
+            <li style="margin-bottom:6px;"><strong>ADK tier:</strong> the prompt is the instruction, the tool definitions and the replayed session. The To-Be agents use static instructions, one tool per Sub-Agent, a 3-turn history and reduced tool results.</li>
+            <li><strong>Recall:</strong> questions about earlier sessions are answered from memory without a BQCA call.</li>
           </ul>
         </div>
       </div>
@@ -971,43 +972,38 @@ HTML_EN = r"""<!DOCTYPE html>
       <div class="table-wrap">
         <table class="matrix-table">
           <thead>
-            <tr>
-              <th>Architecture Dimension</th>
-              <th>Option 1: Default ADK <span class="mono">DataAgentToolset</span> (As-Is One-Shot)</th>
-              <th>Option 2: BQCA Managed <span class="mono">ConversationReference</span> (Stateful)</th>
-              <th>Option 3 (Proposed Best Practice): ADK 4-Scope + Stateless Chat API (3-Turn Window) + <span class="mono">ContextCacheConfig</span></th>
-            </tr>
+            <tr><th>Dimension</th><th>As-Is: built-in ADK data agent tools</th><th>BQCA managed conversation (stateful)</th><th>To-Be: this repository</th></tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Root → Sub-Agent Routing</strong></td>
-              <td>Calls <span class="mono">list_accessible_data_agents</span> + <span class="mono">get_data_agent_info</span> every turn (+4K–8K tok)</td>
-              <td>Fixed to 1 <span class="mono">DataAgent</span> at conversation creation; cannot route dynamically</td>
-              <td><strong>Path A:</strong> <span class="mono">enum transfer_to_agent</span> | <strong>Path B:</strong> Direct Peer Handoff | <strong>Path C:</strong> Parallel <span class="mono">ThreadPoolExecutor</span></td>
+              <td><strong>Routing</strong></td>
+              <td>One data agent answers every question</td>
+              <td>One data agent per conversation, fixed at creation</td>
+              <td><strong>Root Router hands over to one of three Sub-Agents; Sub-Agents hand over to each other; cross-domain questions fan out in parallel</strong></td>
             </tr>
             <tr class="highlight-row">
-              <td><strong>Multi-Turn Context &amp; Lock-In</strong></td>
-              <td><span style="color:var(--red);font-weight:600;">Sends single UserMessage only → Turn-2 Amnesia</span></td>
-              <td>Retains single-agent history (180d TTL) but <strong>breaks on domain switch</strong></td>
-              <td><strong style="color:var(--green);">100% multi-turn retention via 3-Turn Sliding Window + seamless cross-domain pivots</strong></td>
+              <td><strong>Multi-turn context</strong></td>
+              <td><span class="mono">ask_data_agent</span> sends only the current question; the root LLM has to restate earlier context</td>
+              <td>History is kept on the server for that conversation</td>
+              <td><strong>The last 3 turns of the domain are sent with each stateless call</strong></td>
             </tr>
             <tr>
-              <td><strong>Upstream ADK Token Scaling</strong></td>
-              <td>Unbounded <span class="mono">Session.events</span> (raw JSON + THOUGHT logs accumulate O(N))</td>
-              <td>N/A (single-agent UI) or unbounded if wrapped in ADK</td>
-              <td><strong>Flat O(1) ceiling via <span class="mono">before_model_callback</span> 3-turn compaction + 20-row cap</strong></td>
+              <td><strong>ADK prompt</strong></td>
+              <td>The full session is replayed on every LLM call, including raw tool responses</td>
+              <td>Depends on the agent that wraps it</td>
+              <td><strong>Last 3 user turns; tool results reduced to the answer and a capped table</strong></td>
             </tr>
             <tr class="highlight-row">
-              <td><strong>BQCA Token &amp; 90% Cache Discount</strong></td>
-              <td>110,764+ tok on monolithic agent</td>
-              <td>90% implicit cache within 1 agent, but linear history growth up to cap</td>
-              <td><strong style="color:var(--green);">11.4K–13.9K scoped tokens + <span class="mono">$0.30/1M</span> (90% discount) on cached prefix</strong></td>
+              <td><strong>BQCA context per call</strong></td>
+              <td>The whole warehouse schema and every glossary</td>
+              <td>Same as the bound data agent</td>
+              <td><strong>3 to 5 tables and one domain glossary per data agent (measured in Sections 3 and 4)</strong></td>
             </tr>
             <tr>
-              <td><strong>Cross-Session Memory &amp; CMEK</strong></td>
-              <td>Wiped on <strong>New Session</strong></td>
-              <td>Isolated per conversation ID; no CMEK in <span class="mono">global</span> location</td>
-              <td><strong><strong>User Scope</strong> + <span class="mono">ADK MemoryService</span> (0-BQCA-token recall across sessions; CMEK DB ready)</strong></td>
+              <td><strong>Cross-session memory</strong></td>
+              <td>None</td>
+              <td>Within one conversation only</td>
+              <td><strong>User-scoped state and a memory service; recall without a BQCA call</strong></td>
             </tr>
           </tbody>
         </table>
@@ -1026,88 +1022,53 @@ HTML_EN = r"""<!DOCTYPE html>
     </section>
 
     <section id="benchmarks">
-      <h2>4. 2-Tier Token Scaling Curves &amp; 90% Cached Input Effective Cost Simulator</h2>
-      <p class="section-desc">
-        Left: Combined 10-Turn 2-Tier Input Token scaling (ADK Orchestrator + BQCA). Right: Directly measured 5-Turn <span class="mono">Vertex AI usage_metadata.prompt_token_count</span> proving upstream ADK compaction. Below: Interactive PAYG Effective Cost Simulator incorporating the official <strong>90% BQCA Cached Input Token discount (<span class="mono">$0.30/1M</span> vs <span class="mono">$3.00/1M</span>)</strong>.
-      </p>
+      <h2>4. Token Development over an 8-Turn Session and Cost at List Prices</h2>
+      <p class="section-desc">Measured in the S4 baseline run. Left: total input tokens per turn, that is ADK prompt tokens from <span class="mono">Vertex AI usage_metadata</span> plus BQCA input tokens from Cloud Trace. Right: ADK prompt tokens per turn. Below: yearly cost at list prices, scaled from the measured average cost per turn.</p>
 
       <div class="two-col" style="margin-bottom: 24px;">
         <div class="info-card">
-          <h3>10-Turn Combined 2-Tier Input Token Scaling (ADK + BQCA)</h3>
-          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
-            Bounding both ADK <span class="mono">llm_request.contents</span> (3 user turns) and BQCA <span class="mono">DataAgentContext.messages (3-Turn Window)</span> locks total 2-tier tokens at an O(1) ceiling from Turn 4 onward.
-          </p>
+          <h3>Total Input Tokens per Turn (ADK + BQCA)</h3>
           <div id="svg-turn-chart"></div>
         </div>
-
         <div class="info-card">
-          <h3>Live 5-Turn Measured <span class="mono">Vertex AI usage_metadata</span> (ADK Tier Only)</h3>
-          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
-            Real <span class="mono">prompt_token_count</span> recorded by <span class="mono">after_model_callback</span> on <span class="mono">gemini-2.5-flash</span>: As-Is Unbounded JSON/THOUGHT accumulation vs. To-Be 3-Turn Compaction.
-          </p>
+          <h3>ADK Prompt Tokens per Turn</h3>
           <div id="svg-adk-measured-chart"></div>
         </div>
       </div>
 
       <div class="info-card">
         <div style="margin-bottom:16px;">
-          <span class="tag tag-green">2-Tier + 90% Cached Input FinOps Simulator</span>
-          <h3>Effective PAYG Token Cost &amp; Annual Savings Calculator (<span class="mono">$3.00/1M</span> Non-Cached vs <span class="mono">$0.30/1M</span> Cached Input)</h3>
+          <span class="tag tag-green">Cost at list prices</span>
+          <h3>Yearly Cost Scaled from the Measured Average Turn</h3>
         </div>
         <div class="calc-grid">
           <div>
             <div class="slider-group">
               <div class="slider-head">
-                <span>Daily Enterprise NL2SQL Queries</span>
-                <span class="mono" id="lbl-qpd">10,000 queries / day</span>
+                <span>Questions per day</span>
+                <span class="mono" id="lbl-qpd"></span>
               </div>
               <input type="range" id="rng-qpd" min="1000" max="50000" step="1000" value="10000" />
             </div>
-
-            <div class="slider-group">
-              <div class="slider-head">
-                <span>Average Conversation Depth (Turns / Session)</span>
-                <span class="mono" id="lbl-turns">5 turns</span>
-              </div>
-              <input type="range" id="rng-turns" min="1" max="10" step="1" value="5" />
-            </div>
-
-            <div class="slider-group" style="margin-bottom: 6px;">
-              <div class="slider-head">
-                <span>BQCA Static Prefix Cache Hit Ratio (90% Discounted @ <span class="mono">$0.30/1M</span>)</span>
-                <span class="mono" id="lbl-cache">60% cached prefix</span>
-              </div>
-              <input type="range" id="rng-cache" min="0" max="85" step="5" value="60" />
-              <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">
-                Official Data Cloud Agent PAYG rates: Non-cached Input <span class="mono">$3.00/1M</span>, Cached Input <span class="mono">$0.30/1M</span> (90% discount), Output <span class="mono">$20.00/1M</span>; Vertex AI <span class="mono">gemini-2.5-flash</span> Orchestrator <span class="mono">$0.30/1M</span> input, <span class="mono">$2.50/1M</span> output.
-              </p>
-            </div>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Cost per turn = measured ADK tokens and measured BQCA tokens of the S4 session at list prices: BQCA input <span class="mono">$3.00/1M</span>, cached input <span class="mono">$0.30/1M</span>, output <span class="mono">$20.00/1M</span>; <span class="mono">gemini-2.5-flash</span> input <span class="mono">$0.30/1M</span>, cached input <span class="mono">$0.03/1M</span>, output <span class="mono">$2.50/1M</span>. BigQuery query cost is not included. The yearly figure is a linear scaling of that average, not a forecast.</p>
           </div>
 
           <div class="tco-result-box">
             <div>
-              <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">
-                Net Annual Effective Cost Savings (vs. As-Is Monolithic w/ Same Cache Ratio)
-              </div>
-              <div class="savings-big" id="tco-annual-savings">$0 / yr</div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Yearly difference (As-Is minus To-Be)</div>
+              <div class="savings-big" id="tco-annual-savings">n/a</div>
               <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;" id="tco-pct-note"></div>
             </div>
-
             <div class="tco-tier-strip">
               <div>
-                <div style="color:var(--text-secondary);">As-Is (0% Cache)</div>
-                <div class="mono" style="font-weight:700;font-size:15px;color:#5F6368;" id="tco-asis-nocache">$0</div>
-                <div class="mono" style="font-size:11px;color:var(--text-secondary);">Unscoped $3.00/1M</div>
+                <div style="color:var(--text-secondary);">As-Is per year</div>
+                <div class="mono" style="font-weight:700;font-size:15px;color:var(--red);" id="tco-asis"></div>
+                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-asis-turn"></div>
               </div>
               <div>
-                <div style="color:var(--text-secondary);">As-Is (With Cache)</div>
-                <div class="mono" style="font-weight:700;font-size:15px;color:var(--red);" id="tco-asis-cached">$0</div>
-                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-mono-tok"></div>
-              </div>
-              <div>
-                <div style="color:var(--text-secondary);">To-Be (Scoped + Cache)</div>
-                <div class="mono" style="font-weight:700;font-size:15px;color:var(--green);" id="tco-tobe-cached">$0</div>
-                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-scoped-tok"></div>
+                <div style="color:var(--text-secondary);">To-Be per year</div>
+                <div class="mono" style="font-weight:700;font-size:15px;color:var(--green);" id="tco-tobe"></div>
+                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-tobe-turn"></div>
               </div>
             </div>
           </div>
@@ -1146,8 +1107,11 @@ export GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
 git clone https://github.com/rhkim77/agentic_bi_showcase.git
 cd agentic_bi_showcase
 uv sync
+uv run python scripts/provision_enterprise_warehouse.py
+uv run python scripts/refresh_demo_seed.py
 uv run python scripts/provision_cymbal_caa_agents.py
 uv run python scripts/04_run_scenario_benchmarks.py
+uv run python scripts/05_measure_bqca_tokens_from_trace.py
 uv run python scripts/build_outcome_portal.py
 uv run adk web agents --port 8000</pre>
           <p style="font-size:12.8px;color:var(--text-secondary);">
@@ -1209,7 +1173,7 @@ HTML_KO = r"""<!DOCTYPE html>
         <a href="#overview">1. PoC 핵심 과제 및 실측 KPI</a>
         <a href="#architecture">2. Best Practice Architecture</a>
         <a href="#scenarios">3. As-Is vs To-Be 시현 (S1–S5)</a>
-        <a href="#benchmarks">4. 2-Tier Token 및 90% Cache 비용</a>
+        <a href="#benchmarks">4. 8-Turn Token 추이 및 비용</a>
         <a href="#repository">5. Git Repository 및 재현</a>
       </nav>
       <div class="topbar-right">
@@ -1233,16 +1197,16 @@ HTML_KO = r"""<!DOCTYPE html>
         <span class="eyebrow">PoC Engineering Verification Blueprint · Google ADK + BigQuery CAA</span>
         <h1>ADK Root ↔ Sub-Agent(BQCA) State·Stateless·Memory·Routing 개선 및 2-Tier Token 최적화 검증</h1>
         <p class="lead">
-          전사 NL2SQL Platform 연동 PoC에서 고객이 직면하는 2대 핵심 기술 과제인
-          <strong>1) ADK 기반 Root Agent와 Sub-Agent(BQCA) 간 State·Stateless·Memory·Routing 최적 설계</strong>와
-          <strong>2) 실제 <span class="mono">Vertex AI usage_metadata</span> 실측치 및 <span class="mono">BQCA Cached Input 90% 할인($0.30/1M)</span>을 반영한 2-Tier Token 절감 Architecture</strong>를
-          5대 <span class="mono">As-Is</span> vs <span class="mono">To-Be</span> 직접 대조 Scenario(S1–S5)로 증명합니다.
+          Google ADK Agent를 BigQuery Conversational Analytics(BQCA) 앞에 둘 때 나오는 두 가지 기술 질문을 다룹니다.
+          <strong>1) Root Agent와 BQCA Data Agent 사이의 State·Memory·Routing을 어떻게 설계할 것인가</strong>,
+          <strong>2) 각 설계가 두 계층에서 Token을 얼마나 쓰는가</strong>.
+          이 Page의 모든 수치는 Google Cloud에서 측정했습니다. ADK Token은 <span class="mono">Vertex AI usage_metadata</span>, BQCA Token은 Cloud Trace 기준입니다.
         </p>
 
         <div class="meta-strip">
-          <span class="meta-chip"><strong>핵심 과제 1:</strong> Root ↔ Sub-Agent State · Stateless 3-Turn Window · 4-Scope Memory · Hybrid Routing</span>
-          <span class="meta-chip"><strong>핵심 과제 2:</strong> <span class="mono">Vertex AI usage_metadata</span> 실측 + BQCA <span class="mono">90%</span> Cached Input 실효 비용</span>
-          <span class="meta-chip"><strong>실측 시각 (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
+          <span class="meta-chip"><strong>과제 1:</strong> Root·Sub-Agent State · 3-Turn Message Window · Memory · Routing</span>
+          <span class="meta-chip"><strong>과제 2:</strong> ADK 계층과 BQCA 계층의 Token 실측</span>
+          <span class="meta-chip"><strong>측정 시각 (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
         </div>
 
         <div class="kpi-grid" id="hero-kpi-grid"></div>
@@ -1250,22 +1214,22 @@ HTML_KO = r"""<!DOCTYPE html>
 
       <div class="stack-list" style="margin-top:20px;margin-bottom:0;">
         <div class="info-card">
-          <span class="tag tag-blue">고객 문제상황 1 · State, Stateless, Memory &amp; Routing</span>
-          <h3>기본 ADK Toolset 및 Stateful API 단독 사용 시 한계와 해결책</h3>
+          <span class="tag tag-blue">과제 1 · State, Memory, Routing</span>
+          <h3>구성별 동작 방식</h3>
           <ul style="font-size:13.8px;padding-left:18px;color:var(--text-secondary);margin-top:6px;">
-            <li style="margin-bottom:6px;"><strong>ADK 내장 <span class="mono">ask_data_agent</span> (One-Shot Stateless):</strong> 매 Turn <span class="mono">_get_data_agent_info</span> 탐색을 반복 호출하고 단일 <span class="mono">UserMessage</span> 1건만 전송해 2턴 후속 질문에서 선행 조건이 유실됩니다.</li>
-            <li style="margin-bottom:6px;"><strong>관리형 <span class="mono">ConversationReference</span> (Stateful):</strong> <span class="mono">1 Conversation = 1 고정 DataAgent</span>에 종속되어 타 업무 Domain 전환 시 문맥이 끊기며 동시 병렬 호출이 직렬화됩니다.</li>
-            <li><strong>제안 Best Practice:</strong> 정적 <span class="mono">enum transfer_to_agent</span> + Sub-Agent 간 직접 Peer 전환 + <span class="mono">ThreadPoolExecutor</span> 병렬 <span class="mono">Chat API</span> + <span class="mono">4-Scope State/Memory</span> + <span class="mono">App(context_cache_config=...)</span> 격리 Cache 적용.</li>
+            <li style="margin-bottom:6px;"><strong>ADK 내장 <span class="mono">ask_data_agent</span>:</strong> 호출할 때마다 Data Agent 정보를 조회하고, 현재 질문 하나만 BQCA에 보냅니다.</li>
+            <li style="margin-bottom:6px;"><strong>관리형 대화 (<span class="mono">ConversationReference</span>):</strong> 이력을 서버에 보관하지만 Data Agent 하나에 묶입니다.</li>
+            <li><strong>이 Repository:</strong> Root Router와 Domain별 Sub-Agent 3개, Sub-Agent 간 직접 전환, 병렬 Fan-out, Domain별 3-Turn Message Window, Session State와 Memory Service를 씁니다.</li>
           </ul>
         </div>
 
         <div class="info-card">
-          <span class="tag tag-green">고객 문제상황 2 · 2-Tier Token 절감 및 90% Cache 비용 최적화</span>
-          <h3>ADK 계층 + BQCA 계층 5단계 Token Diet Pipeline</h3>
+          <span class="tag tag-green">과제 2 · 두 계층의 Token 사용</span>
+          <h3>Token이 쓰이는 곳</h3>
           <ul style="font-size:13.8px;padding-left:18px;color:var(--text-secondary);margin-top:6px;">
-            <li style="margin-bottom:6px;"><strong>Stage 1–2 (탐색 제거 및 Schema 분리):</strong> 런타임 Discovery Tool을 제거하고 110K+ 단일 통합 Agent를 최소 권한 Domain Agent(<span class="mono">4 / 3 / 5</span>개 Table)로 분할합니다.</li>
-            <li style="margin-bottom:6px;"><strong>Stage 3–4 (양방향 O(1) 상한선 고정):</strong> <span class="mono">THOUGHT</span> 스트림 제거 + 20행 요약 캡(Turn Scope 즉시 소거), 하위 BQCA 3-Turn Sliding Window (6 Messages) 제한, 상위 ADK <span class="mono">before_model_callback</span> 3-Turn 이력 압축을 동시 적용합니다.</li>
-            <li><strong>Stage 5 (실효 과금 최소화):</strong> 고정 Prefix 기반 BQCA <span class="mono">90%</span> Cached Input 할인(<span class="mono">$3.00/1M → $0.30/1M</span>)과 <span class="mono">MemoryService</span> 우회(<span class="mono">BQCA 0 tok</span>)를 결합합니다.</li>
+            <li style="margin-bottom:6px;"><strong>BQCA 계층:</strong> Chat Turn 하나는 보통 내부 LLM 호출 2회로 처리되고, 호출마다 Data Agent에 연결된 Schema와 용어집을 읽습니다. 설명이 붙은 Table을 적게 연결하는 것이 가장 큰 요인입니다.</li>
+            <li style="margin-bottom:6px;"><strong>ADK 계층:</strong> Prompt는 Instruction, Tool 정의, 재전송되는 Session으로 이루어집니다. To-Be Agent는 고정 Instruction, Sub-Agent당 Tool 1개, 3-Turn 이력, 축약한 Tool 결과를 씁니다.</li>
+            <li><strong>기억 복원:</strong> 이전 Session에 대한 질문은 BQCA 호출 없이 Memory에서 답합니다.</li>
           </ul>
         </div>
       </div>
@@ -1302,43 +1266,38 @@ HTML_KO = r"""<!DOCTYPE html>
       <div class="table-wrap">
         <table class="matrix-table">
           <thead>
-            <tr>
-              <th>설계 비교 항목</th>
-              <th>Option 1: ADK 기본 <span class="mono">DataAgentToolset</span> (As-Is One-Shot)</th>
-              <th>Option 2: BQCA 관리형 <span class="mono">ConversationReference</span> (Stateful)</th>
-              <th>Option 3 (제안 Best Practice): ADK 4-Scope + Stateless Chat API (3-Turn Window) + <span class="mono">ContextCacheConfig</span></th>
-            </tr>
+            <tr><th>비교 항목</th><th>As-Is: ADK 내장 data agent Tool</th><th>BQCA 관리형 대화 (Stateful)</th><th>To-Be: 이 Repository</th></tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Root → Sub-Agent Routing</strong></td>
-              <td>매 Turn <span class="mono">list_accessible_data_agents</span> + <span class="mono">get_data_agent_info</span> 탐색 (+4K~8K tok)</td>
-              <td>대화 생성 시 단일 <span class="mono">DataAgent</span> 고정 (동적 Routing 불가)</td>
-              <td><strong>Path A:</strong> <span class="mono">enum transfer_to_agent</span> | <strong>Path B:</strong> 직접 Peer 전환 | <strong>Path C:</strong> 병렬 <span class="mono">ThreadPoolExecutor</span></td>
+              <td><strong>Routing</strong></td>
+              <td>Data Agent 하나가 모든 질문에 답함</td>
+              <td>대화 생성 시 정한 Data Agent 하나에 고정</td>
+              <td><strong>Root Router가 Sub-Agent 3개 중 하나로 넘기고, Sub-Agent끼리 직접 전환하며, 여러 Domain 질문은 병렬로 호출</strong></td>
             </tr>
             <tr class="highlight-row">
-              <td><strong>Multi-Turn 문맥 및 종속성</strong></td>
-              <td><span style="color:var(--red);font-weight:600;">단일 UserMessage 1건만 전송 → 2턴 후속 질문 조건 유실</span></td>
-              <td>단일 Agent 내 이력 유지(180일 TTL)되나 <strong>타 Domain 전환 시 단절</strong></td>
-              <td><strong style="color:var(--green);">3-Turn Sliding Window(최대 6개 요약 문답)로 문맥 100% 유지 + 자유로운 Domain 전환</strong></td>
+              <td><strong>Multi-Turn 문맥</strong></td>
+              <td><span class="mono">ask_data_agent</span>는 현재 질문만 전송하므로 Root LLM이 이전 문맥을 다시 써 줘야 함</td>
+              <td>해당 대화의 이력을 서버가 보관</td>
+              <td><strong>Stateless 호출마다 해당 Domain의 최근 3 Turn을 함께 전송</strong></td>
             </tr>
             <tr>
-              <td><strong>상위 ADK 계층 Token 추이</strong></td>
-              <td><span class="mono">Session.events</span> 내 원본 JSON + THOUGHT 무한 누적 O(N)</td>
-              <td>단독 UI 사용 시 해당 없으나 ADK 래핑 시 동일 누적 발생</td>
-              <td><strong><span class="mono">before_model_callback</span> 3-Turn 이력 압축 + 20행 캡으로 O(1) 평탄화</strong></td>
+              <td><strong>ADK Prompt</strong></td>
+              <td>LLM 호출마다 Tool 원본 응답을 포함한 Session 전체를 재전송</td>
+              <td>감싸는 Agent 구성에 따름</td>
+              <td><strong>최근 3개 User Turn만 유지하고 Tool 결과는 답변과 행 수를 제한한 Table로 축약</strong></td>
             </tr>
             <tr class="highlight-row">
-              <td><strong>하위 BQCA Token 및 90% Cache</strong></td>
-              <td>단일 통합 Agent 기준 110,764+ tok 매번 소모</td>
-              <td>단일 Agent 내 90% 암시적 Cache 적용되나 이력 선형 증가</td>
-              <td><strong style="color:var(--green);">11.4K~13.9K 격리 Schema + 고정 Prefix 구간 <span class="mono">$0.30/1M</span>(90% 할인)</strong></td>
+              <td><strong>호출당 BQCA Context</strong></td>
+              <td>Warehouse 전체 Schema와 모든 용어집</td>
+              <td>연결된 Data Agent와 동일</td>
+              <td><strong>Data Agent당 Table 3~5개와 Domain 용어집 하나 (Section 3, 4에서 측정)</strong></td>
             </tr>
             <tr>
-              <td><strong>Session 간 연속성 및 CMEK</strong></td>
-              <td><strong>New Session</strong> 생성 시 전면 휘발</td>
-              <td>대화방 ID 간 공유 불가; <span class="mono">global</span> Region CMEK 미지원</td>
-              <td><strong><strong>User Scope</strong> + <span class="mono">ADK MemoryService</span> (새 Session 첫 Turn 0-BQCA-Token 복원)</strong></td>
+              <td><strong>Session 간 Memory</strong></td>
+              <td>없음</td>
+              <td>한 대화 안에서만 유지</td>
+              <td><strong>User Scope State와 Memory Service로 BQCA 호출 없이 복원</strong></td>
             </tr>
           </tbody>
         </table>
@@ -1357,88 +1316,53 @@ HTML_KO = r"""<!DOCTYPE html>
     </section>
 
     <section id="benchmarks">
-      <h2>4. 2-Tier Token 평탄화 실측 Chart 및 90% Cached Input 실효 비용 시뮬레이터</h2>
-      <p class="section-desc">
-        좌측 Chart는 10-Turn 대화 시 통합 2-Tier(ADK + BQCA) Input Token 추이를, 우측 Chart는 <span class="mono">after_model_callback</span>이 실제 계측한 5-Turn 연속 <span class="mono">Vertex AI usage_metadata.prompt_token_count</span>를 보여줍니다. 하단 계산기는 공식 <strong>BQCA Cached Input 90% 할인 단가(<span class="mono">$0.30/1M</span> vs Non-Cached <span class="mono">$3.00/1M</span>)</strong>를 반영해 실효 연간 비용을 산출합니다.
-      </p>
+      <h2>4. 8-Turn Session의 Token 추이와 공시 단가 기준 비용</h2>
+      <p class="section-desc">S4 기준 실행에서 측정한 값입니다. 왼쪽은 Turn별 Input Token 합계로, <span class="mono">Vertex AI usage_metadata</span>의 ADK Prompt Token과 Cloud Trace의 BQCA Input Token을 더한 것입니다. 오른쪽은 Turn별 ADK Prompt Token입니다. 아래는 측정한 Turn당 평균 비용을 공시 단가로 연 단위 환산한 값입니다.</p>
 
       <div class="two-col" style="margin-bottom: 24px;">
         <div class="info-card">
-          <h3>10-Turn 통합 2-Tier Input Token 추이 비교 (ADK + BQCA 합산)</h3>
-          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
-            상위 ADK <span class="mono">llm_request.contents</span>(최근 3개 User Turn)와 하위 BQCA 3-Turn Sliding Window (6 Messages)를 동시에 제어하여 4번째 Turn부터 완벽한 O(1) 상한선을 유지합니다.
-          </p>
+          <h3>Turn별 Input Token 합계 (ADK + BQCA)</h3>
           <div id="svg-turn-chart"></div>
         </div>
-
         <div class="info-card">
-          <h3>5-Turn 연속 <span class="mono">Vertex AI usage_metadata</span> 실제 계측치 (ADK 계층 단독)</h3>
-          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
-            <span class="mono">gemini-2.5-flash</span> <span class="mono">after_model_callback</span> 실측 결과: 원본 JSON/THOUGHT가 계속 쌓이는 As-Is 대비 To-Be 3-Turn 압축의 실제 Prompt Token 절감 효과입니다.
-          </p>
+          <h3>Turn별 ADK Prompt Token</h3>
           <div id="svg-adk-measured-chart"></div>
         </div>
       </div>
 
       <div class="info-card">
         <div style="margin-bottom:16px;">
-          <span class="tag tag-green">2-Tier + 90% Cached Input 반영 실효 비용 시뮬레이터</span>
-          <h3>전사 도입 규모별 연간 실효 과금 비용 비교 (<span class="mono">$3.00/1M</span> Non-Cached vs <span class="mono">$0.30/1M</span> 90% Cached Input)</h3>
+          <span class="tag tag-green">공시 단가 기준 비용</span>
+          <h3>측정한 평균 Turn 비용의 연간 환산</h3>
         </div>
         <div class="calc-grid">
           <div>
             <div class="slider-group">
               <div class="slider-head">
-                <span>일일 전사 NL2SQL 질의 수 (Queries / Day)</span>
-                <span class="mono" id="lbl-qpd">10,000 queries / day</span>
+                <span>하루 질문 수</span>
+                <span class="mono" id="lbl-qpd"></span>
               </div>
               <input type="range" id="rng-qpd" min="1000" max="50000" step="1000" value="10000" />
             </div>
-
-            <div class="slider-group">
-              <div class="slider-head">
-                <span>Session당 평균 연속 Turn 수</span>
-                <span class="mono" id="lbl-turns">5 turns</span>
-              </div>
-              <input type="range" id="rng-turns" min="1" max="10" step="1" value="5" />
-            </div>
-
-            <div class="slider-group" style="margin-bottom: 6px;">
-              <div class="slider-head">
-                <span>BQCA 정적 Prefix Cache 적중 비중 (90% 할인 <span class="mono">$0.30/1M</span> 적용 구간)</span>
-                <span class="mono" id="lbl-cache">60% cached prefix</span>
-              </div>
-              <input type="range" id="rng-cache" min="0" max="85" step="5" value="60" />
-              <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">
-                공식 Data Cloud Agent PAYG 과금 기준: 일반 Input <span class="mono">$3.00/1M</span>, Cached Input <span class="mono">$0.30/1M</span>(90% 할인, 일일 Quota 차감 시에도 0.1배 적용), Output <span class="mono">$20.00/1M</span> + 상위 Vertex AI <span class="mono">gemini-2.5-flash</span>(<span class="mono">$0.30/1M</span> Input, <span class="mono">$2.50/1M</span> Output) 합산.
-              </p>
-            </div>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Turn당 비용은 S4 Session에서 측정한 ADK Token과 BQCA Token에 공시 단가를 곱한 값입니다. BQCA Input <span class="mono">$3.00/1M</span>, Cached Input <span class="mono">$0.30/1M</span>, Output <span class="mono">$20.00/1M</span>, <span class="mono">gemini-2.5-flash</span> Input <span class="mono">$0.30/1M</span>, Cached Input <span class="mono">$0.03/1M</span>, Output <span class="mono">$2.50/1M</span>입니다. BigQuery Query 비용은 포함하지 않았습니다. 연간 값은 평균의 단순 환산이며 예측이 아닙니다.</p>
           </div>
 
           <div class="tco-result-box">
             <div>
-              <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">
-                연간 실효 과금 순절감액 (동일 Cache 비중 적용 As-Is 대비)
-              </div>
-              <div class="savings-big" id="tco-annual-savings">$0 / yr</div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">연간 차이 (As-Is - To-Be)</div>
+              <div class="savings-big" id="tco-annual-savings">n/a</div>
               <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;" id="tco-pct-note"></div>
             </div>
-
             <div class="tco-tier-strip">
               <div>
-                <div style="color:var(--text-secondary);">As-Is (Cache 미적용)</div>
-                <div class="mono" style="font-weight:700;font-size:15px;color:#5F6368;" id="tco-asis-nocache">$0</div>
-                <div class="mono" style="font-size:11px;color:var(--text-secondary);">전액 $3.00/1M 기준</div>
+                <div style="color:var(--text-secondary);">As-Is 연간</div>
+                <div class="mono" style="font-weight:700;font-size:15px;color:var(--red);" id="tco-asis"></div>
+                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-asis-turn"></div>
               </div>
               <div>
-                <div style="color:var(--text-secondary);">As-Is (동일 Cache 반영)</div>
-                <div class="mono" style="font-weight:700;font-size:15px;color:var(--red);" id="tco-asis-cached">$0</div>
-                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-mono-tok"></div>
-              </div>
-              <div>
-                <div style="color:var(--text-secondary);">To-Be (2-Tier Diet + Cache)</div>
-                <div class="mono" style="font-weight:700;font-size:15px;color:var(--green);" id="tco-tobe-cached">$0</div>
-                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-scoped-tok"></div>
+                <div style="color:var(--text-secondary);">To-Be 연간</div>
+                <div class="mono" style="font-weight:700;font-size:15px;color:var(--green);" id="tco-tobe"></div>
+                <div class="mono" style="font-size:11px;color:var(--text-secondary);" id="tco-tobe-turn"></div>
               </div>
             </div>
           </div>
@@ -1477,8 +1401,11 @@ export GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
 git clone https://github.com/rhkim77/agentic_bi_showcase.git
 cd agentic_bi_showcase
 uv sync
+uv run python scripts/provision_enterprise_warehouse.py
+uv run python scripts/refresh_demo_seed.py
 uv run python scripts/provision_cymbal_caa_agents.py
 uv run python scripts/04_run_scenario_benchmarks.py
+uv run python scripts/05_measure_bqca_tokens_from_trace.py
 uv run python scripts/build_outcome_portal.py
 uv run adk web agents --port 8000</pre>
           <p style="font-size:12.8px;color:var(--text-secondary);">
@@ -1598,180 +1525,54 @@ PORTAL_JS = r"""
       return out;
     }
 
+    function baselineOf(code) {
+      const sc = (BENCHMARK_DATA.scenarios || []).find(x => x.code === code);
+      return sc ? sc.result : null;
+    }
+
+    function pctDelta(asis, tobe) {
+      return (asis && tobe !== null && tobe !== undefined) ? ((tobe - asis) / asis) * 100 : null;
+    }
+
     function renderHeroKpis() {
-      const hm = BENCHMARK_DATA.headline_metrics;
       const S = UI_STRINGS.heroKpis;
-      document.getElementById("hero-kpi-grid").innerHTML = `
-        <div class="kpi-card green">
-          <div class="kpi-label">${S.k1Label}</div>
-          <div class="kpi-value">-${hm.s1_token_reduction_pct}%</div>
-          <div class="kpi-sub"><strong>${hm.s1_tobe_total_input_tokens.toLocaleString()} tok</strong> vs ${hm.s1_asis_total_input_tokens.toLocaleString()} As-Is (ADK <span class="mono">usage_metadata</span>: ${hm.s1_asis_adk_measured_tokens.toLocaleString()} → ${hm.s1_tobe_adk_measured_tokens.toLocaleString()} tok).</div>
-        </div>
-        <div class="kpi-card green">
-          <div class="kpi-label">${S.k2Label}</div>
-          <div class="kpi-value">-${hm.s4_turn5_adk_reduction_pct}%</div>
-          <div class="kpi-sub">Turn-5 Measured ADK <span class="mono">prompt_token_count</span>: <strong>${hm.s4_turn5_tobe_adk_measured_tokens.toLocaleString()} tok</strong> vs ${hm.s4_turn5_asis_adk_measured_tokens.toLocaleString()} As-Is unbounded.</div>
-        </div>
-        <div class="kpi-card blue">
-          <div class="kpi-label">${S.k3Label}</div>
-          <div class="kpi-value">${hm.s3_speedup_x}x ${S.fasterWord}</div>
-          <div class="kpi-sub"><strong>${(hm.s3_parallel_wall_ms / 1000).toFixed(2)} s</strong> parallel <span class="mono">Chat API</span> vs ${(hm.s3_sequential_sum_ms / 1000).toFixed(2)} s sequential (-${hm.s3_latency_reduction_pct}%) + direct Peer transfer.</div>
-        </div>
-        <div class="kpi-card amber">
-          <div class="kpi-label">${S.k4Label}</div>
-          <div class="kpi-value">0 BQCA Tokens</div>
-          <div class="kpi-sub">New <span class="mono">Session-B</span> Turn 1 answered in <strong>${(hm.s5_memory_recall_ms / 1000).toFixed(2)} s</strong> (${hm.s5_memory_adk_measured_tokens.toLocaleString()} ADK tok, 0 BQ bytes scanned).</div>
-        </div>
-      `;
+      const s1 = baselineOf("S1") || {};
+      const s5 = baselineOf("S5") || {};
+      const t1 = (s1.comparison_summary || {}).trace_estimate || {};
+      const m5 = (s5.comparison_summary || {}).measured || {};
+      const avg = BENCHMARK_DATA.s4_average_per_turn || {};
+      const bqDelta = pctDelta(t1.asis_bqca_input_tokens, t1.tobe_bqca_input_tokens);
+      const avgDelta = pctDelta(avg.asis_total_input_tokens, avg.tobe_total_input_tokens);
+      const card = (label, value, color, sub) => `
+        <div class="kpi-card">
+          <div class="kpi-label">${label}</div>
+          <div class="kpi-value" style="color:${color};">${value}</div>
+          <div class="kpi-sub">${sub}</div>
+        </div>`;
+      document.getElementById("hero-kpi-grid").innerHTML =
+        card(S.k1Label, fmtDelta(bqDelta), deltaColor(bqDelta),
+          `<strong>${fmtTok(t1.tobe_bqca_input_tokens)}</strong> vs ${fmtTok(t1.asis_bqca_input_tokens)} tok. ${S.k1Sub}`) +
+        card(S.k2Label, fmtDelta(t1.total_input_delta_pct), deltaColor(t1.total_input_delta_pct),
+          `<strong>${fmtTok(t1.tobe_total_input_tokens)}</strong> vs ${fmtTok(t1.asis_total_input_tokens)} tok. ${S.k2Sub}`) +
+        card(S.k3Label, fmtDelta(avgDelta), deltaColor(avgDelta),
+          `<strong>${fmtTok(avg.tobe_total_input_tokens)}</strong> vs ${fmtTok(avg.asis_total_input_tokens)} tok, ${fmtTok(avg.turns_measured)} turns. ${S.k3Sub} $${Number(avg.tobe_cost_usd || 0).toFixed(4)} vs $${Number(avg.asis_cost_usd || 0).toFixed(4)}`) +
+        card(S.k4Label, `${fmtTok(m5.tobe_bqca_calls)} ${S.k4Unit}`, "var(--blue)",
+          `${S.k4Sub} <strong>${(Number(m5.tobe_latency_ms || 0) / 1000).toFixed(1)} s</strong>.`);
     }
 
     function renderScenario(idx) {
       activeScenarioIdx = idx;
       const sc = BENCHMARK_DATA.scenarios[idx];
-      const mr = sc.measured_result;
-      const st = sc.state_transition;
       const S = UI_STRINGS;
 
       document.querySelectorAll("#scenario-tabs .tab-btn").forEach((b, i) => {
         b.classList.toggle("active", i === idx);
       });
 
-      const latencyLabel = mr.sequential_sum_ms
-        ? `${(mr.latency_ms / 1000).toFixed(2)} s (${S.vsSeq} ${(mr.sequential_sum_ms / 1000).toFixed(2)} s)`
-        : `${(mr.latency_ms / 1000).toFixed(2)} s`;
-
-      let evidenceHtml = "";
-
-      if ((sc.code === "S1" || sc.code === "S2") && sc.asis_comparison) {
-        const ac = sc.asis_comparison;
-        evidenceHtml = `
-          <div class="stack-list">
-            <div class="sub-box asis-border" style="background:#FFFFFF;">
-              <div class="evidence-header">
-                <span class="tag tag-red">${formatInlineText(ac.label)}</span>
-                <span class="mono" style="font-size:12px;color:var(--red);">${formatInlineText(ac.defect_note)}</span>
-              </div>
-              <pre class="sql-block">${escapeHtml(ac.generated_sql)}</pre>
-            </div>
-            <div class="sub-box tobe-border" style="background:#FFFFFF;">
-              <div class="evidence-header">
-                <span class="tag tag-green">To-Be Best Practice (${mr.scoped_tokens.toLocaleString()} total tok · -${mr.token_reduction_pct}%)</span>
-                <span class="mono" style="font-size:12px;color:var(--green);">ADK Measured: ${(mr.adk_measured_prompt_tokens || 0).toLocaleString()} tok</span>
-              </div>
-              <pre class="sql-block">${escapeHtml(mr.generated_sql)}</pre>
-            </div>
-            <div>
-              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.returnedRows}</h3>
-              ${parseMarkdownTableToHtml(mr.rows)}
-            </div>
-            <div>
-              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.caaSummary}</h3>
-              <div class="answer-box">${formatAgentAnswer(mr.answer)}</div>
-            </div>
-          </div>
-        `;
-      } else if (sc.code === "S3" && mr.sub_results) {
-        const peer = sc.peer_routing_proof || {};
-        const cards = Object.entries(mr.sub_results).map(([domName, d]) => `
-          <div class="sub-box" style="background:#FFFFFF;">
-            <div class="evidence-header">
-              <strong style="font-size:13.5px;color:var(--blue);">${escapeHtml(S.domainNames[domName] || domName)}</strong>
-              <span class="mono" style="font-size:11.5px;background:var(--green-soft);color:var(--green);padding:2px 7px;border-radius:4px;">
-                ${(d.latency_ms / 1000).toFixed(2)}s · ${d.scoped_tokens.toLocaleString()} tok
-              </span>
-            </div>
-            <div style="margin-bottom:10px;">${parseMarkdownTableToHtml(d.markdown_table)}</div>
-            <details style="margin-bottom:8px;">
-              <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-secondary);">${S.viewDomainSql}</summary>
-              <pre class="sql-block" style="margin-top:6px;font-size:11.5px;">${escapeHtml(d.generated_sql)}</pre>
-            </details>
-            <div style="font-size:12.8px;color:var(--text-secondary);">${formatAgentAnswer(d.summary)}</div>
-          </div>
-        `).join("");
-
-        evidenceHtml = `
-          <div class="sub-box" style="background:#F8FAFD;border-color:#C2D7FA;margin-bottom:16px;">
-            <span class="tag tag-blue">Part A · Peer-to-Peer Domain Switch Proof (0 Root Router Bounce)</span>
-            <div style="font-size:13.5px;margin-bottom:6px;">
-              <strong>Active Agent Handoff Trace:</strong>
-              <code class="mono" style="background:#FFFFFF;padding:2px 8px;border-radius:4px;border:1px solid var(--border);">${escapeHtml((peer.agents_hop_trace || []).join(" → "))}</code>
-              · Measured ADK <span class="mono">usage_metadata</span>: <strong>${(peer.adk_measured_prompt_tokens || 0).toLocaleString()} tok</strong>
-            </div>
-          </div>
-          <h3 style="font-size:14.5px;margin-bottom:10px;">Part B · ${S.s3ParallelHeading}</h3>
-          <div class="stack-list">${cards}</div>
-          <div class="answer-box">${S.s3SynthesisHtml}</div>
-        `;
-      } else if (sc.code === "S4" && mr.measured_5turn_table) {
-        const rowsHtml = mr.measured_5turn_table.map(r => {
-          const savedPct = ((1 - r.tobe_adk_prompt_tokens_measured / Math.max(1, r.asis_adk_prompt_tokens_measured)) * 100).toFixed(1);
-          return `
-            <tr>
-              <td class="mono"><strong>Turn ${r.turn}</strong></td>
-              <td class="mono" style="color:var(--red);">${r.asis_adk_prompt_tokens_measured.toLocaleString()} tok</td>
-              <td class="mono" style="color:var(--green);font-weight:700;">${r.tobe_adk_prompt_tokens_measured.toLocaleString()} tok (-${savedPct}%)</td>
-              <td class="mono">${r.tobe_compacted_dropped} items evicted</td>
-            </tr>
-          `;
-        }).join("");
-        const cc = mr.cost_comparison_turn5 || {};
-        evidenceHtml = `
-          <div class="stack-list">
-            <div>
-              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.s4TableHeading}</h3>
-              <div class="table-wrap">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Turn</th>
-                      <th>As-Is Unbounded ADK (<span class="mono">usage_metadata</span>)</th>
-                      <th>To-Be Compacted ADK (<span class="mono">usage_metadata</span>)</th>
-                      <th><span class="mono">before_model_callback</span></th>
-                    </tr>
-                  </thead>
-                  <tbody>${rowsHtml}</tbody>
-                </table>
-              </div>
-            </div>
-            <div>
-              <h3 style="font-size:14px;margin-bottom:8px;">${S.s4CostHeading}</h3>
-              <div class="answer-box">
-                <p><strong>Turn-5 Single Query Effective Cost Breakdown (ADK + BQCA):</strong></p>
-                <ul>
-                  <li><strong>As-Is Monolithic (0% Cache, $3.00/1M):</strong> <code class="mono">$${Number(cc.asis_no_cache_usd || 0).toFixed(4)} / turn</code></li>
-                  <li><strong>As-Is Monolithic (50% Implicit Cache @ $0.30/1M):</strong> <code class="mono">$${Number(cc.asis_with_cache_usd || 0).toFixed(4)} / turn</code></li>
-                  <li><strong style="color:var(--green);">To-Be 2-Tier Diet + 65% Cached Prefix (@ $0.30/1M):</strong> <code class="mono" style="color:var(--green);font-weight:700;">$${Number(cc.tobe_with_90pct_cache_usd || 0).toFixed(4)} / turn</code></li>
-                </ul>
-                <p style="margin-top:8px;font-size:13px;color:var(--text-secondary);">${S.s4CacheExplain}</p>
-              </div>
-            </div>
-          </div>
-        `;
-      } else {
-        const diffJson = sc.state_scope_json_diff ? JSON.stringify(sc.state_scope_json_diff, null, 2) : mr.generated_sql;
-        evidenceHtml = `
-          <div class="stack-list">
-            <div>
-              <h3 style="font-size:14.5px;margin-bottom:8px;">${S.s5JsonHeading}</h3>
-              <pre class="sql-block">${escapeHtml(diffJson)}</pre>
-            </div>
-            <div>
-              <h3 style="font-size:14px;margin-bottom:8px;">${S.memoryRecallOutput}</h3>
-              <div class="answer-box">${formatAgentAnswer(mr.answer)}</div>
-            </div>
-          </div>
-        `;
-      }
-
-      const btnLabel = liveApiAvailable
-        ? S.btnRunLive.replace("{CODE}", sc.code)
-        : S.btnRunDisabled;
-
       const presets = (S.wbPresets && S.wbPresets[sc.code]) ? S.wbPresets[sc.code] : [];
       const currentDraft = customPromptDrafts[sc.code] !== undefined ? customPromptDrafts[sc.code] : sc.prompt;
       const nextSc = BENCHMARK_DATA.scenarios[idx + 1];
       const savedLive = liveRunResults[sc.code];
-
       const presetButtonsHtml = presets.map((p, pIdx) => `
         <button type="button" class="preset-chip" data-preset-idx="${pIdx}">${escapeHtml(p.label)}</button>
       `).join("");
@@ -1783,7 +1584,6 @@ PORTAL_JS = r"""
             <h3 style="font-size:19px;margin-bottom:2px;">${formatInlineText(sc.title)}</h3>
             <div class="route-trace mono">Route: ${formatInlineText(sc.routing_path)}</div>
           </div>
-          <button class="btn-outline" id="run-live-btn" ${liveApiAvailable ? "" : "disabled"}>${btnLabel}</button>
         </div>
 
         <div class="stack-list">
@@ -1836,49 +1636,8 @@ PORTAL_JS = r"""
 
         <div class="ref-divider">${S.refBaselineHeading} (${escapeHtml(sc.code)})</div>
         <div class="sub-box" style="margin-bottom:14px;font-size:12.8px;">${S.baselineDisclosureHtml}</div>
-
-        <div class="prompt-box">
-          <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:3px;">${S.promptLabel}</span>
-          "${formatInlineText(sc.prompt)}"
-        </div>
-
-        <div class="metric-ribbon">
-          <div class="metric-cell">
-            <div class="m-k">${S.metricScoped}</div>
-            <div class="m-v good mono">${mr.scoped_tokens.toLocaleString()} tok (-${mr.token_reduction_pct}%)</div>
-          </div>
-          <div class="metric-cell">
-            <div class="m-k">Measured ADK <span class="mono">usage_metadata</span></div>
-            <div class="m-v mono" style="color:var(--blue);">${(mr.adk_measured_prompt_tokens || 0).toLocaleString()} prompt tok</div>
-          </div>
-          <div class="metric-cell">
-            <div class="m-k">BQCA Tier Input Tokens</div>
-            <div class="m-v mono">${(mr.bqca_scoped_tokens !== undefined ? mr.bqca_scoped_tokens : 0).toLocaleString()} tok</div>
-          </div>
-          <div class="metric-cell">
-            <div class="m-k">${S.metricLatency}</div>
-            <div class="m-v mono">${latencyLabel}</div>
-          </div>
-        </div>
-
-        <div class="scope-list">
-          <div class="scope-row">
-            <div class="scope-key">1. Turn Scope (<span class="mono">temp</span>)</div>
-            <div>${formatInlineText(st.temp_scope)}</div>
-          </div>
-          <div class="scope-row">
-            <div class="scope-key">2. Session Scope (<span class="mono">3-Turn Window</span>)</div>
-            <div>${formatInlineText(st.session_scope)}</div>
-          </div>
-          <div class="scope-row">
-            <div class="scope-key">3. User Scope &amp; <span class="mono">MemoryService</span></div>
-            <div>${formatInlineText(st.user_scope)}</div>
-          </div>
-        </div>
-
-        ${evidenceHtml}
-
-        <div class="live-output" id="live-verify-box"></div>
+        ${sc.result ? buildDualComparisonCardHtml(sc.result, true) : ""}
+        ${sc.fanout ? `<div class="ref-divider">${S.fanoutHeading}</div>${buildDualComparisonCardHtml(sc.fanout, true)}` : ""}
       `;
 
       renderProgressiveTracker();
@@ -1902,12 +1661,12 @@ PORTAL_JS = r"""
 
       const dualBtn = document.getElementById("wb-run-dual-btn");
       if (dualBtn && liveApiAvailable) {
-        dualBtn.addEventListener("click", () => triggerWorkbenchDualStream(sc.code, "burst_5turn"));
+        dualBtn.addEventListener("click", () => triggerWorkbenchDualStream(sc.code, "burst"));
       }
 
       const appendBtn = document.getElementById("wb-append-turn-btn");
       if (appendBtn && liveApiAvailable) {
-        appendBtn.addEventListener("click", () => triggerWorkbenchDualStream("S4", "append_turn"));
+        appendBtn.addEventListener("click", () => triggerWorkbenchDualStream("S4", "append"));
       }
 
       const nextBtn = document.getElementById("wb-next-step-btn");
@@ -1917,11 +1676,6 @@ PORTAL_JS = r"""
           const anchor = document.getElementById("progressive-tracker");
           if (anchor) anchor.scrollIntoView({ behavior: "smooth", block: "start" });
         });
-      }
-
-      const runBtn = document.getElementById("run-live-btn");
-      if (runBtn && liveApiAvailable) {
-        runBtn.addEventListener("click", () => triggerLiveVerification(sc.code));
       }
     }
 
@@ -1940,36 +1694,34 @@ PORTAL_JS = r"""
       return Number(pct) <= 0 ? "var(--green)" : "var(--red)";
     }
 
-    // Measured ADK-tier prompt tokens for one step: the evaluator's live run if present, else the pre-run baseline.
+    // Input tokens for one step: the evaluator's live run if present, else the measured pre-run baseline.
     function getStepBaselineOrLiveSummary(sc) {
-      const code = sc.code;
-      const live = liveRunResults[code];
-      if (live) {
-        const m = (live.comparison_summary || {}).measured || {};
-        return {
-          isLive: true,
-          adkAsis: m.asis_adk_prompt_tokens,
-          adkTobe: m.tobe_adk_prompt_tokens,
-          adkDeltaPct: m.adk_prompt_delta_pct,
-          callsAsis: m.asis_bqca_calls,
-          callsTobe: m.tobe_bqca_calls,
-        };
+      const live = liveRunResults[sc.code];
+      const res = live || sc.result || {};
+      const cs = res.comparison_summary || {};
+      const m = cs.measured || {};
+      const tr = cs.trace_estimate;
+      let asis = tr ? tr.asis_total_input_tokens : m.asis_adk_prompt_tokens;
+      let tobe = tr ? tr.tobe_total_input_tokens : m.tobe_adk_prompt_tokens;
+      // S4 is about the whole session, so its baseline row shows the average over all measured turns.
+      const avg = BENCHMARK_DATA.s4_average_per_turn;
+      const isAverage = !live && sc.code === "S4" && !!(avg && avg.asis_total_input_tokens);
+      if (isAverage) {
+        asis = avg.asis_total_input_tokens;
+        tobe = avg.tobe_total_input_tokens;
       }
-      const mr = sc.measured_result || {};
-      let adkAsis = null;
-      let adkTobe = (mr.adk_measured_prompt_tokens !== undefined && mr.adk_measured_prompt_tokens !== null) ? mr.adk_measured_prompt_tokens : null;
-      if (code === "S1" && sc.asis_comparison && sc.asis_comparison.adk_measured_prompt_tokens) {
-        adkAsis = sc.asis_comparison.adk_measured_prompt_tokens;
-      }
-      if (code === "S4") {
-        const t5 = (BENCHMARK_DATA.turn_scaling_curve || [])[4];
-        if (t5) {
-          adkAsis = t5.adk_asis_prompt_tokens;
-          adkTobe = t5.adk_tobe_prompt_tokens;
-        }
-      }
-      const delta = (adkAsis && adkTobe !== null) ? Number((((adkTobe - adkAsis) / adkAsis) * 100).toFixed(1)) : null;
-      return { isLive: false, adkAsis: adkAsis, adkTobe: adkTobe, adkDeltaPct: delta, callsAsis: null, callsTobe: null };
+      return {
+        isLive: !!live,
+        isAverage: isAverage,
+        hasTotal: !!tr,
+        asis: asis,
+        tobe: tobe,
+        deltaPct: pctDelta(asis, tobe),
+        adkAsis: m.asis_adk_prompt_tokens,
+        adkTobe: m.tobe_adk_prompt_tokens,
+        callsAsis: m.asis_bqca_calls,
+        callsTobe: m.tobe_bqca_calls,
+      };
     }
 
     function renderProgressiveTracker() {
@@ -1978,7 +1730,7 @@ PORTAL_JS = r"""
       const S = UI_STRINGS;
       const scenarios = BENCHMARK_DATA.scenarios || [];
       const summaries = scenarios.map(sc => ({ sc, sum: getStepBaselineOrLiveSummary(sc) }));
-      const maxTok = Math.max(1, ...summaries.map(x => Math.max(x.sum.adkAsis || 0, x.sum.adkTobe || 0)));
+      const maxTok = Math.max(1, ...summaries.map(x => Math.max(x.sum.asis || 0, x.sum.tobe || 0)));
       const liveCount = summaries.filter(x => x.sum.isLive).length;
       const barWidth = v => (v === null || v === undefined) ? "0" : Math.max(2, Math.min(100, (v / maxTok) * 100)).toFixed(1);
 
@@ -1998,7 +1750,7 @@ PORTAL_JS = r"""
               ${statusBadge}
             </div>
             <div style="font-size:12px;font-weight:600;line-height:1.35;color:var(--text);margin-bottom:4px;">${escapeHtml(S.layerLabels[sc.code] || sc.code)}</div>
-            <div class="mono" style="font-size:11.5px;font-weight:700;color:${deltaColor(sum.adkDeltaPct)};">ADK ${fmtDelta(sum.adkDeltaPct)}</div>
+            <div class="mono" style="font-size:11.5px;font-weight:700;color:${deltaColor(sum.deltaPct)};">${fmtDelta(sum.deltaPct)}</div>
           </div>
         `;
       }).join("");
@@ -2008,27 +1760,27 @@ PORTAL_JS = r"""
             <div>
               <strong class="mono" style="color:var(--text);">${escapeHtml(sc.code)}</strong>
               <span style="color:var(--text-secondary);font-size:11.8px;"> · ${escapeHtml(S.layerShort[sc.code] || "")}</span>
-              <span class="mono" style="display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:${sum.isLive ? "var(--green)" : "var(--text-secondary)"};">[${sum.isLive ? S.trackerLiveTag : S.trackerBaseTag}]</span>
+              <span class="mono" style="display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:${sum.isLive ? "var(--green)" : "var(--text-secondary)"};">[${sum.isLive ? S.trackerLiveTag : S.trackerBaseTag}${sum.hasTotal ? "" : " · " + S.trackerAdkOnly}${sum.isAverage ? " · " + S.trackerAvgTag : ""}]</span>
             </div>
             <div class="dual-bar-track">
               <div class="bar-line">
                 <span class="mono" style="font-size:10.5px;width:42px;color:var(--red);flex-shrink:0;">As-Is</span>
                 <div style="flex:1;background:#F1F3F4;border-radius:4px;overflow:hidden;">
-                  <div class="bar-fill-asis" style="width:${barWidth(sum.adkAsis)}%;${sum.adkAsis ? "" : "min-width:0;"}"></div>
+                  <div class="bar-fill-asis" style="width:${barWidth(sum.asis)}%;${sum.asis ? "" : "min-width:0;"}"></div>
                 </div>
-                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--text-secondary);flex-shrink:0;">${fmtTok(sum.adkAsis)}</span>
+                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--text-secondary);flex-shrink:0;">${fmtTok(sum.asis)}</span>
               </div>
               <div class="bar-line">
                 <span class="mono" style="font-size:10.5px;width:42px;color:var(--green);font-weight:700;flex-shrink:0;">To-Be</span>
                 <div style="flex:1;background:#F1F3F4;border-radius:4px;overflow:hidden;">
-                  <div class="bar-fill-tobe" style="width:${barWidth(sum.adkTobe)}%;${sum.adkTobe ? "" : "min-width:0;"}"></div>
+                  <div class="bar-fill-tobe" style="width:${barWidth(sum.tobe)}%;${sum.tobe ? "" : "min-width:0;"}"></div>
                 </div>
-                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--green);font-weight:700;flex-shrink:0;">${fmtTok(sum.adkTobe)}</span>
+                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--green);font-weight:700;flex-shrink:0;">${fmtTok(sum.tobe)}</span>
               </div>
             </div>
             <div class="mono" style="text-align:right;font-size:11.8px;">
-              <strong style="color:${deltaColor(sum.adkDeltaPct)};">ADK ${fmtDelta(sum.adkDeltaPct)}</strong>
-              ${sum.isLive ? `<span style="color:var(--text-secondary);"> · BQCA calls ${fmtTok(sum.callsTobe)} vs ${fmtTok(sum.callsAsis)}</span>` : ""}
+              <strong style="color:${deltaColor(sum.deltaPct)};">${fmtDelta(sum.deltaPct)}</strong>
+              ${sum.isAverage ? "" : `<span style="color:var(--text-secondary);"> · ADK ${fmtTok(sum.adkTobe)} vs ${fmtTok(sum.adkAsis)} · BQCA calls ${fmtTok(sum.callsTobe)} vs ${fmtTok(sum.callsAsis)}</span>`}
             </div>
           </div>
         `).join("");
@@ -2044,7 +1796,6 @@ PORTAL_JS = r"""
         </div>
         <div class="prog-step-strip">${pillsHtml}</div>
         <div class="prog-bar-rows">${barsHtml}</div>
-        <div style="margin-top:12px;font-size:12.5px;color:var(--text-secondary);">${S.baselineDisclosureHtml}</div>
       `;
 
       el.querySelectorAll(".prog-step-pill").forEach(pill => {
@@ -2059,7 +1810,7 @@ PORTAL_JS = r"""
       }
     }
 
-    function buildDualComparisonCardHtml(res) {
+    function buildDualComparisonCardHtml(res, isBaseline) {
       const S = UI_STRINGS;
       const cs = res.comparison_summary || {};
       const m = cs.measured || {};
@@ -2069,6 +1820,7 @@ PORTAL_JS = r"""
       const asisAdk = asis.adk_usage || {};
       const tobeAdk = tobe.adk_usage || {};
       const cal = res.calibration || {};
+      const measuredBqca = res.bqca_basis === "measured";
       const secs = ms => (Number(ms || 0) / 1000).toFixed(1) + "s";
 
       const sideErrors = side => (side.errors && side.errors.length)
@@ -2137,13 +1889,13 @@ PORTAL_JS = r"""
 
       const traceHtml = tr ? `
           <div class="sub-box" style="margin-bottom:16px;">
-            <span class="tag tag-amber">${S.wbTraceTitle}</span>
+            <span class="tag ${measuredBqca ? "tag-green" : "tag-amber"}">${measuredBqca ? S.wbTraceTitleMeasured : S.wbTraceTitle}</span>
             <div class="mono" style="font-size:12.5px;line-height:1.7;">
               BQCA input tokens: To-Be ${fmtTok(tr.tobe_bqca_input_tokens)} vs As-Is ${fmtTok(tr.asis_bqca_input_tokens)}<br/>
-              Total input (measured ADK + BQCA median): To-Be ${fmtTok(tr.tobe_total_input_tokens)} vs As-Is ${fmtTok(tr.asis_total_input_tokens)} (${fmtDelta(tr.total_input_delta_pct)})<br/>
+              Total input (ADK + BQCA): To-Be ${fmtTok(tr.tobe_total_input_tokens)} vs As-Is ${fmtTok(tr.asis_total_input_tokens)} (${fmtDelta(tr.total_input_delta_pct)})<br/>
               Cost estimate per turn: To-Be $${Number(tr.tobe_cost_usd || 0).toFixed(4)} vs As-Is $${Number(tr.asis_cost_usd || 0).toFixed(4)} (${fmtDelta(tr.cost_delta_pct)})
             </div>
-            <div style="font-size:12.3px;color:var(--text-secondary);margin-top:6px;">${S.wbTraceNote} <span class="mono">${escapeHtml(cal.measured_at_utc || "")}</span></div>
+            <div style="font-size:12.3px;color:var(--text-secondary);margin-top:6px;">${measuredBqca ? S.wbTraceNoteMeasured : S.wbTraceNote + " <span class=\"mono\">" + escapeHtml(cal.measured_at_utc || "") + "</span>"}</div>
           </div>
         ` : `<div class="sub-box" style="margin-bottom:16px;font-size:12.8px;color:var(--text-secondary);">${S.wbTraceUnavailable}</div>`;
 
@@ -2151,7 +1903,7 @@ PORTAL_JS = r"""
         <div class="live-dual-card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
             <div>
-              <span class="tag ${res.status === "SUCCESS" ? "tag-green" : "tag-red"}" style="margin-bottom:4px;">${S.wbLiveCardBadge} · ${escapeHtml(res.scenario_code)} · ${escapeHtml(res.status || "")}</span>
+              <span class="tag ${res.status === "SUCCESS" ? "tag-green" : "tag-red"}" style="margin-bottom:4px;">${isBaseline ? S.baselineCardBadge : S.wbLiveCardBadge} · ${escapeHtml(res.scenario_code)} · ${escapeHtml(res.status || "")}</span>
               <div style="font-size:13.5px;font-weight:600;color:var(--text);">${S.wbExecutedPromptLabel}: "${escapeHtml(res.prompt_executed)}"</div>
             </div>
             <div class="mono" style="font-size:12px;color:var(--text-secondary);">
@@ -2288,7 +2040,7 @@ PORTAL_JS = r"""
             visitor_id: getVisitorId(),
             scenario_code: scenarioCode,
             prompt: promptText,
-            s4_mode: s4Mode || "burst_5turn",
+            s4_mode: s4Mode || "burst",
           }),
         });
 
@@ -2364,165 +2116,104 @@ PORTAL_JS = r"""
       renderScenario(activeScenarioIdx);
     }
 
-    async function triggerLiveVerification(scenarioCode) {
-      const S = UI_STRINGS;
-      const btn = document.getElementById("run-live-btn");
-      const box = document.getElementById("live-verify-box");
-      btn.disabled = true;
-      btn.textContent = S.runningLive.replace("{CODE}", scenarioCode);
-      box.className = "live-output visible";
-      box.innerHTML = `<div class="mono" style="font-size:13px;color:var(--green);">${S.callingEndpoint} (${BENCHMARK_DATA.environment.gcp_project})...</div>`;
-      try {
-        const res = await fetch("/api/verify-scenario", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenario_code: scenarioCode })
-        });
-        const data = await res.json();
-        box.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-            <strong style="color:var(--green);">${S.liveDone} (${escapeHtml(data.scenario_code)})</strong>
-            <span class="mono" style="font-size:12.2px;">Latency: <strong>${(data.live_latency_ms / 1000).toFixed(2)} s</strong> · ADK <span class="mono">usage_metadata</span>: <strong>${(data.adk_measured_prompt_tokens === null || data.adk_measured_prompt_tokens === undefined) ? S.legacyNoAdk : Number(data.adk_measured_prompt_tokens).toLocaleString() + " tok"}</strong> · BQCA calls: <strong>${fmtTok(data.bqca_calls)}</strong></span>
-          </div>
-          <div style="font-size:12.3px;color:var(--text-secondary);margin-bottom:8px;">${escapeHtml(data.token_basis || "")}</div>
-          ${data.error_details ? `<div style="font-size:12.8px;color:var(--red);font-weight:600;margin-bottom:8px;">${S.wbErrorLabel}: ${escapeHtml(data.error_details)}</div>` : ""}
-          ${data.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(data.generated_sql)}</pre>` : ""}
-          ${data.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(data.markdown_table)}</div>` : ""}
-          <div style="font-size:13.5px;">${formatAgentAnswer(data.answer)}</div>
-        `;
-      } catch (err) {
-        box.innerHTML = `<div style="color:var(--red);font-size:13px;">Live execution error: ${escapeHtml(err.message)}</div>`;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = S.btnRunLive.replace("{CODE}", scenarioCode);
-      }
+    function s4MeasuredRows() {
+      return (BENCHMARK_DATA.s4_turn_curve || []).filter(r => r.bqca_basis === "measured");
     }
 
+    // Total input tokens per turn (measured ADK prompt + measured BQCA input) over the S4 session.
     function renderTurnScalingSvg() {
       const S = UI_STRINGS;
-      const pts = BENCHMARK_DATA.turn_scaling_curve;
-      const W = 560, H = 260, padL = 58, padR = 20, padT = 20, padB = 38;
-      const maxY = Math.max(230000, pts[9].monolithic_unscoped * 1.08);
+      const el = document.getElementById("svg-turn-chart");
+      if (!el) return;
+      const pts = s4MeasuredRows();
+      if (pts.length < 2) {
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-secondary);">${S.chartNoData}</div>`;
+        return;
+      }
+      const W = 560, H = 260, padL = 58, padR = 20, padT = 22, padB = 38;
+      const maxY = Math.max(...pts.map(p => Math.max(p.asis_total_input_tokens, p.tobe_total_input_tokens))) * 1.15;
       const xPos = i => padL + (i / (pts.length - 1)) * (W - padL - padR);
       const yPos = v => padT + (1 - v / maxY) * (H - padT - padB);
       const poly = key => pts.map((p, i) => `${xPos(i).toFixed(1)},${yPos(p[key]).toFixed(1)}`).join(" ");
-
       let grid = "";
-      [0, 50000, 100000, 150000, 200000].forEach(val => {
+      for (let g = 0; g <= 4; g++) {
+        const val = (maxY / 4) * g;
         const y = yPos(val).toFixed(1);
         grid += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#E8EAED" stroke-width="1"/>`;
-        grid += `<text x="${padL - 8}" y="${Number(y) + 4}" text-anchor="end" font-size="10.5" fill="#5F6368" font-family="Roboto Mono">${val === 0 ? "0" : (val / 1000) + "K"}</text>`;
-      });
-
-      let xLabels = "";
-      pts.forEach((p, i) => {
-        if (i % 2 === 0 || i === 9) {
-          xLabels += `<text x="${xPos(i).toFixed(1)}" y="${H - 12}" text-anchor="middle" font-size="10.5" fill="#5F6368">T${i + 1}</text>`;
-        }
-      });
-
-      const svg = `
+        grid += `<text x="${padL - 8}" y="${Number(y) + 4}" text-anchor="end" font-size="10.5" fill="#5F6368" font-family="Roboto Mono">${Math.round(val / 1000)}K</text>`;
+      }
+      const xLabels = pts.map((p, i) => `<text x="${xPos(i).toFixed(1)}" y="${H - 12}" text-anchor="middle" font-size="10.5" fill="#5F6368">T${p.turn}</text>`).join("");
+      const dots = (key, color) => pts.map((p, i) => `<circle cx="${xPos(i).toFixed(1)}" cy="${yPos(p[key]).toFixed(1)}" r="3.2" fill="${color}"/>`).join("");
+      el.innerHTML = `
         <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img">
           ${grid}
           ${xLabels}
-          <polyline fill="none" stroke="#C5221F" stroke-width="2.5" points="${poly('monolithic_unscoped')}"/>
-          <polyline fill="none" stroke="#B06000" stroke-width="2.2" stroke-dasharray="5,4" points="${poly('unbounded_raw_history')}"/>
-          <polyline fill="none" stroke="#137333" stroke-width="3" points="${poly('proposed_scoped_sliding_window')}"/>
-          ${pts.map((p, i) => `<circle cx="${xPos(i).toFixed(1)}" cy="${yPos(p.proposed_scoped_sliding_window).toFixed(1)}" r="3.5" fill="#137333"/>`).join("")}
-          <text x="${W - padR - 4}" y="${yPos(pts[9].monolithic_unscoped) - 7}" text-anchor="end" font-size="10.5" font-weight="600" fill="#C5221F">${S.chartLineMono} (${(pts[9].monolithic_unscoped / 1000).toFixed(1)}K)</text>
-          <text x="${W - padR - 4}" y="${yPos(pts[9].unbounded_raw_history) - 7}" text-anchor="end" font-size="10.5" font-weight="600" fill="#B06000">${S.chartLineUnbounded} (${(pts[9].unbounded_raw_history / 1000).toFixed(1)}K)</text>
-          <text x="${W - padR - 4}" y="${yPos(pts[9].proposed_scoped_sliding_window) - 8}" text-anchor="end" font-size="11" font-weight="700" fill="#137333">${S.chartLineScoped} (${(pts[9].proposed_scoped_sliding_window / 1000).toFixed(1)}K)</text>
+          <polyline fill="none" stroke="#C5221F" stroke-width="2.5" points="${poly("asis_total_input_tokens")}"/>
+          <polyline fill="none" stroke="#137333" stroke-width="2.8" points="${poly("tobe_total_input_tokens")}"/>
+          ${dots("asis_total_input_tokens", "#C5221F")}
+          ${dots("tobe_total_input_tokens", "#137333")}
+          <rect x="${padL}" y="4" width="12" height="10" rx="2" fill="#C5221F"/>
+          <text x="${padL + 17}" y="13" font-size="11" fill="#5F6368">As-Is</text>
+          <rect x="${padL + 70}" y="4" width="12" height="10" rx="2" fill="#137333"/>
+          <text x="${padL + 87}" y="13" font-size="11" fill="#5F6368">To-Be</text>
         </svg>
       `;
-      document.getElementById("svg-turn-chart").innerHTML = svg;
     }
 
+    // ADK prompt tokens per turn (Vertex AI usage_metadata) over the S4 session.
     function renderAdkMeasuredSvg() {
-      const S = UI_STRINGS;
-      const items = BENCHMARK_DATA.measured_5turn_adk_experiment || [];
+      const el = document.getElementById("svg-adk-measured-chart");
+      if (!el) return;
+      const items = BENCHMARK_DATA.s4_turn_curve || [];
       const W = 560, H = 260, padL = 52, padR = 24, padT = 26, padB = 40;
-      const maxT = Math.max(8000, ...items.map(r => r.asis_adk_prompt_tokens_measured)) * 1.15;
+      const maxT = Math.max(1000, ...items.map(r => Math.max(r.asis_adk_prompt_tokens, r.tobe_adk_prompt_tokens))) * 1.18;
       const slotW = (W - padL - padR) / Math.max(1, items.length);
       const yPos = v => padT + (1 - v / maxT) * (H - padT - padB);
       const baseY = H - padB;
-
       let bars = "";
       items.forEach((it, i) => {
         const cx = padL + slotW * i + slotW / 2;
-        const yAsis = yPos(it.asis_adk_prompt_tokens_measured);
-        const yTobe = yPos(it.tobe_adk_prompt_tokens_measured);
-        bars += `<rect x="${(cx - 24).toFixed(1)}" y="${yAsis.toFixed(1)}" width="21" height="${(baseY - yAsis).toFixed(1)}" rx="3" fill="#FAD2CF"/>`;
-        bars += `<text x="${(cx - 13.5).toFixed(1)}" y="${(yAsis - 4).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#C5221F" font-family="Roboto Mono">${(it.asis_adk_prompt_tokens_measured / 1000).toFixed(1)}K</text>`;
-        bars += `<rect x="${(cx + 2).toFixed(1)}" y="${yTobe.toFixed(1)}" width="21" height="${(baseY - yTobe).toFixed(1)}" rx="3" fill="#1A73E8"/>`;
-        bars += `<text x="${(cx + 12.5).toFixed(1)}" y="${(yTobe - 4).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#137333" font-family="Roboto Mono">${(it.tobe_adk_prompt_tokens_measured / 1000).toFixed(1)}K</text>`;
-        bars += `<text x="${cx.toFixed(1)}" y="${H - 14}" text-anchor="middle" font-size="11" font-weight="600" fill="#202124">Turn ${it.turn}</text>`;
+        const yAsis = yPos(it.asis_adk_prompt_tokens);
+        const yTobe = yPos(it.tobe_adk_prompt_tokens);
+        bars += `<rect x="${(cx - 20).toFixed(1)}" y="${yAsis.toFixed(1)}" width="18" height="${(baseY - yAsis).toFixed(1)}" rx="3" fill="#EA4335"/>`;
+        bars += `<text x="${(cx - 11).toFixed(1)}" y="${(yAsis - 4).toFixed(1)}" text-anchor="middle" font-size="9" fill="#C5221F" font-family="Roboto Mono">${(it.asis_adk_prompt_tokens / 1000).toFixed(1)}K</text>`;
+        bars += `<rect x="${(cx + 2).toFixed(1)}" y="${yTobe.toFixed(1)}" width="18" height="${(baseY - yTobe).toFixed(1)}" rx="3" fill="#137333"/>`;
+        bars += `<text x="${(cx + 11).toFixed(1)}" y="${(yTobe - 4).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#137333" font-family="Roboto Mono">${(it.tobe_adk_prompt_tokens / 1000).toFixed(1)}K</text>`;
+        bars += `<text x="${cx.toFixed(1)}" y="${H - 14}" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">T${it.turn}</text>`;
       });
-
-      const svg = `
+      el.innerHTML = `
         <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" role="img">
           <line x1="${padL}" y1="${baseY}" x2="${W - padR}" y2="${baseY}" stroke="#DADCE0" stroke-width="1"/>
-          <rect x="${padL}" y="4" width="12" height="10" rx="2" fill="#FAD2CF"/>
-          <text x="${padL + 17}" y="13" font-size="11" fill="#5F6368">${S.barLegendMono}</text>
-          <rect x="${padL + 205}" y="4" width="12" height="10" rx="2" fill="#1A73E8"/>
-          <text x="${padL + 222}" y="13" font-size="11" fill="#5F6368">${S.barLegendScoped}</text>
+          <rect x="${padL}" y="4" width="12" height="10" rx="2" fill="#EA4335"/>
+          <text x="${padL + 17}" y="13" font-size="11" fill="#5F6368">As-Is</text>
+          <rect x="${padL + 70}" y="4" width="12" height="10" rx="2" fill="#137333"/>
+          <text x="${padL + 87}" y="13" font-size="11" fill="#5F6368">To-Be</text>
           ${bars}
         </svg>
       `;
-      document.getElementById("svg-adk-measured-chart").innerHTML = svg;
     }
 
+    // Yearly cost at list prices, scaled linearly from the measured average cost per turn of the S4 session.
     function updateTcoCalculator() {
       const S = UI_STRINGS;
+      const avg = BENCHMARK_DATA.s4_average_per_turn || {};
       const qpd = Number(document.getElementById("rng-qpd").value);
-      const turns = Number(document.getElementById("rng-turns").value);
-      const cachePct = Number(document.getElementById("rng-cache").value);
-      const cacheRatio = cachePct / 100.0;
-
-      document.getElementById("lbl-qpd").textContent = `${qpd.toLocaleString()} queries / day`;
-      document.getElementById("lbl-turns").textContent = `${turns} turn${turns > 1 ? "s" : ""}`;
-      document.getElementById("lbl-cache").textContent = `${cachePct}% cached prefix ($0.30/1M)`;
-
-      const curve = BENCHMARK_DATA.turn_scaling_curve.slice(0, turns);
-      const avgAdkAsis = Math.round(curve.reduce((s, r) => s + r.adk_asis_prompt_tokens, 0) / turns);
-      const avgAdkTobe = Math.round(curve.reduce((s, r) => s + r.adk_tobe_prompt_tokens, 0) / turns);
-      const avgBqcaMono = Math.round(curve.reduce((s, r) => s + r.bqca_monolithic_tokens, 0) / turns);
-      const avgBqcaTobe = Math.round(curve.reduce((s, r) => s + r.bqca_tobe_scoped_tokens, 0) / turns);
-
-      // Official PAYG rates
-      const BQ_NON_CACHE = 3.00, BQ_CACHED = 0.30, BQ_OUT = 20.00;
-      const VX_IN = 0.30, VX_OUT = 2.50;
-
-      const perTurnAsisNoCache =
-        (avgAdkAsis / 1e6) * VX_IN + (900 / 1e6) * VX_OUT +
-        (avgBqcaMono / 1e6) * BQ_NON_CACHE + (2200 / 1e6) * BQ_OUT;
-
-      const perTurnAsisCached =
-        (avgAdkAsis / 1e6) * VX_IN + (900 / 1e6) * VX_OUT +
-        ((avgBqcaMono * (1 - cacheRatio)) / 1e6) * BQ_NON_CACHE +
-        ((avgBqcaMono * cacheRatio) / 1e6) * BQ_CACHED +
-        (2200 / 1e6) * BQ_OUT;
-
-      const perTurnTobeCached =
-        (avgAdkTobe / 1e6) * VX_IN + (450 / 1e6) * VX_OUT +
-        ((avgBqcaTobe * (1 - cacheRatio)) / 1e6) * BQ_NON_CACHE +
-        ((avgBqcaTobe * cacheRatio) / 1e6) * BQ_CACHED +
-        (1050 / 1e6) * BQ_OUT;
-
-      const annualQueries = qpd * 365;
-      const yrAsisNoCache = annualQueries * perTurnAsisNoCache;
-      const yrAsisCached = annualQueries * perTurnAsisCached;
-      const yrTobeCached = annualQueries * perTurnTobeCached;
-      const netSavings = yrAsisCached - yrTobeCached;
-      const pct = ((1 - yrTobeCached / yrAsisCached) * 100).toFixed(1);
-
+      document.getElementById("lbl-qpd").textContent = `${qpd.toLocaleString()} / day`;
       const fmtUsd = v => "$" + Math.round(v).toLocaleString();
-      document.getElementById("tco-annual-savings").textContent = `${fmtUsd(netSavings)} / yr`;
-      document.getElementById("tco-pct-note").textContent = S.tcoPctTemplate.replace("{PCT}", pct);
-      document.getElementById("tco-asis-nocache").textContent = fmtUsd(yrAsisNoCache);
-      document.getElementById("tco-asis-cached").textContent = fmtUsd(yrAsisCached);
-      document.getElementById("tco-tobe-cached").textContent = fmtUsd(yrTobeCached);
-      document.getElementById("tco-mono-tok").textContent = `${(avgAdkAsis + avgBqcaMono).toLocaleString()} tok/turn`;
-      document.getElementById("tco-scoped-tok").textContent = `${(avgAdkTobe + avgBqcaTobe).toLocaleString()} tok/turn`;
+      if (!avg.asis_cost_usd || avg.tobe_cost_usd === null || avg.tobe_cost_usd === undefined) {
+        document.getElementById("tco-annual-savings").textContent = "n/a";
+        return;
+      }
+      const yrAsis = qpd * 365 * avg.asis_cost_usd;
+      const yrTobe = qpd * 365 * avg.tobe_cost_usd;
+      const pct = pctDelta(yrAsis, yrTobe);
+      document.getElementById("tco-annual-savings").textContent = `${fmtUsd(yrAsis - yrTobe)} / yr`;
+      document.getElementById("tco-annual-savings").style.color = deltaColor(pct);
+      document.getElementById("tco-pct-note").textContent = S.tcoPctTemplate.replace("{PCT}", fmtDelta(pct));
+      document.getElementById("tco-asis").textContent = fmtUsd(yrAsis);
+      document.getElementById("tco-tobe").textContent = fmtUsd(yrTobe);
+      document.getElementById("tco-asis-turn").textContent = `$${Number(avg.asis_cost_usd).toFixed(4)} / turn · ${fmtTok(avg.asis_total_input_tokens)} input tok`;
+      document.getElementById("tco-tobe-turn").textContent = `$${Number(avg.tobe_cost_usd).toFixed(4)} / turn · ${fmtTok(avg.tobe_total_input_tokens)} input tok`;
     }
 
     function initPortal() {
@@ -2573,9 +2264,7 @@ PORTAL_JS = r"""
       renderAdkMeasuredSvg();
       updateTcoCalculator();
 
-      ["rng-qpd", "rng-turns", "rng-cache"].forEach(id => {
-        document.getElementById(id).addEventListener("input", updateTcoCalculator);
-      });
+      document.getElementById("rng-qpd").addEventListener("input", updateTcoCalculator);
 
       if (window.location.protocol.startsWith("http")) {
         fetch("/api/health").then(r => r.ok ? r.json() : null).then(d => {
@@ -2594,11 +2283,15 @@ PORTAL_JS = r"""
 
 UI_EN = {
     "heroKpis": {
-        "k1Label": "S1 · 2-Tier Input Tokens (Modeled BQCA Tier)",
-        "k2Label": "S4 · ADK Upstream Compaction",
-        "k3Label": "S3 · Parallel & Peer Routing",
-        "k4Label": "S5 · Cross-Session Short-Circuit",
-        "fasterWord": "Faster",
+        "k1Label": "S1 · BQCA input tokens per turn",
+        "k1Sub": "To-Be vs As-Is, from Cloud Trace.",
+        "k2Label": "S1 · Total input tokens (ADK + BQCA)",
+        "k2Sub": "To-Be vs As-Is for the same question.",
+        "k3Label": "S4 · Average total input per turn",
+        "k3Sub": "Cost per turn at list prices:",
+        "k4Label": "S5 · Recall in a new session",
+        "k4Unit": "BQCA calls",
+        "k4Sub": "To-Be answered from memory in",
     },
     "figures": {
         "fig1": {
@@ -2623,71 +2316,44 @@ UI_EN = {
         },
     },
     "shortTitles": {
-        "S1": "S1 · Routing & Schema Diet (A/B)",
-        "S2": "S2 · Stateless 3-Turn Window Multi-Turn (A/B)",
-        "S3": "S3 · Peer Switch & Parallel Fan-Out",
-        "S4": "S4 · 5-Turn ADK usage_metadata & 90% Cache",
-        "S5": "S5 · 4-Scope State & 0-Token Recall",
+        "S1": "S1 · Routing & Schema Scoping",
+        "S2": "S2 · Follow-Up Context",
+        "S3": "S3 · Domain Switch & Fan-Out",
+        "S4": "S4 · 8-Turn Token Development",
+        "S5": "S5 · New Session Recall",
     },
     "scenarioBadge": "Empirical A/B Verification",
     "challengeLabel": "As-Is PoC Bottleneck",
     "mechanismLabel": "To-Be Best Practice Mechanism",
-    "promptLabel": "Verification Input Prompt",
-    "metricScoped": "Combined 2-Tier Input Tokens (Modeled BQCA Tier)",
-    "metricLatency": "Wall-Clock Latency",
-    "vsSeq": "vs seq",
-    "returnedRows": "Returned BigQuery Result Rows (To-Be)",
-    "caaSummary": "Analytical Summary",
-    "viewDomainSql": "View Generated Domain SQL",
-    "s3ParallelHeading": "3 Concurrent Stateless Chat API Calls (ThreadPoolExecutor(max_workers=3))",
-    "s3SynthesisHtml": "<strong>Cross-Domain Synthesis:</strong> Concurrent execution across all 3 isolated CAA agents resolved the root cause in one turn—connecting strong VIP demand (<strong>180 orders / $44,100</strong>) with <strong>Nordic Luxe's 50.0% return spike ($7,200 vs $11,520 profit)</strong> and <strong>Memphis TN (DC #1)'s 6.0-day delivery delay</strong> without ConversationReference lock-in.",
-    "s4TableHeading": "Live 5-Turn Measured Vertex AI usage_metadata.prompt_token_count",
-    "s4CostHeading": "Effective Per-Turn Cost Including 90% BQCA Cached Input ($0.30/1M)",
-    "s4CacheExplain": "Static DataAgent instructions & scoped DDL prefixes hit BQCA's 90% Cached Input rate ($0.30/1M vs $3.00/1M non-cached), while App(context_cache_config=...) isolates per-agent ADK caches across transfers.",
-    "s5JsonHeading": "Live 4-Scope Session.state JSON Diff (Session A → Brand-New Session B)",
-    "memoryRecallOutput": "Session-B Turn 1 Zero-Scan Recall Output",
-    "btnRunLive": "Re-Run {CODE} Live on GCP",
     "btnRunDisabled": "Live Re-Run Available on Cloud Run Deployment",
-    "runningLive": "Executing {CODE} Live on GCP...",
     "callingEndpoint": "Calling Vertex AI ADK + geminidataanalytics.googleapis.com/v1 live",
-    "liveDone": "Live GCP Verification Complete",
     "liveConnected": "Live GCP Connected ({PROJ})",
-    "chartLineMono": "As-Is Monolithic + Unbounded",
-    "chartLineUnbounded": "Scoped + Unbounded Raw",
-    "chartLineScoped": "To-Be 2-Tier O(1) Ceiling",
-    "barLegendMono": "As-Is Unbounded ADK Prompt",
-    "barLegendScoped": "To-Be Compacted ADK Prompt",
-    "tcoPctTemplate": "{PCT}% net reduction in annual effective PAYG spend (even after 90% cache discount on both!)",
-    "domainNames": {
-        "Customer CRM & Marketing Funnel": "Customer CRM & Marketing Funnel",
-        "Product, Margin & Return Analytics": "Product, Margin & Return Analytics",
-        "Supply Chain, Inventory & Fulfillment": "Supply Chain, Inventory & Fulfillment",
-    },
-    "trackerEyebrow": "S1 to S5 Live Tracker · Measured ADK Tier",
+    "tcoPctTemplate": "{PCT} yearly cost, To-Be relative to As-Is",
+    "trackerEyebrow": "S1 to S5 Tracker · Input Tokens",
     "trackerLiveCountLabel": "steps run live",
-    "trackerTitle": "Measured ADK Prompt Tokens per Step: As-Is vs To-Be",
-    "trackerDesc": "Bars show Vertex AI usage_metadata prompt tokens of the ADK tier. Each row starts with the pre-run baseline and switches to your own run once you execute that step.",
+    "trackerTitle": "Total Input Tokens per Step: As-Is vs To-Be",
+    "trackerDesc": "Bars show ADK prompt tokens plus BQCA input tokens. Baseline rows were measured in the pre-run, with BQCA tokens taken from the Cloud Trace spans of that run. When you run a step, its row switches to your run: ADK tokens are measured and BQCA tokens use the Cloud Trace median per data agent.",
     "trackerLiveTag": "LIVE RUN",
-    "trackerBaseTag": "Baseline · synthetic As-Is",
+    "trackerBaseTag": "Baseline · measured",
     "layerLabels": {
-        "S1": "+L1 Static Enum & Scoped DDL",
-        "S2": "+L2 Stateless 3-Turn Window",
-        "S3": "+L3 Peer Switch & Parallel API",
-        "S4": "+L4 3-Turn ADK Cap & 90% Cache",
-        "S5": "+L5 4-Scope State & 0-Scan Memory",
+        "S1": "Router + Scoped Data Agents",
+        "S2": "3-Turn Message Window",
+        "S3": "Peer Switch & Parallel Calls",
+        "S4": "Bounded ADK History",
+        "S5": "Session State & Memory",
     },
     "layerShort": {
-        "S1": "Static Route + Scoped DDL",
-        "S2": "Stateless 3-Turn Window",
-        "S3": "Peer + Parallel Chat API",
-        "S4": "ADK Cap + 90% Cache",
-        "S5": "Memory 0-Scan Recall",
+        "S1": "Schema scoping",
+        "S2": "Follow-up context",
+        "S3": "Domain switch",
+        "S4": "8-turn session",
+        "S5": "New session recall",
     },
     "wbBadge": "Interactive Full Live Dual A/B Workbench",
     "wbTitle": "Test Custom Evaluator Prompt Live on GCP",
-    "wbSubtitle": "Runs your prompt on both pipelines at once on Google Cloud. As-Is is a plain ADK agent using the built-in data agent tools (list, get info, ask) on the single monolithic data agent. To-Be is the Root Router with three domain Sub-Agents.",
+    "wbSubtitle": "Runs your prompt on both pipelines at once on Google Cloud. As-Is is a plain ADK agent using the built-in data agent tools on one data agent bound to all 32 tables. To-Be is the Root Router with three domain Sub-Agents, each with a data agent bound to 3 to 5 tables.",
     "wbSchemaSummary": "View Available Dataset Schema & Business KPIs",
-    "wbSchemaBodyHtml": "<strong>Dataset:</strong> <span class='mono'>thelook_ecommerce_agent</span> (7 Tables: <span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)<br/><strong>Sample Entities &amp; KPIs:</strong> VIP Customer (<span class='mono'>&gt;= $500</span> or <span class='mono'>&gt;= 5 orders</span>), Channels (<span class='mono'>Search, Organic, Email, Display</span>), Brands (<span class='mono'>Nordic Luxe, TheLook Atelier</span>), Distribution Centers (<span class='mono'>Memphis TN, Chicago IL</span>), Gross Margin %, Return Rate %, Delivery Lead Time.",
+    "wbSchemaBodyHtml": "<strong>Dataset:</strong> <span class='mono'>cymbal_enterprise_dw</span>, 32 tables with table and column descriptions: thelook e-commerce (<span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>) and TPC-DS retail (<span class='mono'>store_sales, web_sales, catalog_sales, returns, inventory, item, customer, promotion</span> and more).<br/><strong>Scenario data:</strong> VIP customer (<span class='mono'>&gt;= $500</span> or <span class='mono'>&gt;= 5 orders</span>), channels (<span class='mono'>Search, Organic, Email, Display</span>), brands (<span class='mono'>Nordic Luxe, TheLook Atelier</span>), distribution centers (<span class='mono'>Memphis TN, Chicago IL</span>). The To-Be data agents cover the thelook tables.",
     "wbPresetLabel": "Quick Evaluator Prompt Variations (Click to Load or Type Any Question Below):",
     "wbPlaceholder": "Enter any analytical question to execute live against both As-Is and To-Be pipelines...",
     "wbBtnRunDual": "Run Full Live Dual A/B on GCP ({CODE}: As-Is vs To-Be)",
@@ -2699,8 +2365,14 @@ UI_EN = {
     "wbLiveCardBadge": "Live Dual A/B Execution Result",
     "wbExecutedPromptLabel": "Custom Prompt Executed",
     "wbLiveS4TableTitle": "Measured ADK prompt tokens per turn in this live session",
-    "wbViewAsisRows": "View Returned As-Is Rows",
-    "refBaselineHeading": "Pre-Verified Reference Baseline Evidence",
+    "refBaselineHeading": "Measured Pre-Run Baseline",
+    "wbTraceTitleMeasured": "BQCA tier: measured from the Cloud Trace spans of this run",
+    "wbTraceNoteMeasured": "BQCA writes its internal LLM calls to Cloud Trace. These figures sum the token usage of the chat calls made in this run. Cost uses list prices.",
+    "baselineCardBadge": "Measured baseline run",
+    "fanoutHeading": "Measured baseline: one question across three domains",
+    "trackerAdkOnly": "ADK only",
+    "trackerAvgTag": "8-turn average",
+    "chartNoData": "Not enough measured turns to draw this chart.",
     "wbMetricAdk": "ADK prompt tokens, measured (To-Be vs As-Is)",
     "wbMetricCalls": "BQCA chat calls, measured (To-Be vs As-Is)",
     "wbMetricLatency": "Latency, measured (To-Be vs As-Is)",
@@ -2714,8 +2386,7 @@ UI_EN = {
     "wbMsgsPerCall": "messages per BQCA call",
     "wbToolResp": "tool response returned to the root LLM",
     "wbStateTitle": "New session state after this turn:",
-    "wbS4Hint": "The first S4 run executes three real warm-up turns on both pipelines before your prompt and takes about two to three minutes.",
-    "legacyNoAdk": "not run (direct BQCA call)",
+    "wbS4Hint": "The first S4 run executes three real warm-up turns on both pipelines before your prompt and takes one to two minutes.",
     "wbPresets": {
         "S1": [
             {"label": "Default: 30-Day VIP Revenue & AOV by Channel", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
@@ -2748,11 +2419,15 @@ UI_EN = {
 
 UI_KO = {
     "heroKpis": {
-        "k1Label": "S1 · 2-Tier 합산 Input Token (BQCA 계층은 가정치)",
-        "k2Label": "S4 · 상위 ADK 실측 압축 효과",
-        "k3Label": "S3 · Peer 전환 및 병렬 가속",
-        "k4Label": "S5 · 신규 Session 0-Token 우회",
-        "fasterWord": "단축",
+        "k1Label": "S1 · Turn당 BQCA Input Token",
+        "k1Sub": "To-Be vs As-Is, Cloud Trace 기준.",
+        "k2Label": "S1 · Input Token 합계 (ADK + BQCA)",
+        "k2Sub": "같은 질문에 대한 To-Be vs As-Is.",
+        "k3Label": "S4 · Turn당 평균 Input Token 합계",
+        "k3Sub": "공시 단가 기준 Turn당 비용:",
+        "k4Label": "S5 · 신규 Session 기억 복원",
+        "k4Unit": "BQCA 호출",
+        "k4Sub": "To-Be가 Memory로 답한 시간:",
     },
     "figures": {
         "fig1": {
@@ -2777,71 +2452,44 @@ UI_KO = {
         },
     },
     "shortTitles": {
-        "S1": "S1 · Routing 경량화 & Schema 분리 (A/B)",
-        "S2": "S2 · Stateless 3-Turn Window Multi-Turn 검증 (A/B)",
-        "S3": "S3 · Peer 직접 전환 & 병렬 Fan-out",
-        "S4": "S4 · 5-Turn ADK 실측 & 90% Cache 비용",
-        "S5": "S5 · 4-Scope State 격리 & 0-Token 복원",
+        "S1": "S1 · Routing과 Schema 분리",
+        "S2": "S2 · 후속 질문 문맥",
+        "S3": "S3 · Domain 전환과 Fan-out",
+        "S4": "S4 · 8-Turn Token 추이",
+        "S5": "S5 · 신규 Session 기억 복원",
     },
     "scenarioBadge": "As-Is vs To-Be 실측 대조",
     "challengeLabel": "고객 As-Is 문제상황 (Bottleneck)",
     "mechanismLabel": "제안 To-Be Best Practice 해결 구조",
-    "promptLabel": "실측 검증 입력 Prompt (영문 원본)",
-    "metricScoped": "2-Tier 합산 Input Token (BQCA 계층은 가정치)",
-    "metricLatency": "실측 벽시계 Latency",
-    "vsSeq": "순차 합계",
-    "returnedRows": "To-Be 반환 BigQuery Result Table",
-    "caaSummary": "검증 결과 해설",
-    "viewDomainSql": "생성된 Domain SQL 펼치기",
-    "s3ParallelHeading": "3개 Stateless Chat API 동시 병렬 호출 결과 (ThreadPoolExecutor(max_workers=3))",
-    "s3SynthesisHtml": "<strong>복합 원인 병렬 분석 검증:</strong> 단일 대화방 종속(ConversationReference) 없이 3개 격리 CAA Agent를 동시에 병렬 호출하여, 견조한 VIP 수요(<strong>180건 / $44,100</strong>) 속에서도 <strong>Nordic Luxe의 50.0% 반품 급증($7,200 vs $11,520 이익)</strong>이 <strong>Memphis TN(DC #1)의 평균 6.0일 배송 지연</strong>과 직결됨을 단일 Turn 만에 규명했습니다.",
-    "s4TableHeading": "5-Turn 연속 Vertex AI usage_metadata.prompt_token_count 실측 대조표",
-    "s4CostHeading": "BQCA 90% Cached Input($0.30/1M) 반영 Turn-5 실효 비용 비교",
-    "s4CacheExplain": "정적 DataAgent 지침과 최소 권한 Schema Prefix를 고정해 BQCA 90% Cached Input 할인($3.00/1M → $0.30/1M)을 극대화하고, ADK App(context_cache_config=...)으로 Sub-Agent 전환 시에도 개별 Agent Cache를 유지합니다.",
-    "s5JsonHeading": "실시간 4-Scope Session.state JSON Diff (Session A → 신규 Session B)",
-    "memoryRecallOutput": "신규 Session-B 첫 Turn 무스캔(0-Token BQCA) 응답 결과",
-    "btnRunLive": "GCP에서 {CODE} 실시간 재실행 검증",
     "btnRunDisabled": "Cloud Run 배포 URL에서 실시간 재실행 가능",
-    "runningLive": "GCP에서 {CODE} 실시간 실행 및 usage_metadata 계측 중...",
     "callingEndpoint": "Vertex AI ADK + geminidataanalytics.googleapis.com/v1 실시간 호출 중",
-    "liveDone": "실시간 GCP 재실행 및 계측 완료",
     "liveConnected": "실시간 GCP 연결됨 ({PROJ})",
-    "chartLineMono": "As-Is 통합 + 무제한 누적",
-    "chartLineUnbounded": "Schema 분리 + 원본 누적",
-    "chartLineScoped": "To-Be 2-Tier O(1) 상한선",
-    "barLegendMono": "As-Is 무제한 ADK 실측 Prompt",
-    "barLegendScoped": "To-Be 3-Turn 압축 ADK 실측 Prompt",
-    "tcoPctTemplate": "양측 모두 동일 90% Cache 할인을 적용한 후에도 연간 실효 PAYG 비용 {PCT}% 순절감",
-    "domainNames": {
-        "Customer CRM & Marketing Funnel": "Domain 1 · 고객 CRM 및 마케팅 Funnel",
-        "Product, Margin & Return Analytics": "Domain 2 · 상품 Margin 및 반품 분석",
-        "Supply Chain, Inventory & Fulfillment": "Domain 3 · 물류센터(DC) 및 재고·배송",
-    },
-    "trackerEyebrow": "S1 ~ S5 실시간 Tracker · ADK 계층 실측",
+    "tcoPctTemplate": "To-Be의 연간 비용, As-Is 대비 {PCT}",
+    "trackerEyebrow": "S1 ~ S5 Tracker · Input Token",
     "trackerLiveCountLabel": "단계 실시간 실행",
-    "trackerTitle": "단계별 ADK Prompt Token 실측치: As-Is vs To-Be",
-    "trackerDesc": "막대는 ADK 계층의 Vertex AI usage_metadata Prompt Token입니다. 각 행은 사전 실행 기준치로 시작하고, 해당 단계를 직접 실행하면 그 결과로 바뀝니다.",
+    "trackerTitle": "단계별 Input Token 합계: As-Is vs To-Be",
+    "trackerDesc": "막대는 ADK Prompt Token과 BQCA Input Token의 합입니다. 기준치 행은 사전 실행에서 측정했고, BQCA Token은 그 실행의 Cloud Trace Span에서 읽었습니다. 단계를 직접 실행하면 그 행이 실행 결과로 바뀌며, 이때 ADK Token은 실측이고 BQCA Token은 Data Agent별 Cloud Trace 중앙값입니다.",
     "trackerLiveTag": "실시간 실행",
-    "trackerBaseTag": "기준치 · 합성 As-Is",
+    "trackerBaseTag": "기준치 · 실측",
     "layerLabels": {
-        "S1": "+L1 정적 Enum & 격리 Schema",
-        "S2": "+L2 Stateless 3-Turn Window",
-        "S3": "+L3 Peer 직접 전환 & 병렬 API",
-        "S4": "+L4 ADK 3-Turn 압축 & 90% Cache",
-        "S5": "+L5 4-Scope State & 0-Scan 복원",
+        "S1": "Router + Domain별 Data Agent",
+        "S2": "3-Turn Message Window",
+        "S3": "Peer 전환과 병렬 호출",
+        "S4": "ADK 이력 제한",
+        "S5": "Session State와 Memory",
     },
     "layerShort": {
-        "S1": "정적 Routing + Schema 분리",
-        "S2": "Stateless 3-Turn Window",
-        "S3": "Peer 전환 + 병렬 Chat API",
-        "S4": "ADK 압축 + 90% Cache",
-        "S5": "Memory 0-Token 복원",
+        "S1": "Schema 분리",
+        "S2": "후속 질문 문맥",
+        "S3": "Domain 전환",
+        "S4": "8-Turn Session",
+        "S5": "신규 Session 복원",
     },
     "wbBadge": "심사자 직접 입력 · Full Live Dual A/B Workbench",
     "wbTitle": "커스텀 Prompt 실시간 GCP 병렬 비교 실행",
-    "wbSubtitle": "입력한 질문을 두 구성에서 동시에 실행합니다. As-Is는 단일 통합 Data Agent에 ADK 내장 data agent Tool(list, get info, ask)을 그대로 쓰는 Agent이고, To-Be는 Root Router와 3개 Domain Sub-Agent 구성입니다.",
+    "wbSubtitle": "입력한 질문을 두 구성에서 동시에 실행합니다. As-Is는 32개 Table 전체가 연결된 Data Agent 하나에 ADK 내장 data agent Tool을 그대로 쓰는 Agent입니다. To-Be는 Root Router와 Domain별 Sub-Agent 3개이고, 각 Sub-Agent의 Data Agent에는 Table 3~5개가 연결됩니다.",
     "wbSchemaSummary": "질문 가능한 Dataset Table 및 핵심 KPI 가이드 펼치기",
-    "wbSchemaBodyHtml": "<strong>대상 Dataset:</strong> <span class='mono'>thelook_ecommerce_agent</span> (7개 Table: <span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)<br/><strong>주요 분석 항목:</strong> VIP 고객(<span class='mono'>$500 이상</span> 또는 <span class='mono'>5회 이상 주문</span>), 유입 채널(<span class='mono'>Search, Organic, Email, Display</span>), Brand(<span class='mono'>Nordic Luxe, TheLook Atelier</span>), 물류센터(<span class='mono'>Memphis TN, Chicago IL</span>), Gross Margin %, 반품률(Return Rate %), 평균 배송 소요일(Delivery Lead Time).",
+    "wbSchemaBodyHtml": "<strong>대상 Dataset:</strong> <span class='mono'>cymbal_enterprise_dw</span>, Table과 Column 설명이 붙은 32개 Table입니다. thelook e-commerce(<span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)와 TPC-DS 소매 Table(<span class='mono'>store_sales, web_sales, catalog_sales, returns, inventory, item, customer, promotion</span> 등)로 구성됩니다.<br/><strong>Scenario 데이터:</strong> VIP 고객(<span class='mono'>$500 이상</span> 또는 <span class='mono'>5회 이상 주문</span>), 유입 채널(<span class='mono'>Search, Organic, Email, Display</span>), Brand(<span class='mono'>Nordic Luxe, TheLook Atelier</span>), 물류센터(<span class='mono'>Memphis TN, Chicago IL</span>). To-Be Data Agent는 thelook Table을 다룹니다.",
     "wbPresetLabel": "단계별 추천 실험 Prompt (클릭하여 불러오거나 아래 입력창에 자유롭게 수정·입력하세요):",
     "wbPlaceholder": "검증하고 싶은 분석 질문을 영문 또는 한국어로 자유롭게 입력하세요...",
     "wbBtnRunDual": "GCP 실시간 Dual A/B 병렬 실행 ({CODE}: As-Is vs To-Be 동시 비교)",
@@ -2853,8 +2501,14 @@ UI_KO = {
     "wbLiveCardBadge": "심사자 입력 실시간 Dual A/B 실행 결과",
     "wbExecutedPromptLabel": "실행된 입력 Prompt",
     "wbLiveS4TableTitle": "이번 실시간 Session의 Turn별 ADK Prompt Token 실측치",
-    "wbViewAsisRows": "As-Is 반환 결과 Table 펼치기",
-    "refBaselineHeading": "사전 검증된 기준 실측 리포트 (Pre-Verified Reference Baseline)",
+    "refBaselineHeading": "사전 실행 실측 기준치",
+    "wbTraceTitleMeasured": "BQCA 계층: 이 실행의 Cloud Trace Span에서 측정",
+    "wbTraceNoteMeasured": "BQCA는 내부 LLM 호출을 Cloud Trace에 기록합니다. 이 실행에서 발생한 Chat 호출의 Token 사용량을 합산했고, 비용은 공시 단가 기준입니다.",
+    "baselineCardBadge": "실측 기준 실행",
+    "fanoutHeading": "실측 기준치: 세 Domain에 걸친 질문",
+    "trackerAdkOnly": "ADK만",
+    "trackerAvgTag": "8-Turn 평균",
+    "chartNoData": "Chart를 그릴 만큼 측정된 Turn이 없습니다.",
     "wbMetricAdk": "ADK Prompt Token 실측 (To-Be vs As-Is)",
     "wbMetricCalls": "BQCA Chat 호출 수 실측 (To-Be vs As-Is)",
     "wbMetricLatency": "Latency 실측 (To-Be vs As-Is)",
@@ -2868,8 +2522,7 @@ UI_KO = {
     "wbMsgsPerCall": "BQCA 호출당 Message 수",
     "wbToolResp": "Root LLM에 반환된 Tool 응답",
     "wbStateTitle": "이번 Turn 이후 신규 Session State:",
-    "wbS4Hint": "S4 첫 실행은 입력한 질문 앞에 실제 Turn 3개를 두 구성 모두에서 먼저 실행하므로 2~3분이 걸립니다.",
-    "legacyNoAdk": "미실행 (BQCA 직접 호출)",
+    "wbS4Hint": "S4 첫 실행은 입력한 질문 앞에 실제 Turn 3개를 두 구성 모두에서 먼저 실행하므로 1~2분이 걸립니다.",
     "wbPresets": {
         "S1": [
             {"label": "기본 검증: 최근 30일 유입 채널별 VIP 고객수·매출·AOV", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
@@ -2902,71 +2555,34 @@ UI_KO = {
 
 KO_SCENARIO_OVERRIDES = {
     "S1": {
-        "track": "과제 1 (Routing 경량화) + 과제 2 (Schema Token Diet)",
-        "title": "런타임 Discovery 호출 제거 및 최소 권한 Domain 분리 (As-Is vs To-Be 대조)",
-        "challenge": "As-Is 구조에서는 매 Turn Agent 목록·전체 Schema 탐색 Tool을 반복 호출하고 모든 Warehouse Table을 단일 CAA에 묶어 110K+ BQCA Token이 소모되며, VIP 기준도 임의 추측(spend >= 100)합니다.",
-        "architecture_mechanism": "불필요한 Discovery Tool을 제거하고 정적 enum transfer_to_agent로 즉시 위임하며, 고객 CRM 4개 Table 격리 + Hop-1 VIP 수식(SUM(sale_price) >= 500 OR orders >= 5)으로 ADK 실측 Token과 BQCA Token을 동시 절감합니다.",
-        "asis_label": "As-Is: 런타임 Discovery 호출 + 비분리 통합 CAA",
-        "asis_defect": "전체 7개 Table Metadata + THOUGHT 원문 주입 및 spend >= 100 임의 추측",
-        "state_transition": {
-            "temp_scope": "THOUGHT 스트림 제거 후 상위 20행 요약만 반환, 원본은 Turn Scope (temp) 저장 후 Turn 종료 즉시 소거",
-            "session_scope": "compact_routing_digest(1줄 요약) + domain_ca_multiturn_messages 2개 메시지 기록",
-            "user_scope": "user:profile 및 선호 KPI Template 변수 주입 유지",
-        },
-        "answer_ko": "정적 enum transfer_to_agent 위임과 4개 격리 Table + Hop-1 VIP 공식이 적용된 **To-Be Customer CAA** 실행 결과입니다.\n\n### As-Is 대비 핵심 개선 검증\n- **2-Tier Token 동시 절감**: 상위 Vertex AI ADK usage_metadata 실측 Prompt Token이 절반 이하로 줄었고, 하위 BQCA Schema 입력도 110,764 tok에서 11,439 tok 수준으로 대폭 축소되었습니다.\n- **결정론적 SQL 생성**: 좌측 As-Is SQL은 user_total_spend >= 100을 임의 추측했으나, 우측 To-Be SQL은 Hop-1 공식(HAVING SUM(sale_price) >= 500 OR COUNT(DISTINCT order_id) >= 5)을 정확히 강제해 **Search(VIP 24명, $17,640.00, AOV $245.00)** 등 정확한 지표를 산출했습니다.",
+        "track": "Routing과 Schema 분리",
+        "title": "통합 Data Agent 하나 vs Router와 Domain별 Data Agent",
+        "challenge": "As-Is Agent는 모든 질문을 Warehouse 전체(설명이 붙은 32개 Table)와 모든 Domain 용어집이 연결된 Data Agent 하나로 보냅니다. BQCA는 내부 LLM 호출마다 그 Schema를 다시 읽습니다.",
+        "architecture_mechanism": "Root Router가 질문을 Sub-Agent 3개 중 하나로 넘깁니다. 각 Sub-Agent는 Table 3~5개와 자기 Domain 용어집만 연결된 Data Agent를 호출하므로, BQCA가 호출마다 읽는 Context가 작습니다.",
     },
     "S2": {
-        "track": "과제 1 (Stateless Chat API 위 Multi-Turn 문맥 유지)",
-        "title": "내장 ask_data_agent One-Shot 문맥 유실 해결 (1 Message 실패 vs ADK 3-Turn Window 성공 대조)",
-        "challenge": "ADK 기본 내장 ask_data_agent는 매 호출 1 UserMessage만 전송하므로, 2턴 후속 질문('이전 결과 Column을 그대로 유지하고 14일 장바구니 이탈률을 결합해줘')에서 1턴 VIP 조건을 완전히 잃어버립니다.",
-        "architecture_mechanism": "단일 Agent 종속을 피하기 위해 BQCA 호출은 Stateless(Chat API)로 유지하되, ADK Session.state에서 최근 3턴(3-Turn Window 요약 문답)만 Slicing 주입하여 단 +250 tok 내외로 선행 문맥을 100% 보존합니다.",
-        "asis_label": "As-Is: ADK 기본 One-Shot ask_data_agent (1 Message 전송 → 문맥 유실)",
-        "asis_defect": "1턴 '30일 VIP 고객수·매출·AOV' 조건이 완전히 누락된 채 events 단독 조회 SQL 생성!",
-        "state_transition": {
-            "temp_scope": "Turn 1 원본 행 자동 해제 완료, Turn 2 결합 결과 5행 미리보기 Buffering",
-            "session_scope": "총 3개 요약 메시지(Turn 1 문답 2개 + Turn 2 질문 1개) 전송, 3-Turn Window 상한선 유지",
-            "user_scope": "변경 없음",
-        },
-        "answer_ko": "좌측 **As-Is One-Shot SQL**과 우측 **To-Be 3-Turn Window Sliding Window SQL**의 극명한 차이를 확인하십시오.\n\n### Multi-Turn 문맥 유지 검증 결과\n- **좌측 As-Is SQL (문맥 유실 재현)**: Turn 2 질문만 단독 수신했기 때문에 직전 Turn의 30일 VIP 고객 수·총매출·AOV Column이 무엇인지 알지 못해 events Table만 단독 집계했습니다.\n- **우측 To-Be SQL (문맥 완벽 승계)**: domain_ca_multiturn_messages (3-Turn Window)로 전달된 Turn 1 문맥을 참조하여 vip_last_30_days CTE와 cart_abandonment_14_days CTE를 FULL OUTER JOIN으로 정확히 결합했습니다.",
+        "track": "Stateless Chat API에서의 Multi-Turn 문맥",
+        "title": "후속 질문: 호출당 Message 1개 vs 3-Turn Message Window",
+        "challenge": "ADK 내장 ask_data_agent Tool은 현재 질문만 BQCA에 보냅니다. 이전 결과를 가리키는 후속 질문에서는 Root LLM이 문맥을 직접 다시 써 주지 않으면 Data Agent가 이전 내용을 알 수 없습니다.",
+        "architecture_mechanism": "Sub-Agent가 Domain별로 최근 3개 문답을 ADK Session State에 보관하고 새 질문과 함께 보냅니다. 서버 측 대화 없이도 BQCA가 이전 Turn을 봅니다.",
     },
     "S3": {
-        "track": "과제 1 (Stateful 종속 탈피 Peer 전환 및 무잠금 병렬 Fan-out)",
-        "title": "1 Conversation = 1 DataAgent 종속 돌파 (Sub-Agent 간 직접 Peer 전환 + 3-Domain 병렬 실행)",
-        "challenge": "관리형 Stateful ConversationReference는 대화방이 단일 DataAgent에 고정되어 마케팅 분석 중 물류 질문으로 전환할 수 없으며, 다중 Domain 질문을 순차 실행하면 대기 시간이 ~35~50초로 지연됩니다.",
-        "architecture_mechanism": "Part A에서는 활성 customer_marketing_subagent가 Root 재경유 없이 supply_chain_subagent로 직접 Peer 전환(LLM 1-Hop 절약)하고, Part B에서는 ThreadPoolExecutor(3)로 3개 무상태 Chat API을 동시 병렬 실행합니다.",
-        "state_transition": {
-            "temp_scope": "3개 병렬 Domain의 20행 요약 Markdown Table을 단일 종합 응답 Turn으로 병합",
-            "session_scope": "병렬 실행 전 Snapshot 읽기 후 Main Thread에서 3개 Domain 3-Turn Window 이력을 안전하게 일괄 갱신",
-            "user_scope": "핵심 이상 징후(Nordic Luxe 반품률 50.0% ↔ Memphis TN DC #1 배송 6.0일 지연) 자동 고정",
-        },
-        "sub_summaries_ko": {
-            "Customer CRM & Marketing Funnel": "최근 30일 신규 Cohort(order_id >= 9900000) 기준 **고유 VIP 주문 180건**, 총 주문액 **$44,100.00**으로 수요 자체는 견조합니다.",
-            "Product, Margin & Return Analytics": "양대 Brand 모두 단위 Margin 비율은 **56.41%**로 동일하나, **Nordic Luxe 반품·취소율이 50.0%**(실현 이익 **$7,200**)로 **TheLook Atelier(20.0%, $11,520)** 대비 급감했습니다.",
-            "Supply Chain, Inventory & Fulfillment": "여성 아우터웨어 출고분에서 **Memphis TN(DC #1)** 평균 배송 소요일이 **6.0일**(미판매 재고 **$68,178.28**)로 **Chicago IL(DC #2, 2.0일)** 대비 3배 지연되었습니다.",
-        },
+        "track": "Domain 전환과 병렬 Fan-out",
+        "title": "Session 도중 Domain 전환, 그리고 세 Domain 동시 질문",
+        "challenge": "Data Agent가 하나면 Domain 전환도 같은 큰 Context에 던지는 또 하나의 질문일 뿐이고, 여러 Domain에 걸친 질문은 긴 호출 하나로 처리됩니다.",
+        "architecture_mechanism": "Sub-Agent가 다른 Domain의 Sub-Agent로 직접 넘길 수 있습니다. 여러 Domain에 걸친 질문은 Root Router가 Domain별 Data Agent를 동시에 호출한 뒤 하나로 정리합니다.",
     },
     "S4": {
-        "track": "과제 2 핵심 (5-Turn 연속 Vertex AI usage_metadata 실측 + 90% Cache 실효 비용)",
-        "title": "상위 ADK + 하위 BQCA 양방향 O(1) Token 평탄화 및 90% Cached Input 비용 시현",
-        "challenge": "하위 BQCA만 Sliding Window로 줄이더라도, 상위 ADK LlmAgent의 기본 설정(include_contents='default')은 매 Turn 과거 원본 JSON과 THOUGHT 로그 전체를 재전송하여 ADK Prompt Token이 계속 폭증합니다.",
-        "architecture_mechanism": "5단계 2-Tier Token Diet(탐색 제거 + Table 격리 + THOUGHT 절삭·20행 캡 + ADK before_model_callback 3-Turn 압축 + BQCA 3-Turn Window 및 90% Cached Input $0.30/1M)를 동시 적용해 전 구간 O(1) 상한선을 달성합니다.",
-        "state_transition": {
-            "temp_scope": "before_model_callback이 오래된 Content 항목을 자동 절삭하여 상위 ADK 이력 폭증 원천 차단",
-            "session_scope": "상위 ADK(3 User Turns) 및 하위 BQCA(6-Message Window) 양방향 모두 평탄한 O(1) 상한선 고정",
-            "user_scope": "compact_routing_digest를 최대 3줄(<90 tok)로 유지하여 SQL 중복 주입 누수 완전 제거",
-        },
+        "track": "긴 Session의 Token 증가",
+        "title": "연속 8 Turn: ADK와 BQCA Input Token의 변화",
+        "challenge": "As-Is Agent는 LLM 호출마다 ask_data_agent 원본 응답을 포함한 Session 전체를 재전송하므로, Turn이 늘수록 ADK Prompt가 커집니다.",
+        "architecture_mechanism": "To-Be Agent는 최근 3개 User Turn만 Prompt에 유지하고, Data 호출 결과는 답변과 행 수를 제한한 Table만 보관하며, 단일 Domain Turn은 요약용 LLM 호출 없이 Tool 결과로 끝냅니다.",
     },
     "S5": {
-        "track": "과제 1 (4-Scope State 격리) + 과제 2 (0-Token BQCA Memory 단락 회로)",
-        "title": "4-Scope Session.state 수명주기 격리 및 신규 Session 0-Token BQCA 즉시 복원",
-        "challenge": "분석가가 'New Session'을 열 때마다 이전 대화 맥락과 직무 선호도가 초기화되면, 어제 이미 규명한 원인을 확인하기 위해 다시 110K~248K Token 규모의 BQCA SQL을 재실행해야 합니다.",
-        "architecture_mechanism": "Turn Scope (temp)(단일 Turn 휘발), session(대화방 요약), User Scope (user)(사용자 영속 Profile/인사이트), App Scope (app)(전역 집계) 4단계를 엄격히 분리하고 ADK MemoryService로 색인하여 새 Session 첫 Turn에 BQCA 호출 0회로 즉시 응답합니다.",
-        "state_transition": {
-            "temp_scope": "Session A 종료 후 Turn Scope (temp) 키 0개 잔류 검증 완료 / Session B BigQuery 스캔 0 Bytes",
-            "session_scope": "완전히 새로운 Session ID(session-B, Turn 1)에서 시작",
-            "user_scope": "Session A에서 고정한 직무 Role 및 Nordic Luxe 50.0% 반품 ↔ Memphis TN 6.0일 지연 원인 즉시 복원",
-        },
-        "answer_ko": "완전히 새로운 Session(session-B, Turn 1)에서 **하위 BQCA 호출 0회 / BigQuery 스캔 0 Bytes**만으로 응답한 결과입니다.\n\n### 4-Scope State 격리 및 장기 Memory 단락 회로 검증\n- **Turn Scope (temp) 휘발 검증**: 좌측 JSON Diff에서 확인되듯 session-A의 대용량 임시 행 데이터는 영속 상태에 남지 않고 깔끔히 소거되었습니다.\n- **User Scope (user) & MemoryService 복원**: Principal Supply Chain & Merchandising Analyst 직무 설정과 선행 핵심 원인(**Nordic Luxe 50.0% 반품 급증 ↔ Memphis TN DC #1 6.0일 배송 병목**)을 즉시 인출하여 맞춤형 조치 방안 2가지를 제시했습니다.",
+        "track": "Session State와 Session 간 Memory",
+        "title": "새 Session에서 이전 작업을 묻는 질문",
+        "challenge": "As-Is Agent에는 Session 간 Memory가 없습니다. 새 Session에서는 이전 결과를 참조할 수 없어 분석을 다시 요청해야 합니다.",
+        "architecture_mechanism": "To-Be Root Router는 사용자 Profile과 고정한 Insight를 User Scope State와 Memory Service에 보관하고, 기억을 묻는 질문에는 BQCA 호출 없이 답합니다.",
     },
 }
 
@@ -2974,68 +2590,32 @@ KO_SCENARIO_OVERRIDES = {
 def build_ko_benchmark_data(en_data: dict) -> dict:
     ko_data = copy.deepcopy(en_data)
     for sc in ko_data["scenarios"]:
-        ov = KO_SCENARIO_OVERRIDES.get(sc["code"])
-        if not ov:
-            continue
-        sc["track"] = ov["track"]
-        sc["title"] = ov["title"]
-        sc["challenge"] = ov["challenge"]
-        sc["architecture_mechanism"] = ov["architecture_mechanism"]
-        sc["state_transition"] = ov["state_transition"]
-        if "asis_comparison" in sc:
-            if "asis_label" in ov:
-                sc["asis_comparison"]["label"] = ov["asis_label"]
-            if "asis_defect" in ov:
-                sc["asis_comparison"]["defect_note"] = ov["asis_defect"]
-        if "answer_ko" in ov:
-            sc["measured_result"]["answer"] = ov["answer_ko"]
-        if "sub_summaries_ko" in ov and "sub_results" in sc["measured_result"]:
-            for dom_key, ko_sum in ov["sub_summaries_ko"].items():
-                if dom_key in sc["measured_result"]["sub_results"]:
-                    sc["measured_result"]["sub_results"][dom_key]["summary"] = ko_sum
+        sc.update(KO_SCENARIO_OVERRIDES.get(sc["code"], {}))
     return ko_data
 
 
 CALIBRATION_JSON = BENCHMARK_JSON.parent / "bqca_trace_token_calibration.json"
 
 
-def build_disclosure_html(lang: str) -> str:
-    """States which numbers are measured and which are modeled, with Cloud Trace medians when available."""
-    trace = ""
-    if CALIBRATION_JSON.is_file():
-        cal = json.loads(CALIBRATION_JSON.read_text(encoding="utf-8"))
-        per = cal.get("per_data_agent", {})
-
-        def med(agent_id: str) -> str:
-            row = per.get(agent_id)
-            return f"{row['median_input_tokens_per_turn']:,}" if row else "n/a"
-
-        scoped = " / ".join(med(a) for a in ("cymbal_customer_marketing_ca", "cymbal_product_profitability_ca", "cymbal_supply_chain_ca"))
-        mono = med("thelook_baseline_ca_agent")
-        day = str(cal.get("measured_at_utc", ""))[:10]
-        n = cal.get("total_chat_turns", 0)
-        if lang == "ko":
-            trace = (
-                f" 이 Dataset에서 Cloud Trace로 측정한 결과({day}, Chat Turn {n}건), Chat Turn당 BQCA Input Token 중앙값은 "
-                f"단일 통합 Data Agent가 <span class='mono'>{mono}</span>, Domain별 Data Agent 3종이 <span class='mono'>{scoped}</span>입니다. "
-                "실시간 Workbench는 이 중앙값을 사용합니다."
-            )
-        else:
-            trace = (
-                f" Cloud Trace on this dataset ({day}, {n} chat turns) shows a median BQCA input per chat turn of "
-                f"<span class='mono'>{mono}</span> tokens for the monolithic data agent and <span class='mono'>{scoped}</span> "
-                "for the three scoped data agents. The live workbench uses these medians."
-            )
+def build_disclosure_html(lang: str, data: dict) -> str:
+    """States how the baseline numbers were produced and what the live workbench measures."""
+    day = str(data.get("generated_at_utc", ""))[:10]
+    env = data.get("environment", {})
+    adk = env.get("adk_version", "")
     if lang == "ko":
         return (
-            "<strong>수치 읽는 법.</strong> ADK 계층 Token은 Vertex AI usage_metadata 실측치입니다. "
-            "사전 실행 기준치의 BQCA 계층 Token, 2-Tier 합산과 절감률, 10-Turn 추이, 비용 시뮬레이터는 고정 가정치로 계산한 값이며 측정값이 아닙니다. "
-            "기준치의 As-Is 실행은 Tool 응답을 인위적으로 늘린 합성 구성으로 수행했습니다." + trace
+            f"<strong>수치 산출 방법.</strong> 두 구성 모두 {day}에 Google Cloud에서 실제로 실행했습니다(<span class='mono'>google-adk {adk}</span>). "
+            "ADK 계층 Token은 Vertex AI usage_metadata, BQCA 계층 Token은 각 실행에서 발생한 Chat 호출의 Cloud Trace Span에서 읽었고, 가정으로 계산한 값은 없습니다. "
+            "Warehouse는 기업 규모 Schema를 재현한 합성 구성입니다. thelook 7개와 TPC-DS 25개, 모두 32개 Table에 규칙으로 생성한 Table·Column 설명을 붙였습니다. "
+            "As-Is는 32개 Table 전체와 모든 Domain 용어집을 Data Agent 하나에 연결하고, To-Be는 Domain별 Data Agent에 Table 3~5개를 연결합니다. "
+            "실시간 Workbench 실행에서는 ADK 계층을 직접 측정하고, Chat API가 Token 사용량을 반환하지 않으므로 BQCA 계층은 Data Agent별 Cloud Trace 중앙값을 표시합니다."
         )
     return (
-        "<strong>How to read these numbers.</strong> ADK-tier tokens are measured from Vertex AI usage_metadata. "
-        "In the pre-run baseline, BQCA-tier tokens, the 2-tier totals and reduction percentages, the 10-turn curve and the cost simulator "
-        "are computed from fixed assumption constants and were not measured. The baseline As-Is runs used a synthetic harness with padded tool payloads." + trace
+        f"<strong>How these numbers were produced.</strong> Both pipelines ran on Google Cloud on {day} (<span class='mono'>google-adk {adk}</span>). "
+        "ADK-tier tokens come from Vertex AI usage_metadata. BQCA-tier tokens come from the Cloud Trace spans of the chat calls made in each run. Nothing is modeled. "
+        "The warehouse is a synthetic reproduction of an enterprise-scale schema: 32 tables (thelook 7 and TPC-DS 25) with table and column descriptions generated by rule. "
+        "As-Is binds all 32 tables and every domain glossary to one data agent. To-Be binds 3 to 5 tables to each domain data agent. "
+        "Live workbench runs measure the ADK tier directly and show the Cloud Trace median per data agent for the BQCA tier, because the chat API returns no token usage."
     )
 
 
@@ -3052,8 +2632,8 @@ def main() -> None:
     en_data = json.loads(BENCHMARK_JSON.read_text(encoding="utf-8"))
     ko_data = build_ko_benchmark_data(en_data)
 
-    UI_EN["baselineDisclosureHtml"] = build_disclosure_html("en")
-    UI_KO["baselineDisclosureHtml"] = build_disclosure_html("ko")
+    UI_EN["baselineDisclosureHtml"] = build_disclosure_html("en", en_data)
+    UI_KO["baselineDisclosureHtml"] = build_disclosure_html("ko", en_data)
 
     html_en = render_page(HTML_EN, en_data, UI_EN)
     html_ko = render_page(HTML_KO, ko_data, UI_KO)

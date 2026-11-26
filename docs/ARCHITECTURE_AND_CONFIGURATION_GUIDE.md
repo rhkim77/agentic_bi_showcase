@@ -1,5 +1,8 @@
 # Architecture & Configuration Deep Dive: Governed Multi-Agent Analytics with Google ADK & BigQuery CAA
 
+> **Superseded numbers.** This document was written for the first benchmark, which used a 7-table dataset, a synthetic As-Is harness and assumption constants for BQCA tokens. Its figures do not apply to the current setup. Current measured results are in [`benchmarks/scenario_benchmark_results.json`](../benchmarks/scenario_benchmark_results.json), the README scorecard and the portals. The architecture description still applies, with these changes: the warehouse is `cymbal_enterprise_dw` (32 documented tables), the As-Is side uses ADK's built-in data agent tools on one monolithic data agent, and the To-Be agents use static instructions, one tool per Sub-Agent and no summarization call after a data call.
+
+
 ## 1. Official Integration Taxonomy & Architectural Rationale
 
 Google Cloud's official documentation ([Integration patterns for data agents](https://cloud.google.com/gemini/docs/conversational-analytics-api/integration-patterns), [State management for data agents](https://cloud.google.com/gemini/docs/conversational-analytics-api/state-management)) defines **four integration approaches** (`Direct API`, `ADK`, `MCP`, `A2A` across seven implementation patterns) and **three API context modes** (`ConversationReference`, `DataAgentContext`, `InlineContext`) for the Conversational Analytics API (`geminidataanalytics.googleapis.com/v1`).

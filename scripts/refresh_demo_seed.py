@@ -11,7 +11,7 @@ import google.auth
 from google.auth.transport.requests import AuthorizedSession
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "ryan-sandbox-agent") or "ryan-sandbox-agent"
-DATASET_ID = os.environ.get("BQ_DATASET_ID", "thelook_ecommerce_agent") or "thelook_ecommerce_agent"
+DATASET_ID = os.environ.get("BQ_DATASET_ID", "cymbal_enterprise_dw") or "cymbal_enterprise_dw"
 SQL_PATH = Path(__file__).resolve().parent.parent / "sql" / "seed_cymbal_scenarios.sql"
 
 

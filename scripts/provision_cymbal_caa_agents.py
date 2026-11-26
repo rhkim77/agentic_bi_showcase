@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Provisions 3 English-First Domain-Scoped BigQuery CAA Data Agents for Cymbal Global Commerce.
 
-Target Dataset: `{PROJECT_ID}.{DATASET_ID}` (Default: `ryan-sandbox-agent.thelook_ecommerce_agent`)
+Target Dataset: `{PROJECT_ID}.{DATASET_ID}` (Default: `ryan-sandbox-agent.cymbal_enterprise_dw`)
 Leaves existing Korean Hands-on Lab agents (`thelook_*`) 100% untouched, creating/updating:
   1. `cymbal_customer_marketing_ca` (4 tables: `users`, `events`, `orders`, `order_items`)
   2. `cymbal_product_profitability_ca` (3 tables: `products`, `order_items`, `orders`)
@@ -33,7 +33,7 @@ import google.auth
 from google.auth.transport.requests import AuthorizedSession
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "ryan-sandbox-agent") or "ryan-sandbox-agent"
-DATASET_ID = os.environ.get("BQ_DATASET_ID", "thelook_ecommerce_agent") or "thelook_ecommerce_agent"
+DATASET_ID = os.environ.get("BQ_DATASET_ID", "cymbal_enterprise_dw") or "cymbal_enterprise_dw"
 LOCATION = "global"
 
 CUSTOMER_CA_ID = "cymbal_customer_marketing_ca"
