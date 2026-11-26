@@ -52,7 +52,7 @@ gcloud artifacts repositories create "${REPO}" \
   --location="${REGION}" \
   --description="Cloud Demo Engineering container images" 2>/dev/null || true
 
-echo "==> [3/5] Building multi-stage container via Cloud Build (${IMAGE})..."
+echo "==> [3/5] Building container via Cloud Build (${IMAGE})..."
 gcloud builds submit \
   --project "${PROJECT}" \
   --tag "${IMAGE}" \
@@ -69,7 +69,7 @@ gcloud run deploy "${SERVICE}" \
   --cpu 2 \
   --min-instances 1 \
   --max-instances 5 \
-  --timeout 240 \
+  --timeout 600 \
   --session-affinity \
   --set-env-vars "GOOGLE_CLOUD_PROJECT=${PROJECT},BQ_DATASET_ID=${DATASET_ID},GOOGLE_CLOUD_LOCATION=${REGION},GOOGLE_GENAI_USE_VERTEXAI=TRUE" \
   --quiet

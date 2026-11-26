@@ -1,45 +1,64 @@
-"""Live Interactive S1–S5 Progressive Dual A/B Workbench Engine (`SSE` + Per-Visitor Isolation).
+"""Live S1-S5 Dual A/B Workbench engine (SSE, per-visitor isolation).
 
-Executes BOTH the `As-Is Anti-Pattern` pipeline and the `To-Be Best Practice` pipeline
-concurrently against live Google Cloud (`Vertex AI gemini-2.5-flash` + `geminidataanalytics.googleapis.com/v1`
-+ BigQuery `thelook_ecommerce_agent`) for any custom or preset evaluator prompt across S1..S5.
+For each evaluator prompt this runs two pipelines against live Google Cloud at the same time:
+
+  * To-Be:  `root_agent` (Root Router + 3 domain Sub-Agents, sliding window, compaction, memory).
+  * As-Is:  a plain `LlmAgent` using ADK's built-in data agent tools
+            (`list_accessible_data_agents`, `get_data_agent_info`, `ask_data_agent`) against the
+            single monolithic data agent. The tools are the real ADK implementations; only the
+            credentials are injected (ADC with the `cloud-platform` scope).
+
+What is measured and what is not:
+
+  * Measured per run: ADK-tier `usage_metadata` tokens, latency, number of BQCA `:chat` calls,
+    messages sent per call, tool-response size, generated SQL and answers.
+  * Not measured per run: BQCA-tier tokens. The `:chat` API returns no token usage. The engine
+    reports the Cloud Trace median per chat turn for each data agent, taken from
+    `benchmarks/bqca_trace_token_calibration.json` (see `scripts/05_measure_bqca_tokens_from_trace.py`).
+
+The As-Is pipeline runs in its own thread and event loop because ADK calls sync tools on the event
+loop, and the built-in data agent tools are sync and block for the whole `:chat` call.
 """
 
 from __future__ import annotations
 
 import asyncio
-import contextvars
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
-import queue
 import re
 import time
 from typing import Any, AsyncIterator
 
+import google.adk
 from google.adk.agents import LlmAgent
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.memory import InMemoryMemoryService
+from google.adk.models.google_llm import Gemini
+from google.adk.models.llm_response import LlmResponse
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.adk.tools.data_agent import data_agent_tool
+from google.adk.tools.data_agent.config import DataAgentToolConfig
+from google.adk.tools.tool_context import ToolContext
 from google.genai import types
 
 from agents.bq_caa_3domain_multi_agent.agent import (
     ADK_USAGE_COLLECTOR_VAR,
     BASELINE_CA_ID,
-    CUSTOMER_CA_ID,
+    BQCA_INPUT_CACHED_USD_PER_1M,
+    BQCA_INPUT_NON_CACHED_USD_PER_1M,
+    BQCA_OUTPUT_USD_PER_1M,
+    CAA_CALL_COLLECTOR_VAR,
     DATASET_ID,
-    MONOLITHIC_FANOUT_EQUIV_INPUT_TOKENS,
-    MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
-    PRODUCT_CA_ID,
     PROJECT_ID,
-    SUPPLY_CA_ID,
-    TELEMETRY_QUEUE_VAR,
+    VERTEX_FLASH_CACHED_USD_PER_1M,
+    VERTEX_FLASH_INPUT_USD_PER_1M,
+    VERTEX_FLASH_OUTPUT_USD_PER_1M,
     VISITOR_ID_VAR,
-    _compact_adk_llm_request_window,
-    _query_domain_caa_agent,
-    _record_vertex_llm_usage_telemetry,
+    _get_cloud_platform_adc,
     adk_app,
-    compute_effective_cost_usd,
+    load_bqca_trace_calibration,
     reset_persistent_memory_store,
     root_agent,
 )
@@ -49,6 +68,26 @@ MAX_VISITORS_CACHE = 120
 VISITOR_TTL_SECONDS = 7200
 RATE_LIMIT_WINDOW_SEC = 60
 RATE_LIMIT_MAX_CALLS = 8
+
+ASIS_APP_NAME = "asis_default_data_agent_tools"
+BASELINE_AGENT_RESOURCE = f"projects/{PROJECT_ID}/locations/global/dataAgents/{BASELINE_CA_ID}"
+
+TURN1_PROMPT = (
+    "Show VIP customer count, total gross revenue, and average order value (AOV) "
+    "by acquisition traffic source over the last 30 days."
+)
+S4_WARMUP_PROMPTS = [
+    "Show VIP customer count and total gross revenue by traffic source over the last 30 days.",
+    "Add the average order value (AOV) for each of those traffic sources.",
+    "Now show the 14-day cart abandonment rate (%) by traffic source.",
+]
+S5_SEED_PROMPT = (
+    "Save my profile role as 'Principal Supply Chain & Merchandising Analyst' focusing on "
+    "'Women Outerwear Margin & DC Lead Time', and pin this insight: "
+    "'Nordic Luxe 50.0% return rate is driven by a 6.0-day shipping delay at Memphis TN DC #1.'"
+)
+
+_ASIS_TOOL_SETTINGS = DataAgentToolConfig(max_query_result_rows=50, location="global")
 
 
 def _utc_now() -> str:
@@ -60,112 +99,356 @@ def sanitize_visitor_id(raw: str | None) -> str:
     return cleaned or "default_eval"
 
 
-def _infer_target_domain_agent(prompt: str) -> tuple[str, str, str]:
-    p = prompt.lower()
-    if any(k in p for k in ["distribution", "dc", "lead time", "shipped", "delivered", "inventory", "unsold", "holding cost", "memphis", "chicago", "물류", "배송", "재고", "센터"]):
-        return (SUPPLY_CA_ID, "supply_chain", "Supply Chain, Inventory & Fulfillment")
-    if any(k in p for k in ["margin", "profit", "return", "cancel", "brand", "nordic", "atelier", "outerwear", "retail_price", "마진", "수익", "이익", "반품", "브랜드"]):
-        return (PRODUCT_CA_ID, "product_profitability", "Product, Margin & Return Analytics")
-    return (CUSTOMER_CA_ID, "customer_marketing", "Customer CRM & Marketing Funnel")
+# --------------------------------------------------------------------------------------------
+# As-Is agent: ADK built-in data agent tools with ADC injected
+# --------------------------------------------------------------------------------------------
+def list_accessible_data_agents(project_id: str) -> dict[str, Any]:
+    return data_agent_tool.list_accessible_data_agents(
+        project_id=project_id,
+        credentials=_get_cloud_platform_adc(),
+        settings=_ASIS_TOOL_SETTINGS,
+    )
 
 
+def get_data_agent_info(data_agent_name: str) -> dict[str, Any]:
+    return data_agent_tool.get_data_agent_info(
+        data_agent_name=data_agent_name,
+        credentials=_get_cloud_platform_adc(),
+        settings=_ASIS_TOOL_SETTINGS,
+    )
+
+
+def ask_data_agent(data_agent_name: str, query: str, tool_context: ToolContext) -> dict[str, Any]:
+    return data_agent_tool.ask_data_agent(
+        data_agent_name=data_agent_name,
+        query=query,
+        credentials=_get_cloud_platform_adc(),
+        settings=_ASIS_TOOL_SETTINGS,
+        tool_context=tool_context,
+    )
+
+
+# The model sees the same tool descriptions it would see with the built-in toolset.
+list_accessible_data_agents.__doc__ = data_agent_tool.list_accessible_data_agents.__doc__
+get_data_agent_info.__doc__ = data_agent_tool.get_data_agent_info.__doc__
+ask_data_agent.__doc__ = data_agent_tool.ask_data_agent.__doc__
+
+
+def _asis_usage_callback(callback_context: CallbackContext, llm_response: LlmResponse) -> LlmResponse | None:
+    """Records Vertex AI `usage_metadata` for the As-Is agent. Measurement only; changes nothing."""
+    if getattr(llm_response, "partial", False):
+        return None
+    um = getattr(llm_response, "usage_metadata", None)
+    collector = ADK_USAGE_COLLECTOR_VAR.get()
+    if um is None or collector is None:
+        return None
+    prompt_tok = int(getattr(um, "prompt_token_count", 0) or 0)
+    cand_tok = int(getattr(um, "candidates_token_count", 0) or 0)
+    thought_tok = int(getattr(um, "thoughts_token_count", 0) or 0)
+    collector.append({
+        "agent_name": getattr(callback_context, "agent_name", ASIS_APP_NAME),
+        "prompt_token_count": prompt_tok,
+        "cached_content_token_count": int(getattr(um, "cached_content_token_count", 0) or 0),
+        "candidates_token_count": cand_tok,
+        "thoughts_token_count": thought_tok,
+        "output_and_thoughts_token_count": cand_tok + thought_tok,
+        "total_token_count": int(getattr(um, "total_token_count", 0) or (prompt_tok + cand_tok + thought_tok)),
+        "compacted_contents_dropped": 0,
+    })
+    return None
+
+
+def _build_asis_agent() -> LlmAgent:
+    # A fresh model object per run: its HTTP client must belong to the thread's own event loop.
+    return LlmAgent(
+        model=Gemini(model="gemini-2.5-flash"),
+        name=ASIS_APP_NAME,
+        instruction=(
+            "You are a BI analytics assistant for Cymbal Global Commerce. Answer data questions with the "
+            f"data agent tools. The organization's data agent is `{BASELINE_AGENT_RESOURCE}`, which covers "
+            f"all 7 warehouse tables in `{PROJECT_ID}.{DATASET_ID}`."
+        ),
+        tools=[list_accessible_data_agents, get_data_agent_info, ask_data_agent],
+        after_model_callback=_asis_usage_callback,
+    )
+
+
+# --------------------------------------------------------------------------------------------
+# Running one turn and reading what happened
+# --------------------------------------------------------------------------------------------
 def _summarize_adk_usage(records: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "llm_calls": len(records),
         "agents_invoked": [r["agent_name"] for r in records],
         "prompt_tokens": sum(int(r["prompt_token_count"]) for r in records),
         "cached_tokens": sum(int(r["cached_content_token_count"]) for r in records),
-        "candidates_tokens": sum(int(r["candidates_token_count"]) for r in records),
-        "thoughts_tokens": sum(int(r["thoughts_token_count"]) for r in records),
         "output_and_thoughts_tokens": sum(int(r["output_and_thoughts_token_count"]) for r in records),
         "total_tokens": sum(int(r["total_token_count"]) for r in records),
         "compacted_contents_dropped": max((int(r.get("compacted_contents_dropped", 0)) for r in records), default=0),
-        "per_call_breakdown": records,
     }
 
 
-async def _run_in_ctx_thread(fn, *args, **kwargs):
-    ctx = contextvars.copy_context()
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, lambda: ctx.run(fn, *args, **kwargs))
-
-
-def _build_verbose_discovery_dump() -> dict[str, Any]:
-    """Represents ADK default `list_accessible_data_agents` + `_get_data_agent_info` full 7-table schema dump."""
-    verbose_ddls = {
-        tbl: [
-            {
-                "column": f"col_{i}",
-                "type": "STRING/TIMESTAMP/FLOAT64",
-                "description": "Unpruned warehouse column metadata description and sample values " * 3,
-            }
-            for i in range(18)
-        ]
-        for tbl in ["users", "events", "orders", "order_items", "products", "inventory_items", "distribution_centers"]
-    }
+async def _run_turn(runner: Runner, user_id: str, session_id: str, prompt: str) -> dict[str, Any]:
+    usage_bucket: list[dict[str, Any]] = []
+    caa_bucket: list[dict[str, Any]] = []
+    tool_events: list[dict[str, Any]] = []
+    texts: list[str] = []
+    tok_usage = ADK_USAGE_COLLECTOR_VAR.set(usage_bucket)
+    tok_caa = CAA_CALL_COLLECTOR_VAR.set(caa_bucket)
+    t0 = time.monotonic()
+    try:
+        msg = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+        async for ev in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
+            parts = ev.content.parts if ev.content and ev.content.parts else []
+            for p in parts:
+                fc = getattr(p, "function_call", None)
+                if fc is not None:
+                    tool_events.append({"kind": "call", "name": fc.name, "args": dict(fc.args or {})})
+                fr = getattr(p, "function_response", None)
+                if fr is not None:
+                    tool_events.append({"kind": "response", "name": fr.name, "response": fr.response})
+            if ev.is_final_response() and parts:
+                t = "\n".join(p.text for p in parts if getattr(p, "text", None)).strip()
+                if t:
+                    texts.append(t)
+    finally:
+        ADK_USAGE_COLLECTOR_VAR.reset(tok_usage)
+        CAA_CALL_COLLECTOR_VAR.reset(tok_caa)
     return {
-        "accessible_agents": [
-            BASELINE_CA_ID,
-            CUSTOMER_CA_ID,
-            PRODUCT_CA_ID,
-            SUPPLY_CA_ID,
-        ],
-        "full_warehouse_schema_metadata": verbose_ddls,
+        "answer": "\n\n".join(texts).strip(),
+        "usage": _summarize_adk_usage(usage_bucket),
+        "latency_ms": int((time.monotonic() - t0) * 1000),
+        "caa_calls": caa_bucket,
+        "tool_events": tool_events,
     }
 
 
+def _run_asis_turn_blocking(session_svc: InMemorySessionService, user_id: str, session_id: str, prompt: str) -> dict[str, Any]:
+    async def _go() -> dict[str, Any]:
+        runner = Runner(app_name=ASIS_APP_NAME, agent=_build_asis_agent(), session_service=session_svc)
+        return await _run_turn(runner, user_id, session_id, prompt)
+
+    return asyncio.run(_go())
+
+
+def _walk_dicts(obj: Any):
+    if isinstance(obj, dict):
+        yield obj
+        for v in obj.values():
+            yield from _walk_dicts(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _walk_dicts(v)
+
+
+def _parse_ask_data_agent_response(response: Any) -> dict[str, Any]:
+    sql = ""
+    finals: list[str] = []
+    for d in _walk_dicts(response):
+        for k, v in d.items():
+            if isinstance(v, str) and "sql" in k.lower() and "select" in v.lower():
+                sql = v.strip()
+        if "parts" in d and isinstance(d.get("parts"), list) and str(d.get("textType", "")).upper() == "FINAL_RESPONSE":
+            finals.append("".join(str(p) for p in d["parts"]).strip())
+    status = response.get("status") if isinstance(response, dict) else None
+    return {
+        "status": status or "UNKNOWN",
+        "error_details": response.get("error_details", "") if isinstance(response, dict) else "",
+        "generated_sql": sql,
+        "final_text": "\n\n".join(f for f in finals if f),
+        "response_chars": len(json.dumps(response, ensure_ascii=False, default=str)),
+    }
+
+
+def _trace_estimate(agent_ids: list[str]) -> dict[str, Any] | None:
+    """Sums the Cloud Trace median per chat turn for each BQCA call. None if any agent is uncalibrated."""
+    cal = load_bqca_trace_calibration().get("per_data_agent", {})
+    total_in = total_cached = total_out = 0
+    for aid in agent_ids:
+        row = cal.get(aid)
+        if not row:
+            return None
+        total_in += int(row["median_input_tokens_per_turn"])
+        total_cached += int(row["median_cached_input_tokens_per_turn"])
+        total_out += int(row["median_output_tokens_per_turn"])
+    return {"input_tokens": total_in, "cached_input_tokens": total_cached, "output_tokens": total_out}
+
+
+def _cost_estimate(usage: dict[str, Any], trace: dict[str, Any] | None) -> dict[str, Any] | None:
+    if trace is None:
+        return None
+    adk_non_cached = max(0, usage["prompt_tokens"] - usage["cached_tokens"])
+    adk = (
+        adk_non_cached * VERTEX_FLASH_INPUT_USD_PER_1M
+        + usage["cached_tokens"] * VERTEX_FLASH_CACHED_USD_PER_1M
+        + usage["output_and_thoughts_tokens"] * VERTEX_FLASH_OUTPUT_USD_PER_1M
+    ) / 1_000_000
+    bq_non_cached = max(0, trace["input_tokens"] - trace["cached_input_tokens"])
+    bqca = (
+        bq_non_cached * BQCA_INPUT_NON_CACHED_USD_PER_1M
+        + trace["cached_input_tokens"] * BQCA_INPUT_CACHED_USD_PER_1M
+        + trace["output_tokens"] * BQCA_OUTPUT_USD_PER_1M
+    ) / 1_000_000
+    return {"adk_usd": round(adk, 5), "bqca_usd": round(bqca, 5), "total_usd": round(adk + bqca, 5)}
+
+
+def _finish_side(side: dict[str, Any], agent_ids: list[str]) -> dict[str, Any]:
+    trace = _trace_estimate(agent_ids)
+    side["bqca_calls"] = len(agent_ids)
+    side["bqca_agents"] = agent_ids
+    side["bqca_trace_estimate"] = trace
+    side["cost_estimate_usd"] = _cost_estimate(side["adk_usage"], trace)
+    side["status"] = "ERROR" if side["errors"] else "OK"
+    return side
+
+
+def _tobe_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
+    calls = turn["caa_calls"]
+    ok = [c for c in calls if c.get("status") == "SUCCESS"]
+    errors = [f"{c.get('data_agent', '').rsplit('/', 1)[-1]}: {c.get('error_details', 'unknown error')}" for c in calls if c.get("status") != "SUCCESS"]
+    agent_ids = [c.get("data_agent", "").rsplit("/", 1)[-1] for c in calls]
+    if len(ok) > 1:
+        sql = "\n\n".join(f"-- [{c['data_agent'].rsplit('/', 1)[-1]}]\n{c.get('generated_sql', '')}" for c in ok)
+        table = "\n\n".join(f"**{c['domain']}**\n{c['markdown_table']}" for c in ok if c.get("markdown_table"))
+    else:
+        sql = ok[0].get("generated_sql", "") if ok else ""
+        table = ok[0].get("markdown_table", "") if ok else ""
+    return _finish_side(
+        {
+            "label": label,
+            "latency_ms": turn["latency_ms"],
+            "answer": turn["answer"],
+            "generated_sql": sql,
+            "markdown_table": table,
+            "adk_usage": turn["usage"],
+            "bqca_messages_sent": [c.get("multiturn_context_messages_sent") for c in ok],
+            "bqca_call_latency_ms": [c.get("latency_ms") for c in ok],
+            "tool_calls": [e["name"] for e in turn["tool_events"] if e["kind"] == "call"],
+            "errors": errors,
+        },
+        agent_ids,
+    )
+
+
+def _asis_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
+    ask_calls = [e for e in turn["tool_events"] if e["kind"] == "call" and e["name"] == "ask_data_agent"]
+    ask_resps = [_parse_ask_data_agent_response(e["response"]) for e in turn["tool_events"] if e["kind"] == "response" and e["name"] == "ask_data_agent"]
+    agent_ids = [str(c["args"].get("data_agent_name", "")).rsplit("/", 1)[-1] for c in ask_calls]
+    errors = [f"ask_data_agent: {r['error_details'] or r['status']}" for r in ask_resps if r["status"] != "SUCCESS"]
+    sqls = [r["generated_sql"] for r in ask_resps if r["generated_sql"]]
+    return _finish_side(
+        {
+            "label": label,
+            "latency_ms": turn["latency_ms"],
+            "answer": turn["answer"],
+            "generated_sql": "\n\n".join(f"-- [ask_data_agent call {i + 1}]\n{s}" for i, s in enumerate(sqls)) if len(sqls) > 1 else (sqls[0] if sqls else ""),
+            "markdown_table": "",
+            "adk_usage": turn["usage"],
+            # ask_data_agent always sends exactly one userMessage per call.
+            "bqca_messages_sent": [1 for _ in ask_calls],
+            "tool_calls": [e["name"] for e in turn["tool_events"] if e["kind"] == "call"],
+            "tool_response_chars": sum(r["response_chars"] for r in ask_resps),
+            "errors": errors,
+        },
+        agent_ids,
+    )
+
+
+def _failed_side(label: str, exc: BaseException) -> dict[str, Any]:
+    return {
+        "label": label, "status": "ERROR", "errors": [f"{type(exc).__name__}: {exc}"], "latency_ms": 0, "answer": "",
+        "generated_sql": "", "markdown_table": "", "bqca_calls": 0, "bqca_agents": [], "bqca_messages_sent": [],
+        "tool_calls": [], "bqca_trace_estimate": None, "cost_estimate_usd": None,
+        "adk_usage": _summarize_adk_usage([]),
+    }
+
+
+def _delta_pct(asis: float | None, tobe: float | None) -> float | None:
+    if not asis or tobe is None:
+        return None
+    return round((tobe - asis) / asis * 100.0, 1)
+
+
+def _comparison(asis: dict[str, Any], tobe: dict[str, Any]) -> dict[str, Any]:
+    a_u, b_u = asis["adk_usage"], tobe["adk_usage"]
+    measured = {
+        "asis_adk_prompt_tokens": a_u["prompt_tokens"],
+        "tobe_adk_prompt_tokens": b_u["prompt_tokens"],
+        "adk_prompt_delta_pct": _delta_pct(a_u["prompt_tokens"], b_u["prompt_tokens"]),
+        "asis_adk_cached_tokens": a_u["cached_tokens"],
+        "tobe_adk_cached_tokens": b_u["cached_tokens"],
+        "asis_llm_calls": a_u["llm_calls"],
+        "tobe_llm_calls": b_u["llm_calls"],
+        "asis_bqca_calls": asis["bqca_calls"],
+        "tobe_bqca_calls": tobe["bqca_calls"],
+        "asis_latency_ms": asis["latency_ms"],
+        "tobe_latency_ms": tobe["latency_ms"],
+    }
+    a_t, b_t = asis["bqca_trace_estimate"], tobe["bqca_trace_estimate"]
+    a_c, b_c = asis["cost_estimate_usd"], tobe["cost_estimate_usd"]
+    trace = None
+    if a_t is not None and b_t is not None:
+        a_total = a_u["prompt_tokens"] + a_t["input_tokens"]
+        b_total = b_u["prompt_tokens"] + b_t["input_tokens"]
+        trace = {
+            "asis_bqca_input_tokens": a_t["input_tokens"],
+            "tobe_bqca_input_tokens": b_t["input_tokens"],
+            "asis_total_input_tokens": a_total,
+            "tobe_total_input_tokens": b_total,
+            "total_input_delta_pct": _delta_pct(a_total, b_total),
+            "asis_cost_usd": a_c["total_usd"] if a_c else None,
+            "tobe_cost_usd": b_c["total_usd"] if b_c else None,
+            "cost_delta_pct": _delta_pct(a_c["total_usd"] if a_c else None, b_c["total_usd"] if b_c else None),
+        }
+    return {"measured": measured, "trace_estimate": trace}
+
+
+# --------------------------------------------------------------------------------------------
+# Per-visitor state
+# --------------------------------------------------------------------------------------------
 @dataclass
 class VisitorWorkbenchSession:
     visitor_id: str
-    created_at: float = field(default_factory=time.monotonic)
     last_active: float = field(default_factory=time.monotonic)
     request_timestamps: list[float] = field(default_factory=list)
     session_svc: InMemorySessionService = field(default_factory=InMemorySessionService)
+    asis_session_svc: InMemorySessionService = field(default_factory=InMemorySessionService)
     memory_svc: InMemoryMemoryService = field(default_factory=InMemoryMemoryService)
     runner: Runner | None = None
-    main_session_id: str = "workbench-main"
-    initialized: bool = False
-    s1_completed: bool = False
-    last_s1_prompt: str = ""
-    last_s1_summary: str = ""
-    last_s1_domain_agent_id: str = CUSTOMER_CA_ID
+    busy: bool = False
+    epoch: int = 0
+    main_turns: int = 0
+    s4_epoch: int = 0
     s4_turn_history: list[dict[str, Any]] = field(default_factory=list)
-    s4_sess_svc: InMemorySessionService = field(default_factory=InMemorySessionService)
-    s4_asis_runner: Runner | None = None
-    s4_tobe_runner: Runner | None = None
-    s4_initialized: bool = False
-    s5_seeded: bool = False
+    s5_runs: int = 0
+    memory_seeded: bool = False
 
-    async def ensure_initialized(self) -> None:
+    @property
+    def user_id(self) -> str:
+        return f"eval_{self.visitor_id}"
+
+    def ensure_runner(self) -> Runner:
         self.last_active = time.monotonic()
-        if self.initialized and self.runner is not None:
-            return
-        try:
-            self.runner = Runner(
-                app=adk_app,
-                session_service=self.session_svc,
-                memory_service=self.memory_svc,
-            )
-        except Exception:
-            self.runner = Runner(
-                app_name="bq_caa_3domain_multi_agent",
-                agent=root_agent,
-                session_service=self.session_svc,
-                memory_service=self.memory_svc,
-            )
-        await self.session_svc.create_session(
-            app_name=self.runner.app_name,
-            user_id=f"eval_{self.visitor_id}",
-            session_id=self.main_session_id,
-        )
-        self.initialized = True
+        if self.runner is None:
+            self.runner = Runner(app=adk_app, session_service=self.session_svc, memory_service=self.memory_svc)
+        return self.runner
+
+    async def create_pair(self, tobe_sid: str, asis_sid: str | None) -> None:
+        runner = self.ensure_runner()
+        await self.session_svc.create_session(app_name=runner.app_name, user_id=self.user_id, session_id=tobe_sid)
+        if asis_sid:
+            await self.asis_session_svc.create_session(app_name=ASIS_APP_NAME, user_id=self.user_id, session_id=asis_sid)
+
+    async def new_main_sessions(self) -> None:
+        self.epoch += 1
+        self.main_turns = 0
+        await self.create_pair(f"tobe-main-{self.epoch}", f"asis-main-{self.epoch}")
 
     def check_rate_limit(self) -> tuple[bool, int]:
         now = time.monotonic()
         self.request_timestamps = [t for t in self.request_timestamps if now - t < RATE_LIMIT_WINDOW_SEC]
         if len(self.request_timestamps) >= RATE_LIMIT_MAX_CALLS:
-            retry_after = max(1, int(RATE_LIMIT_WINDOW_SEC - (now - self.request_timestamps[0])))
-            return False, retry_after
+            return False, max(1, int(RATE_LIMIT_WINDOW_SEC - (now - self.request_timestamps[0])))
         self.request_timestamps.append(now)
         return True, 0
 
@@ -175,22 +458,20 @@ _VISITOR_SESSIONS: dict[str, VisitorWorkbenchSession] = {}
 
 def _evict_stale_visitors() -> None:
     now = time.monotonic()
-    stale = [k for k, v in _VISITOR_SESSIONS.items() if now - v.last_active > VISITOR_TTL_SECONDS]
-    for k in stale:
+    for k in [k for k, v in _VISITOR_SESSIONS.items() if now - v.last_active > VISITOR_TTL_SECONDS and not v.busy]:
         _VISITOR_SESSIONS.pop(k, None)
     while len(_VISITOR_SESSIONS) > MAX_VISITORS_CACHE:
-        oldest_key = min(_VISITOR_SESSIONS, key=lambda k: _VISITOR_SESSIONS[k].last_active)
-        _VISITOR_SESSIONS.pop(oldest_key, None)
+        _VISITOR_SESSIONS.pop(min(_VISITOR_SESSIONS, key=lambda k: _VISITOR_SESSIONS[k].last_active), None)
 
 
-async def get_visitor_session(visitor_id: str) -> VisitorWorkbenchSession:
+def get_visitor_session(visitor_id: str) -> VisitorWorkbenchSession:
     _evict_stale_visitors()
     vid = sanitize_visitor_id(visitor_id)
     sess = _VISITOR_SESSIONS.get(vid)
     if sess is None:
         sess = VisitorWorkbenchSession(visitor_id=vid)
         _VISITOR_SESSIONS[vid] = sess
-    await sess.ensure_initialized()
+    sess.ensure_runner()
     return sess
 
 
@@ -202,814 +483,180 @@ async def reset_visitor_session(visitor_id: str) -> dict[str, Any]:
     finally:
         VISITOR_ID_VAR.reset(tok)
     _VISITOR_SESSIONS.pop(vid, None)
-    fresh = await get_visitor_session(vid)
-    return {
-        "status": "ok",
-        "visitor_id": fresh.visitor_id,
-        "reset_at_utc": _utc_now(),
-    }
-
-
-async def _execute_adk_turn_isolated(
-    runner: Runner,
-    user_id: str,
-    session_id: str,
-    prompt: str,
-) -> tuple[str, dict[str, Any], int]:
-    bucket: list[dict[str, Any]] = []
-    tok = ADK_USAGE_COLLECTOR_VAR.set(bucket)
-    t0 = time.monotonic()
-    texts: list[str] = []
-    try:
-        msg = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-        async for ev in runner.run_async(user_id=user_id, session_id=session_id, new_message=msg):
-            if ev.is_final_response() and ev.content and ev.content.parts:
-                t = "\n".join(p.text for p in ev.content.parts if getattr(p, "text", None)).strip()
-                if t:
-                    texts.append(t)
-    finally:
-        ADK_USAGE_COLLECTOR_VAR.reset(tok)
-    elapsed_ms = int((time.monotonic() - t0) * 1000)
-    return "\n\n".join(texts).strip(), _summarize_adk_usage(bucket), elapsed_ms
+    return {"status": "ok", "visitor_id": get_visitor_session(vid).visitor_id, "reset_at_utc": _utc_now()}
 
 
 def _sse_event(event_type: str, data: dict[str, Any]) -> str:
-    payload = {"type": event_type, "ts": _utc_now(), **data}
-    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+    return f"data: {json.dumps({'type': event_type, 'ts': _utc_now(), **data}, ensure_ascii=False, default=str)}\n\n"
 
 
+# --------------------------------------------------------------------------------------------
+# Scenario stream
+# --------------------------------------------------------------------------------------------
 async def stream_dual_ab_scenario(
     visitor_id: str,
     scenario_code: str,
     custom_prompt: str,
-    s4_mode: str = "burst_5turn",
+    s4_mode: str = "burst",
 ) -> AsyncIterator[str]:
-    """Streams real-time SSE progress and final Dual Live A/B telemetry for S1..S5."""
     code = scenario_code.strip().upper()
     prompt = custom_prompt.strip()[:MAX_PROMPT_CHARS]
     vid = sanitize_visitor_id(visitor_id)
-    vsess = await get_visitor_session(vid)
+    vsess = get_visitor_session(vid)
 
+    if code not in ("S1", "S2", "S3", "S4", "S5"):
+        yield _sse_event("error", {"message": f"Unknown scenario code: {code}"})
+        return
+    if vsess.busy:
+        yield _sse_event("error", {"message": "A live run is already in progress for this session."})
+        return
     allowed, retry_sec = vsess.check_rate_limit()
     if not allowed:
-        yield _sse_event(
-            "error",
-            {
-                "message": f"Rate limit reached ({RATE_LIMIT_MAX_CALLS} live runs / min). Please retry in {retry_sec}s.",
-            },
-        )
+        yield _sse_event("error", {"message": f"Rate limit reached ({RATE_LIMIT_MAX_CALLS} live runs / min). Retry in {retry_sec}s."})
         return
 
     event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     loop = asyncio.get_running_loop()
 
-    def emit(side: str, phase: str, detail: str) -> None:
-        loop.call_soon_threadsafe(
-            event_queue.put_nowait,
-            {"kind": "progress", "side": side, "phase": phase, "detail": detail},
-        )
+    def emit(side: str, detail: str) -> None:
+        loop.call_soon_threadsafe(event_queue.put_nowait, {"kind": "progress", "side": side, "detail": detail})
+
+    async def run_tobe(sid: str, text: str, label: str) -> dict[str, Any]:
+        runner = vsess.ensure_runner()
+        turn = await _run_turn(runner, vsess.user_id, sid, text)
+        side = _tobe_side(turn, label)
+        emit("tobe", f"Finished in {side['latency_ms'] / 1000:.1f}s: ADK prompt {side['adk_usage']['prompt_tokens']:,} tok (measured), {side['bqca_calls']} BQCA call(s), agents {' > '.join(side['adk_usage']['agents_invoked'])}")
+        return side
+
+    async def run_asis(sid: str, text: str, label: str) -> dict[str, Any]:
+        turn = await asyncio.to_thread(_run_asis_turn_blocking, vsess.asis_session_svc, vsess.user_id, sid, text)
+        side = _asis_side(turn, label)
+        emit("asis", f"Finished in {side['latency_ms'] / 1000:.1f}s: ADK prompt {side['adk_usage']['prompt_tokens']:,} tok (measured), {side['bqca_calls']} BQCA call(s), tools {', '.join(side['tool_calls']) or 'none'}")
+        return side
+
+    async def run_both(tobe_sid: str, asis_sid: str, text: str, tobe_label: str, asis_label: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        res = await asyncio.gather(run_tobe(tobe_sid, text, tobe_label), run_asis(asis_sid, text, asis_label), return_exceptions=True)
+        tobe = res[0] if isinstance(res[0], dict) else _failed_side(tobe_label, res[0])
+        asis = res[1] if isinstance(res[1], dict) else _failed_side(asis_label, res[1])
+        return tobe, asis
+
+    tobe_label = "To-Be: Root Router + domain Sub-Agents (sliding window, compaction, memory)"
+    asis_label = f"As-Is: ADK built-in data agent tools on monolithic {BASELINE_CA_ID}"
 
     async def worker() -> None:
         v_tok = VISITOR_ID_VAR.set(vid)
+        vsess.busy = True
         t_start = time.monotonic()
+        prerequisite: dict[str, Any] | None = None
+        extra: dict[str, Any] = {}
         try:
-            assert vsess.runner is not None
-            user_id = f"eval_{vid}"
-            app_name = vsess.runner.app_name
+            emit("both", f"Running To-Be and As-Is in parallel on {PROJECT_ID}.{DATASET_ID} (google-adk {google.adk.__version__})")
 
-            # =================================================================
-            # SCENARIO 1: Live Discovery + Monolithic CAA vs Static Enum + Scoped CAA
-            # =================================================================
+            async def ensure_turn1() -> dict[str, Any] | None:
+                if vsess.main_turns > 0:
+                    emit("both", f"Continuing your live session (turn {vsess.main_turns + 1}).")
+                    return None
+                await vsess.new_main_sessions()
+                emit("both", "No earlier turn in this session, so Turn 1 runs first on both pipelines. Its tokens are reported separately.")
+                p_tobe, p_asis = await run_both(f"tobe-main-{vsess.epoch}", f"asis-main-{vsess.epoch}", TURN1_PROMPT, tobe_label, asis_label)
+                vsess.main_turns = 1
+                return {
+                    "prompt": TURN1_PROMPT,
+                    "tobe_adk_prompt_tokens": p_tobe["adk_usage"]["prompt_tokens"],
+                    "asis_adk_prompt_tokens": p_asis["adk_usage"]["prompt_tokens"],
+                    "tobe_errors": p_tobe["errors"],
+                    "asis_errors": p_asis["errors"],
+                }
+
             if code == "S1":
-                emit("both", "start", f"Launching parallel Live Dual A/B execution on {PROJECT_ID}.{DATASET_ID}...")
+                await vsess.new_main_sessions()
+                tobe, asis = await run_both(f"tobe-main-{vsess.epoch}", f"asis-main-{vsess.epoch}", prompt, tobe_label, asis_label)
+                vsess.main_turns = 1
 
-                async def run_s1_asis() -> dict[str, Any]:
-                    emit("asis", "discovery", "As-Is: Calling list_accessible_data_agents + 7-table schema dump...")
-                    captured_caa: dict[str, Any] = {}
+            elif code in ("S2", "S3"):
+                prerequisite = await ensure_turn1()
+                tobe, asis = await run_both(f"tobe-main-{vsess.epoch}", f"asis-main-{vsess.epoch}", prompt, tobe_label, asis_label)
+                vsess.main_turns += 1
 
-                    def list_and_inspect_all_data_agents() -> dict[str, Any]:
-                        return _build_verbose_discovery_dump()
-
-                    def ask_unoptimized_baseline_data_agent(query: str) -> dict[str, Any]:
-                        emit("asis", "bqca", f"As-Is: Querying unscoped monolithic {BASELINE_CA_ID} (all 7 tables, raw THOUGHT stream)...")
-                        res = _query_domain_caa_agent(
-                            agent_id=BASELINE_CA_ID,
-                            domain_id="monolithic_baseline",
-                            domain_label="Unscoped Monolithic CAA (All 7 Tables, Zero Glossary)",
-                            query=query,
-                            include_raw_thoughts_for_baseline=True,
-                            max_table_rows=50,
-                        )
-                        captured_caa.update(res)
-                        return {
-                            "agent": BASELINE_CA_ID,
-                            "query": query,
-                            "thought_stream": res.get("raw_thoughts_log", []),
-                            "generated_sql": res.get("generated_sql", ""),
-                            "raw_rows_json": res.get("raw_rows_json", []),
-                            "final_text": res.get("ca_final_answer", ""),
-                        }
-
-                    asis_agent = LlmAgent(
-                        model="gemini-2.5-flash",
-                        name="asis_discovery_monolithic_agent",
-                        instruction=(
-                            "You are an unoptimized PoC Root Agent. First call `list_and_inspect_all_data_agents()` to inspect "
-                            "available agents and full table schemas, then call `ask_unoptimized_baseline_data_agent(query=...)` "
-                            "with the user's question in English and summarize the result concisely."
-                        ),
-                        tools=[list_and_inspect_all_data_agents, ask_unoptimized_baseline_data_agent],
-                        after_model_callback=_record_vertex_llm_usage_telemetry,
-                    )
-                    s_svc = InMemorySessionService()
-                    r_asis = Runner(app_name="live_s1_asis", agent=asis_agent, session_service=s_svc)
-                    await s_svc.create_session(app_name="live_s1_asis", user_id=user_id, session_id="s1-asis")
-                    ans, usage, ms = await _execute_adk_turn_isolated(r_asis, user_id, "s1-asis", prompt)
-                    emit("asis", "done", f"As-Is finished in {ms / 1000:.1f}s (ADK measured prompt={usage['prompt_tokens']:,} tok)")
-                    bq_in = MONOLITHIC_SINGLE_TURN_INPUT_TOKENS
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"],
-                        usage["cached_tokens"],
-                        usage["output_and_thoughts_tokens"],
-                        bq_in,
-                        bqca_cached_ratio=0.45,
-                        bqca_output_tokens=2200,
-                    )
-                    return {
-                        "label": "As-Is: Runtime Discovery + Unscoped Monolithic CAA (7 Tables)",
-                        "latency_ms": ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_in,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_in,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "no_cache_cost_usd": round(cost["adk_tier_cost_usd"] + cost["bqca_unoptimized_no_cache_cost_usd"], 6),
-                        "generated_sql": captured_caa.get("generated_sql", ""),
-                        "markdown_table": captured_caa.get("markdown_table", ""),
-                        "answer": ans or captured_caa.get("ca_final_answer", ""),
-                        "defect_summary": (
-                            f"Injected 7-table schema dump + {captured_caa.get('stripped_thought_chars', 0):,} raw THOUGHT chars "
-                            "into ADK prompt; unscoped DataAgent lacks Hop-1 VIP/Margin glossary formulas."
-                        ),
-                    }
-
-                async def run_s1_tobe() -> dict[str, Any]:
-                    emit("tobe", "routing", "To-Be: Root Router static enum transfer_to_agent (0 discovery calls)...")
-                    # Reset main session cleanly for S1 start of chain
-                    vsess.session_svc = InMemorySessionService()
-                    vsess.initialized = False
-                    await vsess.ensure_initialized()
-                    assert vsess.runner is not None
-
-                    ans, usage, ms = await _execute_adk_turn_isolated(vsess.runner, user_id, vsess.main_session_id, prompt)
-                    sess_after = await vsess.session_svc.get_session(
-                        app_name=vsess.runner.app_name, user_id=user_id, session_id=vsess.main_session_id
-                    )
-                    hist = (sess_after.state.get("domain_query_history") or [{}])[-1] if sess_after else {}
-                    fanout_res = sess_after.state.get("last_fanout_results") if sess_after else None
-
-                    if not hist.get("generated_sql") and not fanout_res:
-                        # Fallback direct scoped query if LLM answered without calling tool
-                        aid, did, dlabel = _infer_target_domain_agent(prompt)
-                        direct = await _run_in_ctx_thread(_query_domain_caa_agent, aid, did, dlabel, prompt)
-                        bq_tok = int(direct.get("scoped_tokens", 11400))
-                        gen_sql = direct.get("generated_sql", "")
-                        md_tbl = direct.get("markdown_table", "")
-                        ans_text = ans or direct.get("ca_final_answer", "")
-                        target_agent = aid
-                    elif fanout_res and isinstance(fanout_res, dict):
-                        bq_tok = sum(int(v.get("scoped_tokens", 0)) for v in fanout_res.values())
-                        gen_sql = "\n\n".join(f"-- [{k}]\n{v.get('generated_sql', '')}" for k, v in fanout_res.items())
-                        md_tbl = next((v.get("markdown_table", "") for v in fanout_res.values() if v.get("markdown_table")), "")
-                        ans_text = ans
-                        target_agent = "3 Scoped Domain Agents (Parallel)"
-                    else:
-                        bq_tok = int(hist.get("scoped_tokens", 11450))
-                        gen_sql = hist.get("generated_sql", "")
-                        md_tbl = hist.get("markdown_table", "")
-                        ans_text = ans or hist.get("answer_preview", "")
-                        target_agent = hist.get("caa_agent_id", CUSTOMER_CA_ID)
-
-                    vsess.s1_completed = True
-                    vsess.last_s1_prompt = prompt
-                    vsess.last_s1_summary = (ans_text or "")[:600]
-                    vsess.last_s1_domain_agent_id = target_agent if target_agent in (CUSTOMER_CA_ID, PRODUCT_CA_ID, SUPPLY_CA_ID) else CUSTOMER_CA_ID
-
-                    emit("tobe", "done", f"To-Be finished in {ms / 1000:.1f}s (ADK measured prompt={usage['prompt_tokens']:,} tok, Scoped CAA={target_agent})")
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"],
-                        usage["cached_tokens"],
-                        usage["output_and_thoughts_tokens"],
-                        bq_tok,
-                        bqca_cached_ratio=0.60,
-                        bqca_output_tokens=1100,
-                    )
-                    return {
-                        "label": f"To-Be: Static Enum Transfer + Scoped {target_agent}",
-                        "latency_ms": ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_tok,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_tok,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "generated_sql": gen_sql,
-                        "markdown_table": md_tbl,
-                        "answer": ans_text,
-                        "state_summary": {
-                            "active_domain": sess_after.state.get("active_domain") if sess_after else "Customer CRM",
-                            "compact_digest": (sess_after.state.get("compact_routing_digest") or []) if sess_after else [],
-                            "window_msgs": len((sess_after.state.get("domain_ca_multiturn_messages") or {}).get(vsess.last_s1_domain_agent_id, [])) if sess_after else 2,
-                        },
-                    }
-
-                asis_res, tobe_res = await asyncio.gather(run_s1_asis(), run_s1_tobe())
-
-            # =================================================================
-            # SCENARIO 2: One-Shot 1-Message Stateless Amnesia vs ADK 3-Turn Window
-            # =================================================================
-            elif code == "S2":
-                assert vsess.runner is not None
-                sess_cur = await vsess.session_svc.get_session(
-                    app_name=vsess.runner.app_name, user_id=user_id, session_id=vsess.main_session_id
-                )
-                mt_map = dict(sess_cur.state.get("domain_ca_multiturn_messages") or {}) if sess_cur else {}
-                if not mt_map:
-                    seed_q = "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."
-                    seed_a = "30-day VIP cohort by traffic_source (SUM(sale_price) >= $500 OR >= 5 orders): Search (24 VIPs, $17,640 revenue, $245 AOV), Organic, Email, Display."
-                    mt_map[CUSTOMER_CA_ID] = [
-                        {"userMessage": {"text": seed_q}},
-                        {"systemMessage": {"text": {"parts": [seed_a]}}},
-                    ]
-                    if sess_cur is not None:
-                        sess_cur.state["domain_ca_multiturn_messages"] = mt_map
-                        sess_cur.state["active_domain"] = "Customer CRM & Marketing Funnel"
-                        sess_cur.state["session_turn_count"] = 1
-                        sess_cur.state["compact_routing_digest"] = [f"T1 [{CUSTOMER_CA_ID}]: Q='{seed_q[:80]}' -> {seed_a[:120]}"]
-                    vsess.last_s1_domain_agent_id = CUSTOMER_CA_ID
-                    emit("tobe", "seed", "Auto-seeded Turn-1 VIP cohort into ADK Session.state (ready for Turn-2 follow-up).")
-                else:
-                    emit("tobe", "seed", f"Reusing live Turn-1 context from your active session ({vsess.last_s1_domain_agent_id}).")
-
-                target_aid = vsess.last_s1_domain_agent_id or CUSTOMER_CA_ID
-
-                async def run_s2_asis() -> dict[str, Any]:
-                    emit("asis", "oneshot", "As-Is: Sending ONLY 1 UserMessage (default ask_data_agent One-Shot Stateless) + discovery...")
-                    captured_oneshot: dict[str, Any] = {}
-
-                    def list_and_inspect_all_data_agents() -> dict[str, Any]:
-                        return _build_verbose_discovery_dump()
-
-                    def ask_oneshot_stateless_data_agent(query: str) -> dict[str, Any]:
-                        res = _query_domain_caa_agent(
-                            agent_id=BASELINE_CA_ID,
-                            domain_id="oneshot_amnesia",
-                            domain_label="As-Is One-Shot Stateless (1 Message Sent, 0 Prior Context)",
-                            query=query,
-                            prior_messages_override=[],  # Zero prior messages!
-                            include_raw_thoughts_for_baseline=True,
-                            max_table_rows=50,
-                        )
-                        captured_oneshot.update(res)
-                        return {
-                            "context_messages_sent": 1,
-                            "thought_stream": res.get("raw_thoughts_log", []),
-                            "generated_sql": res.get("generated_sql", ""),
-                            "raw_rows_json": res.get("raw_rows_json", []),
-                            "final_text": res.get("ca_final_answer", ""),
-                        }
-
-                    asis_s2 = LlmAgent(
-                        model="gemini-2.5-flash",
-                        name="asis_oneshot_amnesia_agent",
-                        instruction=(
-                            "Call `list_and_inspect_all_data_agents()` then call `ask_oneshot_stateless_data_agent(query=...)` "
-                            "passing the user's Turn-2 prompt verbatim without prior session history, and summarize."
-                        ),
-                        tools=[list_and_inspect_all_data_agents, ask_oneshot_stateless_data_agent],
-                        after_model_callback=_record_vertex_llm_usage_telemetry,
-                    )
-                    s_svc = InMemorySessionService()
-                    r_asis = Runner(app_name="live_s2_asis", agent=asis_s2, session_service=s_svc)
-                    await s_svc.create_session(app_name="live_s2_asis", user_id=user_id, session_id="s2-asis")
-                    ans, usage, ms = await _execute_adk_turn_isolated(r_asis, user_id, "s2-asis", prompt)
-                    emit("asis", "done", f"As-Is One-Shot finished in {ms / 1000:.1f}s (1 message sent -> prior Turn-1 filter dropped)")
-                    bq_in = MONOLITHIC_SINGLE_TURN_INPUT_TOKENS + 9400
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"], usage["cached_tokens"], usage["output_and_thoughts_tokens"], bq_in, 0.45, 2200
-                    )
-                    return {
-                        "label": "As-Is: Default One-Shot ask_data_agent (1 Message Sent → Context Amnesia)",
-                        "latency_ms": ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_in,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_in,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "context_messages_sent": 1,
-                        "generated_sql": captured_oneshot.get("generated_sql", ""),
-                        "markdown_table": captured_oneshot.get("markdown_table", ""),
-                        "answer": ans or captured_oneshot.get("ca_final_answer", ""),
-                        "defect_summary": "Sent only 1 UserMessage to stateless :chat — lost Turn-1 cohort/columns completely!",
-                    }
-
-                async def run_s2_tobe() -> dict[str, Any]:
-                    assert vsess.runner is not None
-                    emit("tobe", "window", f"To-Be: Injecting curated 3-Turn Sliding Window ({target_aid}) into stateless :chat...")
-                    ans, usage, ms = await _execute_adk_turn_isolated(vsess.runner, user_id, vsess.main_session_id, prompt)
-                    sess_after = await vsess.session_svc.get_session(
-                        app_name=vsess.runner.app_name, user_id=user_id, session_id=vsess.main_session_id
-                    )
-                    hist = (sess_after.state.get("domain_query_history") or [{}])[-1] if sess_after else {}
-                    bq_tok = int(hist.get("scoped_tokens", 11680))
-                    msgs_sent = int(hist.get("multiturn_context_messages_sent", 3))
-                    emit("tobe", "done", f"To-Be finished in {ms / 1000:.1f}s ({msgs_sent} compact messages sent, Turn-1 context preserved)")
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"], usage["cached_tokens"], usage["output_and_thoughts_tokens"], bq_tok, 0.60, 1150
-                    )
-                    return {
-                        "label": f"To-Be: Stateless Chat API + ADK 3-Turn Window ({msgs_sent} Messages Sent)",
-                        "latency_ms": ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_tok,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_tok,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "context_messages_sent": msgs_sent,
-                        "generated_sql": hist.get("generated_sql", ""),
-                        "markdown_table": hist.get("markdown_table", ""),
-                        "answer": ans or hist.get("answer_preview", ""),
-                        "state_summary": {
-                            "active_domain": sess_after.state.get("active_domain") if sess_after else "Customer CRM",
-                            "compact_digest": (sess_after.state.get("compact_routing_digest") or []) if sess_after else [],
-                            "window_msgs": msgs_sent,
-                        },
-                    }
-
-                asis_res, tobe_res = await asyncio.gather(run_s2_asis(), run_s2_tobe())
-
-            # =================================================================
-            # SCENARIO 3: Stateful Lock-In & Sequential Calls vs Peer Switch & Parallel Fan-Out
-            # =================================================================
-            elif code == "S3":
-                emit("both", "start", "Running As-Is Monolithic/Sequential vs To-Be Peer Transfer & Parallel Fan-Out...")
-
-                async def run_s3_asis() -> dict[str, Any]:
-                    emit("asis", "sequential", "As-Is: Executing unoptimized monolithic/sequential CAA pipeline with schema discovery...")
-                    captured_asis: list[dict[str, Any]] = []
-
-                    def list_and_inspect_all_data_agents() -> dict[str, Any]:
-                        return _build_verbose_discovery_dump()
-
-                    def ask_monolithic_sequential_caa(sub_question: str) -> dict[str, Any]:
-                        emit("asis", "bqca", f"As-Is Sequential Call #{len(captured_asis) + 1} on {BASELINE_CA_ID}...")
-                        res = _query_domain_caa_agent(
-                            agent_id=BASELINE_CA_ID,
-                            domain_id="monolithic_sequential",
-                            domain_label="As-Is Monolithic Sequential CAA",
-                            query=sub_question,
-                            include_raw_thoughts_for_baseline=True,
-                            max_table_rows=40,
-                        )
-                        captured_asis.append(res)
-                        return {
-                            "thought_stream": res.get("raw_thoughts_log", []),
-                            "generated_sql": res.get("generated_sql", ""),
-                            "raw_rows_json": res.get("raw_rows_json", []),
-                            "final_text": res.get("ca_final_answer", ""),
-                        }
-
-                    asis_s3 = LlmAgent(
-                        model="gemini-2.5-flash",
-                        name="asis_locked_sequential_agent",
-                        instruction=(
-                            "First call `list_and_inspect_all_data_agents()`, then call `ask_monolithic_sequential_caa(sub_question=...)` "
-                            "to answer the user's question in English (if multi-part, call sequentially) and summarize."
-                        ),
-                        tools=[list_and_inspect_all_data_agents, ask_monolithic_sequential_caa],
-                        after_model_callback=_record_vertex_llm_usage_telemetry,
-                    )
-                    s_svc = InMemorySessionService()
-                    r_asis = Runner(app_name="live_s3_asis", agent=asis_s3, session_service=s_svc)
-                    await s_svc.create_session(app_name="live_s3_asis", user_id=user_id, session_id="s3-asis")
-                    ans, usage, ms = await _execute_adk_turn_isolated(r_asis, user_id, "s3-asis", prompt)
-                    n_calls = max(1, len(captured_asis))
-                    bq_in = MONOLITHIC_FANOUT_EQUIV_INPUT_TOKENS if n_calls >= 2 else MONOLITHIC_SINGLE_TURN_INPUT_TOKENS
-                    emit("asis", "done", f"As-Is completed {n_calls} sequential monolithic call(s) in {ms / 1000:.1f}s")
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"], usage["cached_tokens"], usage["output_and_thoughts_tokens"], bq_in, 0.45, 2600
-                    )
-                    sql_joined = "\n\n".join(
-                        f"-- [As-Is Call #{idx + 1}]\n{c.get('generated_sql', '')}" for idx, c in enumerate(captured_asis)
-                    )
-                    first_tbl = next((c.get("markdown_table", "") for c in captured_asis if c.get("markdown_table")), "")
-                    return {
-                        "label": f"As-Is: Stateful Single-Agent Lock-In / Sequential Monolithic ({n_calls} Call(s))",
-                        "latency_ms": ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_in,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_in,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "generated_sql": sql_joined,
-                        "markdown_table": first_tbl,
-                        "answer": ans or "\n\n".join(c.get("ca_final_answer", "") for c in captured_asis),
-                        "defect_summary": "ConversationReference locks 1 Conversation = 1 DataAgent; multi-domain analysis serializes execution.",
-                    }
-
-                async def run_s3_tobe() -> dict[str, Any]:
-                    assert vsess.runner is not None
-                    emit("tobe", "fanout", "To-Be: Routing via 0-Bounce Peer Handoff or ThreadPoolExecutor(3) concurrent :chat...")
-                    # Use fresh fanout/pivot session seeded with active domain if single-domain pivot
-                    ans, usage, ms = await _execute_adk_turn_isolated(vsess.runner, user_id, vsess.main_session_id, prompt)
-                    sess_after = await vsess.session_svc.get_session(
-                        app_name=vsess.runner.app_name, user_id=user_id, session_id=vsess.main_session_id
-                    )
-                    fan_map = (sess_after.state.get("last_fanout_results") or {}) if sess_after else {}
-                    hist = (sess_after.state.get("domain_query_history") or [{}])[-1] if sess_after else {}
-
-                    if fan_map and isinstance(fan_map, dict):
-                        bq_tok = sum(int(v.get("scoped_tokens", 0)) for v in fan_map.values())
-                        seq_sum_ms = sum(int(v.get("latency_ms", 0)) for v in fan_map.values())
-                        gen_sql = "\n\n".join(f"-- [{k}]\n{v.get('generated_sql', '')}" for k, v in fan_map.items())
-                        md_tbl = "\n\n".join(
-                            f"**{k}**\n{v.get('markdown_table', '')}" for k, v in fan_map.items() if v.get("markdown_table")
-                        )
-                        # Clear last_fanout_results after reading so next single-domain turn doesn't reuse it
-                        sess_after.state["last_fanout_results"] = None
-                        mode_note = f"3-Domain Parallel ThreadPoolExecutor (Sequential Sum: {seq_sum_ms / 1000:.1f}s → Wall-Clock: {ms / 1000:.1f}s)"
-                    else:
-                        bq_tok = int(hist.get("scoped_tokens", 12900))
-                        seq_sum_ms = ms
-                        gen_sql = hist.get("generated_sql", "")
-                        md_tbl = hist.get("markdown_table", "")
-                        mode_note = f"Direct Peer-to-Peer Domain Switch ({' → '.join(usage['agents_invoked'])})"
-
-                    emit("tobe", "done", f"To-Be finished in {ms / 1000:.1f}s ({mode_note})")
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"], usage["cached_tokens"], usage["output_and_thoughts_tokens"], bq_tok, 0.60, 1800
-                    )
-                    return {
-                        "label": f"To-Be: {mode_note}",
-                        "latency_ms": ms,
-                        "sequential_sum_ms": seq_sum_ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_tok,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_tok,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "generated_sql": gen_sql,
-                        "markdown_table": md_tbl,
-                        "answer": ans,
-                        "state_summary": {
-                            "active_domain": sess_after.state.get("active_domain") if sess_after else "Multi-Domain",
-                            "agents_hop_trace": usage["agents_invoked"],
-                        },
-                    }
-
-                asis_res, tobe_res = await asyncio.gather(run_s3_asis(), run_s3_tobe())
-
-            # =================================================================
-            # SCENARIO 4: Live Multi-Turn ADK `usage_metadata` Compaction + Live Custom Turn-5 Dual Run
-            # =================================================================
             elif code == "S4":
-                emit("both", "start", "Running Live Multi-Turn ADK usage_metadata Compaction + Turn-5 Live BigQuery CAA Dual Run...")
-
-                # Prepare verbose vs slim payloads for prior turns 1..4 so we measure 100% real Vertex AI usage_metadata
-                verbose_turn_payload = {
-                    "schema_discovery": _build_verbose_discovery_dump(),
-                    "thought_stream": ["Scanning 7 unscoped tables and candidate joins... " * 28, "Validating timestamp columns... " * 24],
-                    "raw_rows_50": [{"channel": "Search", "gross_rev": 18825.48, "detail": "untrimmed raw json row payload " * 6}] * 28,
-                }
-                slim_turn_payload = {
-                    "domain": "Customer CRM & Marketing Funnel",
-                    "markdown_table_20_cap": "| traffic_source | vip_count | gross_revenue |\n| --- | --- | --- |\n| Search | 24 | 17640.00 |",
-                    "summary": "Search led 30-day VIP gross revenue ($17,640 across 24 VIP customers).",
-                }
-
-                target_aid, target_did, target_dlabel = _infer_target_domain_agent(prompt)
-                asis_live_turn5_caa: dict[str, Any] = {}
-                tobe_live_turn5_caa: dict[str, Any] = {}
-
-                if s4_mode != "append_turn" or not vsess.s4_initialized:
-                    vsess.s4_sess_svc = InMemorySessionService()
+                append = "append" in (s4_mode or "").lower() and bool(vsess.s4_turn_history)
+                if not append:
+                    vsess.s4_epoch += 1
                     vsess.s4_turn_history = []
+                    await vsess.create_pair(f"tobe-s4-{vsess.s4_epoch}", f"asis-s4-{vsess.s4_epoch}")
+                t_sid, a_sid = f"tobe-s4-{vsess.s4_epoch}", f"asis-s4-{vsess.s4_epoch}"
 
-                    def asis_multiturn_tool(question: str, execute_live_bqca: bool = False) -> dict[str, Any]:
-                        if execute_live_bqca:
-                            emit("asis", "bqca", f"As-Is Final Turn: Executing live unscoped {BASELINE_CA_ID} with accumulated history...")
-                            res = _query_domain_caa_agent(
-                                agent_id=BASELINE_CA_ID,
-                                domain_id="monolithic_s4",
-                                domain_label="Unscoped Monolithic CAA",
-                                query=question,
-                                include_raw_thoughts_for_baseline=True,
-                                max_table_rows=50,
-                            )
-                            asis_live_turn5_caa.update(res)
-                            return {
-                                "live_sql": res.get("generated_sql", ""),
-                                "thought_stream": res.get("raw_thoughts_log", []),
-                                "raw_rows_50": res.get("raw_rows_json", []),
-                                **verbose_turn_payload,
-                            }
-                        return {"question": question, **verbose_turn_payload}
+                def record(text: str, tb: dict[str, Any], ai: dict[str, Any]) -> None:
+                    vsess.s4_turn_history.append({
+                        "turn": len(vsess.s4_turn_history) + 1,
+                        "prompt": text,
+                        "asis_adk_prompt_tokens": ai["adk_usage"]["prompt_tokens"],
+                        "tobe_adk_prompt_tokens": tb["adk_usage"]["prompt_tokens"],
+                        "tobe_compacted_dropped": tb["adk_usage"]["compacted_contents_dropped"],
+                        "asis_latency_ms": ai["latency_ms"],
+                        "tobe_latency_ms": tb["latency_ms"],
+                        "errors": tb["errors"] + ai["errors"],
+                    })
 
-                    def tobe_multiturn_tool(question: str, execute_live_bqca: bool = False) -> dict[str, Any]:
-                        if execute_live_bqca:
-                            emit("tobe", "bqca", f"To-Be Final Turn: Executing scoped {target_aid} with 3-Turn Sliding Window...")
-                            prior_3turns = [
-                                {"userMessage": {"text": "Show 30-day VIP revenue by traffic_source."}},
-                                {"systemMessage": {"text": {"parts": ["Search led VIP revenue ($17,640 across 24 VIPs)."]}}},
-                                {"userMessage": {"text": "Compare Outerwear return rate by brand."}},
-                                {"systemMessage": {"text": {"parts": ["Nordic Luxe return rate is 50.0% vs TheLook Atelier 20.0%."]}}},
-                            ]
-                            res = _query_domain_caa_agent(
-                                agent_id=target_aid,
-                                domain_id=target_did,
-                                domain_label=target_dlabel,
-                                query=question,
-                                prior_messages_override=prior_3turns,
-                                max_table_rows=20,
-                            )
-                            tobe_live_turn5_caa.update(res)
-                            return {
-                                "domain": target_dlabel,
-                                "generated_sql": res.get("generated_sql", ""),
-                                "markdown_table_20_cap": res.get("markdown_table", ""),
-                                "summary": (res.get("ca_final_answer") or "")[:400],
-                            }
-                        return {"question": question, **slim_turn_payload}
+                if not append:
+                    for w_prompt in S4_WARMUP_PROMPTS:
+                        emit("both", f"Turn {len(vsess.s4_turn_history) + 1} (real warm-up turn): {w_prompt}")
+                        w_tobe, w_asis = await run_both(t_sid, a_sid, w_prompt, tobe_label, asis_label)
+                        record(w_prompt, w_tobe, w_asis)
+                emit("both", f"Turn {len(vsess.s4_turn_history) + 1} (your prompt)")
+                tobe, asis = await run_both(t_sid, a_sid, prompt, tobe_label, asis_label)
+                record(prompt, tobe, asis)
+                extra["turn_curve"] = list(vsess.s4_turn_history)
 
-                    asis_mt_agent = LlmAgent(
-                        model="gemini-2.5-flash",
-                        name="asis_unbounded_adk_agent",
-                        instruction=(
-                            "Always call `asis_multiturn_tool` once per turn (set `execute_live_bqca=True` ONLY when prompted "
-                            "with `[LIVE_FINAL_TURN]`, otherwise `False`) and answer in 2 concise bullets."
-                        ),
-                        tools=[asis_multiturn_tool],
-                        after_model_callback=_record_vertex_llm_usage_telemetry,
-                    )
-                    tobe_mt_agent = LlmAgent(
-                        model="gemini-2.5-flash",
-                        name="tobe_compacted_adk_agent",
-                        instruction=(
-                            "Always call `tobe_multiturn_tool` once per turn (set `execute_live_bqca=True` ONLY when prompted "
-                            "with `[LIVE_FINAL_TURN]`, otherwise `False`) and answer in 2 concise bullets."
-                        ),
-                        tools=[tobe_multiturn_tool],
-                        before_model_callback=_compact_adk_llm_request_window,
-                        after_model_callback=_record_vertex_llm_usage_telemetry,
-                    )
-                    vsess.s4_asis_runner = Runner(app_name="live_s4_ab", agent=asis_mt_agent, session_service=vsess.s4_sess_svc)
-                    vsess.s4_tobe_runner = Runner(app_name="live_s4_ab", agent=tobe_mt_agent, session_service=vsess.s4_sess_svc)
-                    await vsess.s4_sess_svc.create_session(app_name="live_s4_ab", user_id=user_id, session_id="s4-asis")
-                    await vsess.s4_sess_svc.create_session(app_name="live_s4_ab", user_id=user_id, session_id="s4-tobe")
-                    vsess.s4_initialized = True
-
-                    warmup_turns = [
-                        "Turn 1: Summarize 30-day VIP customer revenue by channel.",
-                        "Turn 2: Add 14-day cart abandonment rate across those channels.",
-                        "Turn 3: Check 90-day dormant VIP customer count.",
-                        "Turn 4: Compare Women Outerwear return rate % by brand.",
-                    ]
-                    for idx_t, w_prompt in enumerate(warmup_turns, start=1):
-                        (_, u_a, _), (_, u_b, _) = await asyncio.gather(
-                            _execute_adk_turn_isolated(vsess.s4_asis_runner, user_id, "s4-asis", w_prompt),
-                            _execute_adk_turn_isolated(vsess.s4_tobe_runner, user_id, "s4-tobe", w_prompt),
-                        )
-                        row = {
-                            "turn": idx_t,
-                            "asis_adk_prompt_tokens": u_a["prompt_tokens"],
-                            "tobe_adk_prompt_tokens": u_b["prompt_tokens"],
-                            "tobe_compacted_dropped": u_b["compacted_contents_dropped"],
-                        }
-                        vsess.s4_turn_history.append(row)
-                        emit(
-                            "both",
-                            f"turn_{idx_t}",
-                            f"Measured Vertex AI Turn {idx_t}: As-Is={u_a['prompt_tokens']:,} tok vs To-Be={u_b['prompt_tokens']:,} tok (evicted={u_b['compacted_contents_dropped']})",
-                        )
-
-                assert vsess.s4_asis_runner is not None and vsess.s4_tobe_runner is not None
-                next_turn_num = len(vsess.s4_turn_history) + 1
-                final_tagged_prompt = f"[LIVE_FINAL_TURN] {prompt}"
-
-                t_f = time.monotonic()
-                (asis_ans, u_asis_f, ms_asis_f), (tobe_ans, u_tobe_f, ms_tobe_f) = await asyncio.gather(
-                    _execute_adk_turn_isolated(vsess.s4_asis_runner, user_id, "s4-asis", final_tagged_prompt),
-                    _execute_adk_turn_isolated(vsess.s4_tobe_runner, user_id, "s4-tobe", final_tagged_prompt),
-                )
-                _ = t_f
-
-                final_row = {
-                    "turn": next_turn_num,
-                    "asis_adk_prompt_tokens": u_asis_f["prompt_tokens"],
-                    "tobe_adk_prompt_tokens": u_tobe_f["prompt_tokens"],
-                    "tobe_compacted_dropped": u_tobe_f["compacted_contents_dropped"],
+            else:  # S5
+                runner = vsess.ensure_runner()
+                if vsess.main_turns == 0 and not vsess.memory_seeded:
+                    emit("tobe", "No earlier session for this visitor, so a seed session saves a profile and one pinned insight first.")
+                    await vsess.create_pair("tobe-s5-seed", None)
+                    seed = await run_tobe("tobe-s5-seed", S5_SEED_PROMPT, tobe_label)
+                    vsess.memory_seeded = True
+                    prerequisite = {"prompt": S5_SEED_PROMPT, "tobe_adk_prompt_tokens": seed["adk_usage"]["prompt_tokens"], "asis_adk_prompt_tokens": None, "tobe_errors": seed["errors"], "asis_errors": []}
+                vsess.s5_runs += 1
+                t_sid, a_sid = f"tobe-s5-{vsess.s5_runs}", f"asis-s5-{vsess.s5_runs}"
+                await vsess.create_pair(t_sid, a_sid)
+                emit("both", "Brand-new session on both pipelines. The prompt is sent unchanged to each.")
+                tobe, asis = await run_both(t_sid, a_sid, prompt, tobe_label, asis_label)
+                new_sess = await vsess.session_svc.get_session(app_name=runner.app_name, user_id=vsess.user_id, session_id=t_sid)
+                state = new_sess.state if new_sess else {}
+                extra["state_summary"] = {
+                    "new_session_id": t_sid,
+                    "rehydrated_user_profile": state.get("user:profile"),
+                    "rehydrated_pinned_insights": len(state.get("user:pinned_insights") or []),
                 }
-                vsess.s4_turn_history.append(final_row)
 
-                bq_asis_tok = MONOLITHIC_SINGLE_TURN_INPUT_TOKENS + (next_turn_num - 1) * 9400
-                bq_tobe_tok = int(tobe_live_turn5_caa.get("scoped_tokens", 11400 + 3 * 850))
-
-                c_asis = compute_effective_cost_usd(
-                    u_asis_f["prompt_tokens"], u_asis_f["cached_tokens"], u_asis_f["output_and_thoughts_tokens"], bq_asis_tok, 0.50, 2200
-                )
-                c_tobe = compute_effective_cost_usd(
-                    u_tobe_f["prompt_tokens"], u_tobe_f["cached_tokens"], u_tobe_f["output_and_thoughts_tokens"], bq_tobe_tok, 0.65, 1050
-                )
-
-                asis_res = {
-                    "label": f"As-Is Turn {next_turn_num}: Unbounded Session.events + Monolithic CAA",
-                    "latency_ms": ms_asis_f,
-                    "adk_usage": u_asis_f,
-                    "bqca_input_tokens": bq_asis_tok,
-                    "total_2tier_tokens": u_asis_f["prompt_tokens"] + bq_asis_tok,
-                    "effective_cost_usd": c_asis["total_effective_cost_usd"],
-                    "no_cache_cost_usd": round(c_asis["adk_tier_cost_usd"] + c_asis["bqca_unoptimized_no_cache_cost_usd"], 6),
-                    "generated_sql": asis_live_turn5_caa.get("generated_sql", ""),
-                    "markdown_table": asis_live_turn5_caa.get("markdown_table", ""),
-                    "answer": asis_ans or asis_live_turn5_caa.get("ca_final_answer", ""),
-                    "turn_curve": list(vsess.s4_turn_history),
-                    "defect_summary": f"Turn {next_turn_num} ADK prompt ballooned to {u_asis_f['prompt_tokens']:,} measured tokens due to unpruned tool JSON & THOUGHT history.",
-                }
-                tobe_res = {
-                    "label": f"To-Be Turn {next_turn_num}: before_model_callback 3-Turn Cap + 90% BQCA Cache ($0.30/1M)",
-                    "latency_ms": ms_tobe_f,
-                    "adk_usage": u_tobe_f,
-                    "bqca_input_tokens": bq_tobe_tok,
-                    "total_2tier_tokens": u_tobe_f["prompt_tokens"] + bq_tobe_tok,
-                    "effective_cost_usd": c_tobe["total_effective_cost_usd"],
-                    "generated_sql": tobe_live_turn5_caa.get("generated_sql", ""),
-                    "markdown_table": tobe_live_turn5_caa.get("markdown_table", ""),
-                    "answer": tobe_ans or tobe_live_turn5_caa.get("ca_final_answer", ""),
-                    "turn_curve": list(vsess.s4_turn_history),
-                    "state_summary": {
-                        "turn_number": next_turn_num,
-                        "compacted_contents_dropped": u_tobe_f["compacted_contents_dropped"],
-                        "bqca_cached_tokens_90pct_off": c_tobe["bqca_cached_tokens"],
+            cal = load_bqca_trace_calibration()
+            sides_failed = [s["status"] == "ERROR" for s in (asis, tobe)]
+            await event_queue.put({
+                "kind": "complete",
+                "result": {
+                    "status": "ERROR" if all(sides_failed) else ("PARTIAL" if any(sides_failed) else "SUCCESS"),
+                    "scenario_code": code,
+                    "visitor_id": vid,
+                    "prompt_executed": prompt,
+                    "wall_clock_ms": int((time.monotonic() - t_start) * 1000),
+                    "prerequisite": prerequisite,
+                    "comparison_summary": _comparison(asis, tobe),
+                    "asis": asis,
+                    "tobe": tobe,
+                    "calibration": {
+                        "measured_at_utc": cal.get("measured_at_utc"),
+                        "source": cal.get("source"),
+                        "per_data_agent": cal.get("per_data_agent", {}),
                     },
-                }
-
-            # =================================================================
-            # SCENARIO 5: New Session Wipe & 110K Re-Scan vs 4-Scope State & Memory 0-Scan Recall
-            # =================================================================
-            else:
-                emit("both", "start", "Testing Brand-New Session B: As-Is Context Wipe Re-Scan vs To-Be MemoryService Short-Circuit...")
-
-                mem_sess_svc = InMemorySessionService()
-                mem_bank = InMemoryMemoryService()
-                try:
-                    mem_runner = Runner(app=adk_app, session_service=mem_sess_svc, memory_service=mem_bank)
-                except Exception:
-                    mem_runner = Runner(
-                        app_name="bq_caa_3domain_multi_agent",
-                        agent=root_agent,
-                        session_service=mem_sess_svc,
-                        memory_service=mem_bank,
-                    )
-
-                await mem_sess_svc.create_session(app_name=mem_runner.app_name, user_id=user_id, session_id="session-A")
-                seed_note = (
-                    "Save my profile role as 'Principal Supply Chain & Merchandising Analyst' focusing on "
-                    "'Women Outerwear Margin & DC Lead Time', and pin this root-cause insight: "
-                    "'Nordic Luxe 50.0% return rate ($7,200 vs $11,520 realized profit) is driven by a 6.0-day shipping delay at Memphis TN DC #1.'"
-                )
-                if vsess.last_s1_summary:
-                    seed_note += f" Also remember our custom finding: '{vsess.last_s1_summary[:200]}'."
-
-                emit("tobe", "seed", "Session A: Persisting user:profile & pinned root-cause insights into ADK MemoryService, then closing Session A...")
-                await _execute_adk_turn_isolated(mem_runner, user_id, "session-A", seed_note)
-                sess_a_after = await mem_sess_svc.get_session(app_name=mem_runner.app_name, user_id=user_id, session_id="session-A")
-                temp_keys_remaining = [k for k in (sess_a_after.state.keys() if sess_a_after else []) if str(k).startswith("temp:")]
-
-                async def run_s5_asis() -> dict[str, Any]:
-                    emit("asis", "rescan", "As-Is (+ New Session): Memory wiped! Forced to re-query Monolithic BigQuery CAA from scratch...")
-                    captured_rescan: dict[str, Any] = {}
-
-                    def ask_monolithic_rescan(query: str) -> dict[str, Any]:
-                        res = _query_domain_caa_agent(
-                            agent_id=BASELINE_CA_ID,
-                            domain_id="rescan_baseline",
-                            domain_label="As-Is New Session Full Warehouse Re-Scan",
-                            query=query,
-                            include_raw_thoughts_for_baseline=True,
-                            max_table_rows=30,
-                        )
-                        captured_rescan.update(res)
-                        return {
-                            "generated_sql": res.get("generated_sql", ""),
-                            "thought_stream": res.get("raw_thoughts_log", []),
-                            "final_text": res.get("ca_final_answer", ""),
-                        }
-
-                    asis_s5 = LlmAgent(
-                        model="gemini-2.5-flash",
-                        name="asis_no_memory_agent",
-                        instruction=(
-                            "You have NO cross-session memory or saved analyst profile in this new session. "
-                            "You MUST call `ask_monolithic_rescan(query=...)` to query BigQuery from scratch to try answering the user's question."
-                        ),
-                        tools=[ask_monolithic_rescan],
-                        after_model_callback=_record_vertex_llm_usage_telemetry,
-                    )
-                    s_svc = InMemorySessionService()
-                    r_asis = Runner(app_name="live_s5_asis", agent=asis_s5, session_service=s_svc)
-                    await s_svc.create_session(app_name="live_s5_asis", user_id=user_id, session_id="s5-asis-new")
-                    ans, usage, ms = await _execute_adk_turn_isolated(r_asis, user_id, "s5-asis-new", prompt)
-                    bq_in = MONOLITHIC_SINGLE_TURN_INPUT_TOKENS
-                    emit("asis", "done", f"As-Is New Session finished in {ms / 1000:.1f}s (burned {bq_in:,} BQCA re-scan tokens)")
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"], usage["cached_tokens"], usage["output_and_thoughts_tokens"], bq_in, 0.45, 2000
-                    )
-                    return {
-                        "label": "As-Is (+ New Session): Total Memory Wipe → Forced 110K+ BQCA Re-Scan",
-                        "latency_ms": ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_in,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_in,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "generated_sql": captured_rescan.get("generated_sql", "-- Forced full warehouse re-scan executed"),
-                        "markdown_table": captured_rescan.get("markdown_table", ""),
-                        "answer": ans or captured_rescan.get("ca_final_answer", ""),
-                        "defect_summary": "Wiped analyst persona & prior root-cause memory on + New Session, triggering redundant BigQuery SQL execution.",
-                    }
-
-                async def run_s5_tobe() -> dict[str, Any]:
-                    emit("tobe", "memory", "To-Be (Brand-New Session B, Turn 1): Rehydrating user:profile & MemoryService (0 BQCA calls)...")
-                    await mem_sess_svc.create_session(app_name=mem_runner.app_name, user_id=user_id, session_id="session-B")
-                    recall_wrapped = (
-                        f"[Brand-New Session-B Context: Prefer recalling from saved user profile & MemoryService via "
-                        f"inspect_session_and_memory_status / load_memory without running BigQuery SQL unless explicitly asked for new raw SQL.]\n{prompt}"
-                    )
-                    ans, usage, ms = await _execute_adk_turn_isolated(mem_runner, user_id, "session-B", recall_wrapped)
-                    sess_b_after = await mem_sess_svc.get_session(app_name=mem_runner.app_name, user_id=user_id, session_id="session-B")
-                    hist_b = (sess_b_after.state.get("domain_query_history") or []) if sess_b_after else []
-                    bq_tok = sum(int(h.get("scoped_tokens", 0)) for h in hist_b)
-                    emit("tobe", "done", f"To-Be Session-B Turn 1 finished in {ms / 1000:.1f}s (BQCA Tokens = {bq_tok:,}, 0 Bytes Scanned)")
-                    cost = compute_effective_cost_usd(
-                        usage["prompt_tokens"], usage["cached_tokens"], usage["output_and_thoughts_tokens"], bq_tok, 0.0, 0
-                    )
-                    return {
-                        "label": "To-Be (Brand-New Session B): 4-Scope State + MemoryService Short-Circuit (0 BQCA Tokens)",
-                        "latency_ms": ms,
-                        "adk_usage": usage,
-                        "bqca_input_tokens": bq_tok,
-                        "total_2tier_tokens": usage["prompt_tokens"] + bq_tok,
-                        "effective_cost_usd": cost["total_effective_cost_usd"],
-                        "generated_sql": (
-                            f"-- SHORT-CIRCUITED VIA ADK MemoryService (BQCA API Calls = {len(hist_b)}, BigQuery Bytes Scanned = 0)\n"
-                            f"-- Session-A temp:* keys remaining after eviction: {len(temp_keys_remaining)}\n"
-                            f"-- Live Vertex AI usage_metadata.prompt_token_count = {usage['prompt_tokens']:,} tok"
-                        ),
-                        "markdown_table": "",
-                        "answer": ans,
-                        "state_summary": {
-                            "session_a_temp_keys_remaining": len(temp_keys_remaining),
-                            "session_b_id": "session-B (Turn 1)",
-                            "rehydrated_profile": sess_b_after.state.get("user:profile") if sess_b_after else {},
-                            "bqca_calls": len(hist_b),
-                        },
-                    }
-
-                asis_res, tobe_res = await asyncio.gather(run_s5_asis(), run_s5_tobe())
-
-            wall_elapsed_ms = int((time.monotonic() - t_start) * 1000)
-            asis_tot = max(1, int(asis_res["total_2tier_tokens"]))
-            tobe_tot = int(tobe_res["total_2tier_tokens"])
-            tok_saved_pct = round((1.0 - (tobe_tot / asis_tot)) * 100.0, 1)
-
-            asis_adk_p = max(1, int(asis_res["adk_usage"]["prompt_tokens"]))
-            tobe_adk_p = int(tobe_res["adk_usage"]["prompt_tokens"])
-            adk_saved_pct = round((1.0 - (tobe_adk_p / asis_adk_p)) * 100.0, 1)
-
-            asis_cost_val = max(0.000001, float(asis_res["effective_cost_usd"]))
-            tobe_cost_val = float(tobe_res["effective_cost_usd"])
-            cost_saved_pct = round((1.0 - (tobe_cost_val / asis_cost_val)) * 100.0, 1)
-
-            await event_queue.put(
-                {
-                    "kind": "complete",
-                    "result": {
-                        "status": "SUCCESS",
-                        "scenario_code": code,
-                        "visitor_id": vid,
-                        "prompt_executed": prompt,
-                        "wall_clock_ms": wall_elapsed_ms,
-                        "comparison_summary": {
-                            "asis_total_2tier_tokens": asis_tot,
-                            "tobe_total_2tier_tokens": tobe_tot,
-                            "total_token_reduction_pct": tok_saved_pct,
-                            "asis_adk_measured_prompt_tokens": int(asis_res["adk_usage"]["prompt_tokens"]),
-                            "tobe_adk_measured_prompt_tokens": tobe_adk_p,
-                            "adk_prompt_reduction_pct": adk_saved_pct,
-                            "asis_effective_cost_usd": round(float(asis_res["effective_cost_usd"]), 5),
-                            "tobe_effective_cost_usd": round(tobe_cost_val, 5),
-                            "effective_cost_reduction_pct": cost_saved_pct,
-                        },
-                        "asis": asis_res,
-                        "tobe": tobe_res,
-                    },
-                }
-            )
-        except Exception as exc:
-            await event_queue.put({"kind": "error", "message": str(exc)})
+                    "adk_version": google.adk.__version__,
+                    **extra,
+                },
+            })
+        except Exception as exc:  # pylint: disable=broad-except
+            await event_queue.put({"kind": "error", "message": f"{type(exc).__name__}: {exc}"})
         finally:
+            vsess.busy = False
+            vsess.last_active = time.monotonic()
             VISITOR_ID_VAR.reset(v_tok)
 
     task = asyncio.create_task(worker())
@@ -1022,16 +669,12 @@ async def stream_dual_ab_scenario(
                     break
                 yield _sse_event("heartbeat", {"status": "running"})
                 continue
-
             if item["kind"] == "progress":
-                yield _sse_event(
-                    "progress",
-                    {"side": item["side"], "phase": item["phase"], "detail": item["detail"]},
-                )
+                yield _sse_event("progress", {"side": item["side"], "detail": item["detail"]})
             elif item["kind"] == "complete":
                 yield _sse_event("complete", {"payload": item["result"]})
                 break
-            elif item["kind"] == "error":
+            else:
                 yield _sse_event("error", {"message": item["message"]})
                 break
     finally:

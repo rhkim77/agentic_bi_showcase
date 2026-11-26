@@ -22,9 +22,13 @@ When integrating **Google Agent Development Kit (`google-adk`)** with **BigQuery
 
 ---
 
-## 2. Empirical `As-Is` vs. `To-Be` Benchmark Scorecard (Measured on GCP)
+## 2. `As-Is` vs. `To-Be` Benchmark Scorecard (Pre-Run Baseline)
 
-Executed live via [`scripts/04_run_scenario_benchmarks.py`](./scripts/04_run_scenario_benchmarks.py) with real **`Vertex AI usage_metadata`** (`after_model_callback`) and official **BQCA `90%` Cached Input (`$0.30/1M` vs `$3.00/1M`)** cost accounting ([`benchmarks/scenario_benchmark_results.json`](./benchmarks/scenario_benchmark_results.json)):
+> **How to read these numbers.** ADK-tier token counts are measured from `Vertex AI usage_metadata`. BQCA-tier token counts, the 2-tier totals and reduction percentages, and the cost figures in this table are computed from fixed assumption constants and were **not measured**: the Conversational Analytics `:chat` API returns no token usage. The `As-Is` runs behind this table used a synthetic harness with padded tool payloads, not the real ADK data agent tools.
+>
+> Real BQCA token usage can be read from Cloud Trace with [`scripts/05_measure_bqca_tokens_from_trace.py`](./scripts/05_measure_bqca_tokens_from_trace.py), which writes [`benchmarks/bqca_trace_token_calibration.json`](./benchmarks/bqca_trace_token_calibration.json). On this 7-table dataset the measured median BQCA input per chat turn is of the same order for the monolithic data agent and for the scoped data agents, so the schema-scoping saving in the table below is not confirmed by measurement here. The live workbench reports measured ADK-tier values and these Cloud Trace medians, and runs `As-Is` with ADK's built-in data agent tools.
+
+Produced by [`scripts/04_run_scenario_benchmarks.py`](./scripts/04_run_scenario_benchmarks.py) ([`benchmarks/scenario_benchmark_results.json`](./benchmarks/scenario_benchmark_results.json)):
 
 | PoC Scenario | As-Is Anti-Pattern (Measured) | To-Be Best Practice (Measured) | Measured Improvement |
 | :--- | :--- | :--- | :--- |

@@ -10,6 +10,7 @@ Implements:
 
 from __future__ import annotations
 
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import ContextVar
 from datetime import datetime, timezone
@@ -56,11 +57,27 @@ ADK_USAGE_COLLECTOR_VAR: ContextVar[list[dict[str, Any]] | None] = ContextVar(
     "adk_usage_collector", default=None
 )
 
+# Per-invocation collector of every BigQuery CAA call result (status, SQL, messages sent, latency)
+CAA_CALL_COLLECTOR_VAR: ContextVar[list[dict[str, Any]] | None] = ContextVar(
+    "caa_call_collector", default=None
+)
+
 # Per-visitor isolation ID so concurrent demo evaluators never collide on persistent Memory files
 VISITOR_ID_VAR: ContextVar[str] = ContextVar("cymbal_visitor_id", default="default")
 
 _STATE_DIR = Path(os.environ.get("CYMBAL_STATE_DIR", "/tmp/cymbal_agentic_bi_state"))
 _PERSISTENT_MEMORY_FILE = _STATE_DIR / "long_term_memory_bank.json"
+
+
+_CALIBRATION_FILE = Path(__file__).resolve().parents[2] / "benchmarks" / "bqca_trace_token_calibration.json"
+
+
+def load_bqca_trace_calibration() -> dict[str, Any]:
+    """Cloud Trace medians of real BQCA token usage per data agent (see scripts/05_measure_bqca_tokens_from_trace.py)."""
+    try:
+        return json.loads(_CALIBRATION_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
 
 def _get_visitor_memory_file() -> Path:
@@ -82,7 +99,9 @@ VERTEX_FLASH_INPUT_USD_PER_1M = 0.30
 VERTEX_FLASH_CACHED_USD_PER_1M = 0.03
 VERTEX_FLASH_OUTPUT_USD_PER_1M = 2.50
 
-# Empirically measured enterprise NL2SQL token footprints (from Cloud Trace `generate_content*` spans)
+# MODELED ASSUMPTIONS, NOT MEASUREMENTS. The Conversational Analytics `:chat` API does not return
+# token usage, and these constants were not measured on this dataset. They are used only for
+# values labelled "Modeled" in the portal. Only ADK-tier `usage_metadata` is measured.
 MONOLITHIC_SINGLE_TURN_INPUT_TOKENS = 110_764
 MONOLITHIC_SINGLE_TURN_OUTPUT_TOKENS = 6_764
 MONOLITHIC_FANOUT_EQUIV_INPUT_TOKENS = 248_500
@@ -658,7 +677,16 @@ def _record_caa_result_into_session_state(
     save_persistent_memory_store(store)
 
 
-def _query_domain_caa_agent(
+def _query_domain_caa_agent(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Calls a BigQuery CAA Data Agent and records the raw result in the per-invocation collector."""
+    res = _query_domain_caa_agent_impl(*args, **kwargs)
+    collector = CAA_CALL_COLLECTOR_VAR.get()
+    if collector is not None:
+        collector.append(res)
+    return res
+
+
+def _query_domain_caa_agent_impl(
     agent_id: str,
     domain_id: str,
     domain_label: str,
@@ -921,9 +949,12 @@ async def inspect_session_and_memory_status(
     }
 
 
-def ask_customer_marketing_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+# The tool functions are async and run the blocking HTTP call in a worker thread. ADK invokes sync
+# tools on the event loop, so a sync tool that waits 20-40s on `:chat` stalls every other request.
+async def ask_customer_marketing_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
     """Queries Cymbal Domain 1 BigQuery CAA (`cymbal_customer_marketing_ca`: users, events, orders, order_items)."""
-    return _query_domain_caa_agent(
+    return await asyncio.to_thread(
+        _query_domain_caa_agent,
         agent_id=CUSTOMER_CA_ID,
         domain_id="customer_marketing",
         domain_label="Customer CRM & Marketing Funnel",
@@ -932,9 +963,10 @@ def ask_customer_marketing_caa(query: str, tool_context: ToolContext | None = No
     )
 
 
-def ask_product_profitability_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+async def ask_product_profitability_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
     """Queries Cymbal Domain 2 BigQuery CAA (`cymbal_product_profitability_ca`: products, order_items, orders)."""
-    return _query_domain_caa_agent(
+    return await asyncio.to_thread(
+        _query_domain_caa_agent,
         agent_id=PRODUCT_CA_ID,
         domain_id="product_profitability",
         domain_label="Product, Margin & Return Analytics",
@@ -943,9 +975,10 @@ def ask_product_profitability_caa(query: str, tool_context: ToolContext | None =
     )
 
 
-def ask_supply_chain_logistics_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+async def ask_supply_chain_logistics_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
     """Queries Cymbal Domain 3 BigQuery CAA (`cymbal_supply_chain_ca`: distribution_centers, inventory_items, order_items, orders, products)."""
-    return _query_domain_caa_agent(
+    return await asyncio.to_thread(
+        _query_domain_caa_agent,
         agent_id=SUPPLY_CA_ID,
         domain_id="supply_chain",
         domain_label="Supply Chain, Inventory & Fulfillment",
@@ -954,13 +987,29 @@ def ask_supply_chain_logistics_caa(query: str, tool_context: ToolContext | None 
     )
 
 
-def run_cross_domain_caa_analysis(
+async def run_cross_domain_caa_analysis(
     customer_marketing_query: str = "",
     product_profitability_query: str = "",
     supply_chain_logistics_query: str = "",
     tool_context: ToolContext | None = None,
 ) -> dict[str, Any]:
-    """Executes 2 or 3 Domain-Scoped BigQuery CAA Data Agents concurrently (`ThreadPoolExecutor`) over stateless `:chat`."""
+    """Executes 2 or 3 Domain-Scoped BigQuery CAA Data Agents concurrently over stateless `:chat`."""
+    return await asyncio.to_thread(
+        run_cross_domain_caa_analysis_sync,
+        customer_marketing_query,
+        product_profitability_query,
+        supply_chain_logistics_query,
+        tool_context,
+    )
+
+
+def run_cross_domain_caa_analysis_sync(
+    customer_marketing_query: str = "",
+    product_profitability_query: str = "",
+    supply_chain_logistics_query: str = "",
+    tool_context: ToolContext | None = None,
+) -> dict[str, Any]:
+    """Blocking implementation: 2 or 3 Domain-Scoped CAA calls in parallel (`ThreadPoolExecutor`)."""
     tasks: list[tuple[str, str, str, str]] = []
     if customer_marketing_query.strip():
         tasks.append((
@@ -1007,9 +1056,13 @@ def run_cross_domain_caa_analysis(
             ): (aid, did, dlabel, q)
             for aid, did, dlabel, q in tasks
         }
+        collector = CAA_CALL_COLLECTOR_VAR.get()
         for fut, (aid, did, dlabel, q) in future_map.items():
             res = fut.result()
             results[dlabel] = res
+            # Pool threads do not inherit contextvars, so record fan-out calls here.
+            if collector is not None:
+                collector.append(res)
             if tool_context is not None and res.get("status") == "SUCCESS":
                 _record_caa_result_into_session_state(
                     state=tool_context.state,
@@ -1024,9 +1077,6 @@ def run_cross_domain_caa_analysis(
                     session_id=tool_context.session.id,
                     user_id=tool_context.user_id or "analyst_01",
                 )
-
-    if tool_context is not None:
-        tool_context.state["last_fanout_results"] = results
 
     return {
         "status": "SUCCESS",

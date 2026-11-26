@@ -46,7 +46,7 @@ from agents.bq_caa_3domain_multi_agent.agent import (  # noqa: E402
     compute_effective_cost_usd,
     reset_persistent_memory_store,
     root_agent,
-    run_cross_domain_caa_analysis,
+    run_cross_domain_caa_analysis_sync as run_cross_domain_caa_analysis,
 )
 
 OUT_JSON = REPO_ROOT / "benchmarks" / "scenario_benchmark_results.json"

@@ -1,0 +1,45 @@
+{
+  "measured_at_utc": "2026-11-26T01:28:05Z",
+  "source": "Cloud Trace generate_content spans (gen_ai.usage.*), one trace per :chat call",
+  "gcp_project": "ryan-sandbox-agent",
+  "window_hours": 48,
+  "total_chat_turns": 55,
+  "per_data_agent": {
+    "cymbal_customer_marketing_ca": {
+      "chat_turns_sampled": 27,
+      "median_input_tokens_per_turn": 52570,
+      "min_input_tokens_per_turn": 51025,
+      "max_input_tokens_per_turn": 80412,
+      "median_cached_input_tokens_per_turn": 0,
+      "median_output_tokens_per_turn": 1903,
+      "median_llm_calls_per_turn": 2
+    },
+    "cymbal_product_profitability_ca": {
+      "chat_turns_sampled": 5,
+      "median_input_tokens_per_turn": 49283,
+      "min_input_tokens_per_turn": 49240,
+      "max_input_tokens_per_turn": 49951,
+      "median_cached_input_tokens_per_turn": 0,
+      "median_output_tokens_per_turn": 1085,
+      "median_llm_calls_per_turn": 2
+    },
+    "cymbal_supply_chain_ca": {
+      "chat_turns_sampled": 12,
+      "median_input_tokens_per_turn": 79885,
+      "min_input_tokens_per_turn": 52518,
+      "max_input_tokens_per_turn": 175161,
+      "median_cached_input_tokens_per_turn": 47731,
+      "median_output_tokens_per_turn": 2424,
+      "median_llm_calls_per_turn": 2.0
+    },
+    "thelook_baseline_ca_agent": {
+      "chat_turns_sampled": 11,
+      "median_input_tokens_per_turn": 55932,
+      "min_input_tokens_per_turn": 27034,
+      "max_input_tokens_per_turn": 86101,
+      "median_cached_input_tokens_per_turn": 0,
+      "median_output_tokens_per_turn": 1845,
+      "median_llm_calls_per_turn": 2
+    }
+  }
+}

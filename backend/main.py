@@ -1,18 +1,19 @@
-"""FastAPI Server for the PoC Architecture, 2-Tier Token Diet & Live Progressive Workbench Portal.
+"""FastAPI server for the PoC Architecture portal and the live S1-S5 Dual A/B Workbench.
 
 Serves:
-  - `/` & `/index.html`                  -> English Outcome Verification & Live Progressive Workbench Portal
-  - `/ko` & `/index_ko.html`             -> Korean Outcome Verification & Live Progressive Workbench Portal
-  - `/diagrams/*`                        -> Official GCP Vector SVGs & 3x HiDPI PNGs
-  - `/api/health` & `/api/version`
-  - `/api/benchmarks`                    -> Pre-verified GCP A/B + `Vertex AI usage_metadata` baseline dataset
-  - `POST /api/workbench/stream`         -> Full Live Dual Run (`SSE`) comparing `As-Is` vs `To-Be` on custom prompts
-  - `POST /api/workbench/reset`          -> Resets an evaluator's isolated ADK Session & Memory bank
-  - `POST /api/verify-scenario`          -> Legacy single-click live scenario endpoint (100% preserved)
+  - `/`, `/index.html`            English portal
+  - `/ko`, `/index_ko.html`       Korean portal
+  - `/diagrams/*`                 Architecture diagrams
+  - `/api/health`, `/api/version`
+  - `/api/benchmarks`             Pre-run baseline dataset
+  - `POST /api/workbench/stream`  Live Dual A/B run (SSE): As-Is and To-Be on the evaluator's prompt
+  - `POST /api/workbench/reset`   Resets an evaluator's isolated sessions and memory
+  - `POST /api/verify-scenario`   Single-click re-run of the reference prompts
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 import time
@@ -30,16 +31,15 @@ from pydantic import BaseModel, Field
 
 from agents.bq_caa_3domain_multi_agent.agent import (
     ADK_USAGE_COLLECTOR_VAR,
+    CAA_CALL_COLLECTOR_VAR,
     CUSTOMER_CA_ID,
     DATASET_ID,
     DOMAIN_CATALOG_METADATA,
-    MONOLITHIC_FANOUT_EQUIV_INPUT_TOKENS,
-    MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
     PROJECT_ID,
     _query_domain_caa_agent,
-    compute_effective_cost_usd,
+    load_bqca_trace_calibration,
     root_agent,
-    run_cross_domain_caa_analysis,
+    run_cross_domain_caa_analysis_sync,
 )
 from backend.workbench_engine import reset_visitor_session, stream_dual_ab_scenario
 
@@ -49,8 +49,8 @@ DIAGRAMS_DIR = DOCS_DIR / "diagrams"
 BENCHMARK_JSON = REPO_ROOT / "benchmarks" / "scenario_benchmark_results.json"
 
 app = FastAPI(
-    title="Google ADK + BigQuery CAA Multi-Agent Architecture & Interactive Dual A/B Workbench",
-    version="4.0.0",
+    title="Google ADK + BigQuery CAA Multi-Agent Architecture & Live Dual A/B Workbench",
+    version="4.1.0",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -72,21 +72,31 @@ class WorkbenchStreamRequest(BaseModel):
     visitor_id: str = Field(default="default_eval", max_length=64)
     scenario_code: str = Field(default="S1", max_length=8)
     prompt: str = Field(..., min_length=2, max_length=600)
-    s4_mode: str = Field(default="burst_5turn", max_length=32)
+    s4_mode: str = Field(default="burst", max_length=32)
 
 
 class WorkbenchResetRequest(BaseModel):
     visitor_id: str = Field(default="default_eval", max_length=64)
 
 
-async def _measure_adk_runner_turn(prompt: str) -> tuple[str, int, int, int]:
-    """Runs `root_agent` via ADK Runner and returns (final_text, prompt_tokens, output_tokens, elapsed_ms)."""
+def _trace_median_input(agent_ids: list[str]) -> int | None:
+    """Cloud Trace median BQCA input tokens per chat turn, summed over the agents called."""
+    cal = load_bqca_trace_calibration().get("per_data_agent", {})
+    if not agent_ids or any(a not in cal for a in agent_ids):
+        return None
+    return sum(int(cal[a]["median_input_tokens_per_turn"]) for a in agent_ids)
+
+
+async def _measure_adk_runner_turn(prompt: str) -> tuple[str, int, int, int, int]:
+    """Runs `root_agent` once. Returns (text, prompt_tokens, output_tokens, elapsed_ms, bqca_calls), all measured."""
     sess_svc = InMemorySessionService()
     mem_svc = InMemoryMemoryService()
     runner = Runner(app_name="live_verify", agent=root_agent, session_service=sess_svc, memory_service=mem_svc)
     await sess_svc.create_session(app_name="live_verify", user_id="analyst_01", session_id="live-sess")
     bucket: list[dict[str, Any]] = []
+    caa_calls: list[dict[str, Any]] = []
     tok = ADK_USAGE_COLLECTOR_VAR.set(bucket)
+    tok_caa = CAA_CALL_COLLECTOR_VAR.set(caa_calls)
     t0 = time.monotonic()
     texts: list[str] = []
     try:
@@ -98,10 +108,11 @@ async def _measure_adk_runner_turn(prompt: str) -> tuple[str, int, int, int]:
                     texts.append(t)
     finally:
         ADK_USAGE_COLLECTOR_VAR.reset(tok)
+        CAA_CALL_COLLECTOR_VAR.reset(tok_caa)
     ms = int((time.monotonic() - t0) * 1000)
     p_tok = sum(int(r["prompt_token_count"]) for r in bucket)
     o_tok = sum(int(r["output_and_thoughts_token_count"]) for r in bucket)
-    return "\n\n".join(texts).strip(), p_tok, o_tok, ms
+    return "\n\n".join(texts).strip(), p_tok, o_tok, ms, len(caa_calls)
 
 
 @app.get("/api/health")
@@ -119,7 +130,7 @@ async def api_health() -> dict[str, Any]:
 async def api_version() -> dict[str, Any]:
     return {
         "repository": "https://github.com/rhkim77/agentic_bi_showcase",
-        "version": "4.0.0",
+        "version": "4.1.0",
         "adk_model": "gemini-2.5-flash",
         "caa_api": "geminidataanalytics.googleapis.com/v1",
         "execution_mode": "full_live_dual_run_sse",
@@ -135,7 +146,7 @@ async def api_benchmarks() -> JSONResponse:
 
 @app.post("/api/workbench/stream")
 async def api_workbench_stream(req: WorkbenchStreamRequest) -> StreamingResponse:
-    """Streams live parallel `As-Is` vs `To-Be` execution (`SSE`) for custom evaluator prompts across S1..S5."""
+    """Streams a live As-Is vs To-Be run (SSE) for the evaluator's prompt in scenario S1..S5."""
     return StreamingResponse(
         stream_dual_ab_scenario(
             visitor_id=req.visitor_id,
@@ -154,110 +165,98 @@ async def api_workbench_stream(req: WorkbenchStreamRequest) -> StreamingResponse
 
 @app.post("/api/workbench/reset")
 async def api_workbench_reset(req: WorkbenchResetRequest) -> dict[str, Any]:
-    """Resets an evaluator's isolated ADK Session & Memory bank."""
     return await reset_visitor_session(req.visitor_id)
 
 
 @app.post("/api/verify-scenario")
 async def api_verify_scenario(req: LiveVerifyRequest) -> dict[str, Any]:
-    """Legacy single-click endpoint preserved for backward compatibility."""
+    """Re-runs the reference prompt of a scenario on the To-Be side only.
+
+    S1-S3 call the scoped BQCA agents directly, so no ADK tier runs and no ADK tokens are reported.
+    BQCA tokens are never measured per call; the Cloud Trace median per chat turn is reported instead.
+    """
     code = req.scenario_code.upper()
     t0 = time.monotonic()
+    direct_basis = "Direct BQCA call, no ADK tier. BQCA tokens: Cloud Trace median per chat turn, not measured for this call."
 
-    if code == "S1":
-        res = _query_domain_caa_agent(
+    if code in ("S1", "S2"):
+        prior = None
+        query = "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."
+        if code == "S2":
+            first = await asyncio.to_thread(
+                _query_domain_caa_agent,
+                agent_id=CUSTOMER_CA_ID,
+                domain_id="customer_marketing",
+                domain_label="Domain 1: Customer CRM & Marketing Funnel",
+                query=query,
+            )
+            prior = [
+                {"userMessage": {"text": query}},
+                {"systemMessage": {"text": {"parts": [(first.get("ca_final_answer") or "")[:900]]}}},
+            ]
+            query = "For those exact customer cohorts and acquisition channels from our previous query, add their 14-day cart session count and cart abandonment rate (%) side-by-side."
+        res = await asyncio.to_thread(
+            _query_domain_caa_agent,
             agent_id=CUSTOMER_CA_ID,
             domain_id="customer_marketing",
             domain_label="Domain 1: Customer CRM & Marketing Funnel",
-            query="Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days.",
-        )
-        scoped_tok = int(res.get("scoped_tokens", 11500))
-        cost = compute_effective_cost_usd(1850, 0, 320, scoped_tok, bqca_cached_ratio=0.60, bqca_output_tokens=1100)
-        return {
-            "status": res.get("status"),
-            "scenario_code": "S1",
-            "live_latency_ms": res.get("latency_ms"),
-            "adk_measured_prompt_tokens": 1850,
-            "scoped_tokens": scoped_tok + 1850,
-            "monolithic_tokens": MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
-            "token_reduction_pct": round((1 - (scoped_tok + 1850) / MONOLITHIC_SINGLE_TURN_INPUT_TOKENS) * 100, 1),
-            "effective_cost_usd": cost["total_effective_cost_usd"],
-            "generated_sql": res.get("generated_sql"),
-            "markdown_table": res.get("markdown_table"),
-            "answer": res.get("ca_final_answer"),
-        }
-
-    if code == "S2":
-        prior = [
-            {"userMessage": {"text": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."}},
-            {"systemMessage": {"text": {"parts": ["Search led 30-day VIP revenue ($18,825.48 across 33 VIPs), followed by Organic, Email, and Display."]}}},
-        ]
-        res = _query_domain_caa_agent(
-            agent_id=CUSTOMER_CA_ID,
-            domain_id="customer_marketing",
-            domain_label="Domain 1: Customer CRM & Marketing Funnel",
-            query="For those exact customer cohorts and acquisition channels from our previous query, add their 14-day cart session count and cart abandonment rate (%) side-by-side.",
+            query=query,
             prior_messages_override=prior,
         )
-        scoped_tok = int(res.get("scoped_tokens", 11700))
-        cost = compute_effective_cost_usd(2100, 0, 350, scoped_tok, bqca_cached_ratio=0.60, bqca_output_tokens=1150)
         return {
             "status": res.get("status"),
-            "scenario_code": "S2",
-            "live_latency_ms": res.get("latency_ms"),
-            "adk_measured_prompt_tokens": 2100,
-            "scoped_tokens": scoped_tok + 2100,
-            "monolithic_tokens": MONOLITHIC_SINGLE_TURN_INPUT_TOKENS + 9400,
-            "token_reduction_pct": round((1 - (scoped_tok + 2100) / (MONOLITHIC_SINGLE_TURN_INPUT_TOKENS + 9400)) * 100, 1),
-            "effective_cost_usd": cost["total_effective_cost_usd"],
+            "error_details": res.get("error_details"),
+            "scenario_code": code,
+            "live_latency_ms": res.get("latency_ms") or int((time.monotonic() - t0) * 1000),
+            "adk_measured_prompt_tokens": None,
+            "bqca_calls": 2 if code == "S2" else 1,
+            "bqca_trace_median_input_tokens": _trace_median_input([CUSTOMER_CA_ID]),
+            "token_basis": direct_basis,
             "generated_sql": res.get("generated_sql"),
             "markdown_table": res.get("markdown_table"),
             "answer": res.get("ca_final_answer"),
         }
 
     if code == "S3":
-        fan = run_cross_domain_caa_analysis(
-            customer_marketing_query="Count distinct VIP orders and total gross demand ($) in the last 30 days where order_id >= 9900000.",
-            product_profitability_query="For Women's 'Outerwear & Coats' (order_id >= 9900000), compare unit gross margin %, return and cancellation rate %, and realized gross profit ($) by brand.",
-            supply_chain_logistics_query="For recent Women's Outerwear orders (order_id >= 9900000), compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center.",
+        fan = await asyncio.to_thread(
+            run_cross_domain_caa_analysis_sync,
+            "Count distinct VIP orders and total gross demand ($) in the last 30 days where order_id >= 9900000.",
+            "For Women's 'Outerwear & Coats' (order_id >= 9900000), compare unit gross margin %, return and cancellation rate %, and realized gross profit ($) by brand.",
+            "For recent Women's Outerwear orders (order_id >= 9900000), compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center.",
         )
         wall_ms = int((time.monotonic() - t0) * 1000)
         dmap = fan.get("domain_results", {})
-        seq_ms = sum(int(v.get("latency_ms", 0)) for v in dmap.values())
-        tot_tok = sum(int(v.get("scoped_tokens", 0)) for v in dmap.values())
-        cost = compute_effective_cost_usd(2600, 0, 520, tot_tok, bqca_cached_ratio=0.60, bqca_output_tokens=2800)
-        combined_sql = "\n\n".join(f"-- [{k}]\n{v.get('generated_sql', '')}" for k, v in dmap.items())
-        combined_ans = "\n\n".join(f"**{k}**: {v.get('ca_final_answer', '')[:320]}" for k, v in dmap.items())
+        agent_ids = [str(v.get("data_agent", "")).rsplit("/", 1)[-1] for v in dmap.values()]
+        failed = [k for k, v in dmap.items() if v.get("status") != "SUCCESS"]
         return {
-            "status": fan.get("status"),
+            "status": "ERROR" if failed else fan.get("status"),
+            "error_details": "; ".join(f"{k}: {dmap[k].get('error_details')}" for k in failed) or None,
             "scenario_code": "S3",
             "live_latency_ms": wall_ms,
-            "sequential_sum_ms": seq_ms,
-            "adk_measured_prompt_tokens": 2600,
-            "scoped_tokens": tot_tok + 2600,
-            "monolithic_tokens": MONOLITHIC_FANOUT_EQUIV_INPUT_TOKENS,
-            "token_reduction_pct": round((1 - (tot_tok + 2600) / MONOLITHIC_FANOUT_EQUIV_INPUT_TOKENS) * 100, 1),
-            "effective_cost_usd": cost["total_effective_cost_usd"],
-            "generated_sql": combined_sql,
+            "sum_of_call_latencies_ms": sum(int(v.get("latency_ms", 0)) for v in dmap.values()),
+            "adk_measured_prompt_tokens": None,
+            "bqca_calls": len(dmap),
+            "bqca_trace_median_input_tokens": _trace_median_input(agent_ids),
+            "token_basis": direct_basis,
+            "generated_sql": "\n\n".join(f"-- [{k}]\n{v.get('generated_sql', '')}" for k, v in dmap.items()),
             "markdown_table": "",
-            "answer": combined_ans,
+            "answer": "\n\n".join(f"**{k}**: {v.get('ca_final_answer', '')[:320]}" for k, v in dmap.items()),
         }
 
-    ans, p_tok, o_tok, ms = await _measure_adk_runner_turn(
+    ans, p_tok, o_tok, ms, bqca_calls = await _measure_adk_runner_turn(
         "Without running BigQuery SQL, inspect my saved analyst profile and memory status, "
         "and summarize the Nordic Luxe / Memphis TN DC #1 root-cause finding in 2 concise bullets."
     )
-    cost = compute_effective_cost_usd(p_tok, 0, o_tok, 0, bqca_cached_ratio=0.0, bqca_output_tokens=0)
     return {
         "status": "SUCCESS",
         "scenario_code": code,
         "live_latency_ms": ms,
         "adk_measured_prompt_tokens": p_tok,
-        "scoped_tokens": p_tok,
-        "monolithic_tokens": MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
-        "token_reduction_pct": round((1 - p_tok / MONOLITHIC_SINGLE_TURN_INPUT_TOKENS) * 100, 1),
-        "effective_cost_usd": cost["total_effective_cost_usd"],
-        "generated_sql": f"-- Live Vertex AI usage_metadata verified: prompt_token_count={p_tok}, output_tokens={o_tok}, BQCA calls=0",
+        "adk_measured_output_tokens": o_tok,
+        "bqca_calls": bqca_calls,
+        "bqca_trace_median_input_tokens": None,
+        "token_basis": f"ADK tier measured from Vertex AI usage_metadata on a fresh session with no saved memory. BQCA calls made: {bqca_calls}.",
+        "generated_sql": "",
         "markdown_table": "",
         "answer": ans,
     }

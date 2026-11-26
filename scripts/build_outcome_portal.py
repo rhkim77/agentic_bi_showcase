@@ -1017,7 +1017,7 @@ HTML_EN = r"""<!DOCTYPE html>
     <section id="scenarios">
       <h2>3. Live As-Is vs. To-Be PoC Scenario Verification &amp; Progressive Workbench (S1 – S5)</h2>
       <p class="section-desc">
-        Pre-verified GCP baseline results load immediately below, while the <strong>Interactive Dual A/B Workbench</strong> lets you enter or customize prompts at every step from <strong>S1 to S5</strong> to watch both the <strong>As-Is Anti-Pattern</strong> and <strong>To-Be Best Practice</strong> execute live in parallel on Google Cloud with real-time <span class="mono">Vertex AI usage_metadata</span> and 2-tier token visualization.
+        Pre-verified GCP baseline results load immediately below, while the <strong>Interactive Dual A/B Workbench</strong> lets you enter or customize prompts at every step from <strong>S1 to S5</strong> to run both the <strong>As-Is</strong> pipeline (ADK built-in data agent tools on one monolithic data agent) and the <strong>To-Be</strong> pipeline live in parallel on Google Cloud and compare answers, SQL and measured ADK-tier <span class="mono">Vertex AI usage_metadata</span> tokens.
       </p>
 
       <div class="prog-tracker-card" id="progressive-tracker"></div>
@@ -1348,7 +1348,7 @@ HTML_KO = r"""<!DOCTYPE html>
     <section id="scenarios">
       <h2>3. As-Is 문제 재현 vs To-Be 해결 직접 대조 시현 및 실시간 단계별 Workbench (S1 – S5)</h2>
       <p class="section-desc">
-        사전 검증된 기준 실측치(Reference Baseline)가 즉시 표시되며, 각 단계(<strong>S1 → S5</strong>) 입력창에 직접 질문을 수정·입력하여 실행하면 실제 GCP에서 <strong>As-Is Agent</strong>와 <strong>To-Be Agent</strong>가 동시 병렬 실행되면서 답변 품질과 <strong>2-Tier Token 소모량</strong>이 단계별로 개선되는 과정을 실시간 시각화로 확인할 수 있습니다.
+        사전 검증된 기준 실측치(Reference Baseline)가 즉시 표시되며, 각 단계(<strong>S1 → S5</strong>) 입력창에 직접 질문을 수정·입력하여 실행하면 실제 GCP에서 <strong>As-Is</strong>(단일 통합 Data Agent에 ADK 내장 data agent Tool을 그대로 사용)와 <strong>To-Be</strong>가 동시에 실행되며, 답변·SQL과 ADK 계층의 <span class="mono">Vertex AI usage_metadata</span> 실측 Token을 나란히 비교할 수 있습니다.
       </p>
 
       <div class="prog-tracker-card" id="progressive-tracker"></div>
@@ -1816,6 +1816,7 @@ PORTAL_JS = r"""
           <div class="preset-row" id="wb-preset-row">${presetButtonsHtml}</div>
 
           <textarea class="wb-textarea" id="wb-prompt-input" maxlength="600" placeholder="${escapeHtml(S.wbPlaceholder)}">${escapeHtml(currentDraft)}</textarea>
+          ${sc.code === "S4" ? `<div style="font-size:12.3px;color:var(--text-secondary);margin-bottom:10px;">${S.wbS4Hint}</div>` : ""}
 
           <div class="wb-actions">
             <div class="wb-btn-group">
@@ -1834,6 +1835,7 @@ PORTAL_JS = r"""
         </div>
 
         <div class="ref-divider">${S.refBaselineHeading} (${escapeHtml(sc.code)})</div>
+        <div class="sub-box" style="margin-bottom:14px;font-size:12.8px;">${S.baselineDisclosureHtml}</div>
 
         <div class="prompt-box">
           <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:3px;">${S.promptLabel}</span>
@@ -1923,59 +1925,51 @@ PORTAL_JS = r"""
       }
     }
 
+    function fmtTok(v) {
+      return (v === null || v === undefined) ? "n/a" : Number(v).toLocaleString();
+    }
+
+    function fmtDelta(pct) {
+      if (pct === null || pct === undefined || isNaN(Number(pct))) return "n/a";
+      const v = Number(pct);
+      return (v > 0 ? "+" : "") + v.toFixed(1) + "%";
+    }
+
+    function deltaColor(pct) {
+      if (pct === null || pct === undefined || isNaN(Number(pct))) return "var(--text-secondary)";
+      return Number(pct) <= 0 ? "var(--green)" : "var(--red)";
+    }
+
+    // Measured ADK-tier prompt tokens for one step: the evaluator's live run if present, else the pre-run baseline.
     function getStepBaselineOrLiveSummary(sc) {
       const code = sc.code;
-      if (liveRunResults[code]) {
-        const cs = liveRunResults[code].comparison_summary;
+      const live = liveRunResults[code];
+      if (live) {
+        const m = (live.comparison_summary || {}).measured || {};
         return {
           isLive: true,
-          asisTok: cs.asis_total_2tier_tokens,
-          tobeTok: cs.tobe_total_2tier_tokens,
-          savedPct: cs.total_token_reduction_pct,
-          tobeCost: cs.tobe_effective_cost_usd,
-          adkAsis: cs.asis_adk_measured_prompt_tokens,
-          adkTobe: cs.tobe_adk_measured_prompt_tokens,
+          adkAsis: m.asis_adk_prompt_tokens,
+          adkTobe: m.tobe_adk_prompt_tokens,
+          adkDeltaPct: m.adk_prompt_delta_pct,
+          callsAsis: m.asis_bqca_calls,
+          callsTobe: m.tobe_bqca_calls,
         };
       }
       const mr = sc.measured_result || {};
+      let adkAsis = null;
+      let adkTobe = (mr.adk_measured_prompt_tokens !== undefined && mr.adk_measured_prompt_tokens !== null) ? mr.adk_measured_prompt_tokens : null;
+      if (code === "S1" && sc.asis_comparison && sc.asis_comparison.adk_measured_prompt_tokens) {
+        adkAsis = sc.asis_comparison.adk_measured_prompt_tokens;
+      }
       if (code === "S4") {
-        const t5 = (BENCHMARK_DATA.turn_scaling_curve || [])[4] || {};
-        const aTok = t5.monolithic_unscoped || 199536;
-        const bTok = t5.proposed_scoped_sliding_window || 17757;
-        return {
-          isLive: false,
-          asisTok: aTok,
-          tobeTok: bTok,
-          savedPct: Number(((1 - bTok / Math.max(1, aTok)) * 100).toFixed(1)),
-          tobeCost: (mr.cost_comparison_turn5 || {}).tobe_with_90pct_cache_usd || 0.0406,
-          adkAsis: t5.adk_asis_prompt_tokens || 51376,
-          adkTobe: t5.adk_tobe_prompt_tokens || 3807,
-        };
+        const t5 = (BENCHMARK_DATA.turn_scaling_curve || [])[4];
+        if (t5) {
+          adkAsis = t5.adk_asis_prompt_tokens;
+          adkTobe = t5.adk_tobe_prompt_tokens;
+        }
       }
-      if (code === "S5") {
-        const aTok = 117517;
-        const bTok = mr.scoped_tokens || 6753;
-        return {
-          isLive: false,
-          asisTok: aTok,
-          tobeTok: bTok,
-          savedPct: Number(((1 - bTok / aTok) * 100).toFixed(1)),
-          tobeCost: mr.effective_cost_usd || 0.0039,
-          adkAsis: 6753,
-          adkTobe: mr.adk_measured_prompt_tokens || 6753,
-        };
-      }
-      const aTok = mr.monolithic_tokens || 122137;
-      const bTok = mr.scoped_tokens || 15737;
-      return {
-        isLive: false,
-        asisTok: aTok,
-        tobeTok: bTok,
-        savedPct: mr.token_reduction_pct || Number(((1 - bTok / Math.max(1, aTok)) * 100).toFixed(1)),
-        tobeCost: mr.effective_cost_usd || 0.035,
-        adkAsis: (sc.asis_comparison || {}).adk_measured_prompt_tokens || 11373,
-        adkTobe: mr.adk_measured_prompt_tokens || 4298,
-      };
+      const delta = (adkAsis && adkTobe !== null) ? Number((((adkTobe - adkAsis) / adkAsis) * 100).toFixed(1)) : null;
+      return { isLive: false, adkAsis: adkAsis, adkTobe: adkTobe, adkDeltaPct: delta, callsAsis: null, callsTobe: null };
     }
 
     function renderProgressiveTracker() {
@@ -1984,8 +1978,9 @@ PORTAL_JS = r"""
       const S = UI_STRINGS;
       const scenarios = BENCHMARK_DATA.scenarios || [];
       const summaries = scenarios.map(sc => ({ sc, sum: getStepBaselineOrLiveSummary(sc) }));
-      const maxTok = Math.max(200000, ...summaries.map(x => x.sum.asisTok));
+      const maxTok = Math.max(1, ...summaries.map(x => Math.max(x.sum.adkAsis || 0, x.sum.adkTobe || 0)));
       const liveCount = summaries.filter(x => x.sum.isLive).length;
+      const barWidth = v => (v === null || v === undefined) ? "0" : Math.max(2, Math.min(100, (v / maxTok) * 100)).toFixed(1);
 
       const pillsHtml = summaries.map(({ sc, sum }, idx) => {
         const cls = [
@@ -2003,44 +1998,40 @@ PORTAL_JS = r"""
               ${statusBadge}
             </div>
             <div style="font-size:12px;font-weight:600;line-height:1.35;color:var(--text);margin-bottom:4px;">${escapeHtml(S.layerLabels[sc.code] || sc.code)}</div>
-            <div class="mono" style="font-size:11.5px;color:var(--green);font-weight:700;">-${sum.savedPct}% tok</div>
+            <div class="mono" style="font-size:11.5px;font-weight:700;color:${deltaColor(sum.adkDeltaPct)};">ADK ${fmtDelta(sum.adkDeltaPct)}</div>
           </div>
         `;
       }).join("");
 
-      const barsHtml = summaries.map(({ sc, sum }) => {
-        const wAsis = Math.max(3, Math.min(100, (sum.asisTok / maxTok) * 100)).toFixed(1);
-        const wTobe = Math.max(2, Math.min(100, (sum.tobeTok / maxTok) * 100)).toFixed(1);
-        return `
+      const barsHtml = summaries.map(({ sc, sum }) => `
           <div class="prog-bar-row">
             <div>
               <strong class="mono" style="color:var(--text);">${escapeHtml(sc.code)}</strong>
               <span style="color:var(--text-secondary);font-size:11.8px;"> · ${escapeHtml(S.layerShort[sc.code] || "")}</span>
-              ${sum.isLive ? `<span class="mono" style="display:inline-block;margin-left:4px;font-size:10px;color:var(--green);font-weight:700;">[LIVE]</span>` : ""}
+              <span class="mono" style="display:inline-block;margin-left:4px;font-size:10px;font-weight:700;color:${sum.isLive ? "var(--green)" : "var(--text-secondary)"};">[${sum.isLive ? S.trackerLiveTag : S.trackerBaseTag}]</span>
             </div>
             <div class="dual-bar-track">
               <div class="bar-line">
                 <span class="mono" style="font-size:10.5px;width:42px;color:var(--red);flex-shrink:0;">As-Is</span>
                 <div style="flex:1;background:#F1F3F4;border-radius:4px;overflow:hidden;">
-                  <div class="bar-fill-asis" style="width:${wAsis}%;"></div>
+                  <div class="bar-fill-asis" style="width:${barWidth(sum.adkAsis)}%;${sum.adkAsis ? "" : "min-width:0;"}"></div>
                 </div>
-                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--text-secondary);flex-shrink:0;">${sum.asisTok.toLocaleString()}</span>
+                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--text-secondary);flex-shrink:0;">${fmtTok(sum.adkAsis)}</span>
               </div>
               <div class="bar-line">
                 <span class="mono" style="font-size:10.5px;width:42px;color:var(--green);font-weight:700;flex-shrink:0;">To-Be</span>
                 <div style="flex:1;background:#F1F3F4;border-radius:4px;overflow:hidden;">
-                  <div class="bar-fill-tobe" style="width:${wTobe}%;"></div>
+                  <div class="bar-fill-tobe" style="width:${barWidth(sum.adkTobe)}%;${sum.adkTobe ? "" : "min-width:0;"}"></div>
                 </div>
-                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--green);font-weight:700;flex-shrink:0;">${sum.tobeTok.toLocaleString()}</span>
+                <span class="mono" style="font-size:11px;width:82px;text-align:right;color:var(--green);font-weight:700;flex-shrink:0;">${fmtTok(sum.adkTobe)}</span>
               </div>
             </div>
             <div class="mono" style="text-align:right;font-size:11.8px;">
-              <strong style="color:var(--green);">-${sum.savedPct}%</strong>
-              <span style="color:var(--text-secondary);"> · $${Number(sum.tobeCost).toFixed(4)}/turn</span>
+              <strong style="color:${deltaColor(sum.adkDeltaPct)};">ADK ${fmtDelta(sum.adkDeltaPct)}</strong>
+              ${sum.isLive ? `<span style="color:var(--text-secondary);"> · BQCA calls ${fmtTok(sum.callsTobe)} vs ${fmtTok(sum.callsAsis)}</span>` : ""}
             </div>
           </div>
-        `;
-      }).join("");
+        `).join("");
 
       el.innerHTML = `
         <div class="prog-tracker-head">
@@ -2053,12 +2044,12 @@ PORTAL_JS = r"""
         </div>
         <div class="prog-step-strip">${pillsHtml}</div>
         <div class="prog-bar-rows">${barsHtml}</div>
+        <div style="margin-top:12px;font-size:12.5px;color:var(--text-secondary);">${S.baselineDisclosureHtml}</div>
       `;
 
       el.querySelectorAll(".prog-step-pill").forEach(pill => {
         pill.addEventListener("click", () => {
-          const sIdx = Number(pill.dataset.stepIdx);
-          renderScenario(sIdx);
+          renderScenario(Number(pill.dataset.stepIdx));
         });
       });
 
@@ -2071,21 +2062,41 @@ PORTAL_JS = r"""
     function buildDualComparisonCardHtml(res) {
       const S = UI_STRINGS;
       const cs = res.comparison_summary || {};
+      const m = cs.measured || {};
+      const tr = cs.trace_estimate;
       const asis = res.asis || {};
       const tobe = res.tobe || {};
       const asisAdk = asis.adk_usage || {};
       const tobeAdk = tobe.adk_usage || {};
+      const cal = res.calibration || {};
+      const secs = ms => (Number(ms || 0) / 1000).toFixed(1) + "s";
+
+      const sideErrors = side => (side.errors && side.errors.length)
+        ? `<div style="font-size:12.8px;color:var(--red);font-weight:600;margin-bottom:8px;">${S.wbErrorLabel}: ${escapeHtml(side.errors.join(" | "))}</div>`
+        : "";
+
+      let prereqHtml = "";
+      if (res.prerequisite) {
+        const p = res.prerequisite;
+        prereqHtml = `
+          <div class="sub-box" style="margin-bottom:14px;font-size:12.8px;">
+            ${S.wbPrereqNote} <span class="mono">"${escapeHtml(p.prompt)}"</span>
+            <span class="mono">(ADK prompt tokens: To-Be ${fmtTok(p.tobe_adk_prompt_tokens)} / As-Is ${fmtTok(p.asis_adk_prompt_tokens)})</span>
+          </div>
+        `;
+      }
 
       let turnCurveHtml = "";
-      if (Array.isArray(tobe.turn_curve) && tobe.turn_curve.length > 0) {
-        const rows = tobe.turn_curve.map(r => {
-          const pct = ((1 - r.tobe_adk_prompt_tokens / Math.max(1, r.asis_adk_prompt_tokens)) * 100).toFixed(1);
+      if (Array.isArray(res.turn_curve) && res.turn_curve.length > 0) {
+        const rows = res.turn_curve.map(r => {
+          const pct = r.asis_adk_prompt_tokens ? ((r.tobe_adk_prompt_tokens - r.asis_adk_prompt_tokens) / r.asis_adk_prompt_tokens) * 100 : null;
           return `
             <tr>
               <td class="mono"><strong>Turn ${r.turn}</strong></td>
-              <td class="mono" style="color:var(--red);">${Number(r.asis_adk_prompt_tokens).toLocaleString()} tok</td>
-              <td class="mono" style="color:var(--green);font-weight:700;">${Number(r.tobe_adk_prompt_tokens).toLocaleString()} tok (-${pct}%)</td>
-              <td class="mono">${Number(r.tobe_compacted_dropped || 0)} items evicted</td>
+              <td>${escapeHtml(r.prompt || "")}</td>
+              <td class="mono" style="color:var(--red);">${fmtTok(r.asis_adk_prompt_tokens)} tok</td>
+              <td class="mono" style="color:var(--green);font-weight:700;">${fmtTok(r.tobe_adk_prompt_tokens)} tok (${fmtDelta(pct)})</td>
+              <td class="mono">${Number(r.tobe_compacted_dropped || 0)}</td>
             </tr>
           `;
         }).join("");
@@ -2097,9 +2108,10 @@ PORTAL_JS = r"""
                 <thead>
                   <tr>
                     <th>Turn</th>
-                    <th>As-Is ADK (<span class="mono">usage_metadata</span>)</th>
-                    <th>To-Be Compacted ADK (<span class="mono">usage_metadata</span>)</th>
-                    <th><span class="mono">before_model_callback</span></th>
+                    <th>Prompt</th>
+                    <th>As-Is ADK prompt</th>
+                    <th>To-Be ADK prompt</th>
+                    <th>To-Be items evicted</th>
                   </tr>
                 </thead>
                 <tbody>${rows}</tbody>
@@ -2109,82 +2121,108 @@ PORTAL_JS = r"""
         `;
       }
 
-      const maxBar = Math.max(1, cs.asis_total_2tier_tokens || 1);
-      const tobePctWidth = Math.max(2, Math.min(100, ((cs.tobe_total_2tier_tokens || 0) / maxBar) * 100)).toFixed(1);
+      let stateHtml = "";
+      if (res.state_summary) {
+        const st = res.state_summary;
+        stateHtml = `
+          <div class="sub-box" style="margin-bottom:14px;font-size:12.8px;">
+            <strong>${S.wbStateTitle}</strong>
+            <span class="mono"> ${escapeHtml(st.new_session_id || "")} · user profile: ${escapeHtml(JSON.stringify(st.rehydrated_user_profile || null))} · pinned insights: ${Number(st.rehydrated_pinned_insights || 0)}</span>
+          </div>
+        `;
+      }
+
+      const maxBar = Math.max(1, m.asis_adk_prompt_tokens || 0, m.tobe_adk_prompt_tokens || 0);
+      const w = v => Math.max(2, Math.min(100, ((v || 0) / maxBar) * 100)).toFixed(1);
+
+      const traceHtml = tr ? `
+          <div class="sub-box" style="margin-bottom:16px;">
+            <span class="tag tag-amber">${S.wbTraceTitle}</span>
+            <div class="mono" style="font-size:12.5px;line-height:1.7;">
+              BQCA input tokens: To-Be ${fmtTok(tr.tobe_bqca_input_tokens)} vs As-Is ${fmtTok(tr.asis_bqca_input_tokens)}<br/>
+              Total input (measured ADK + BQCA median): To-Be ${fmtTok(tr.tobe_total_input_tokens)} vs As-Is ${fmtTok(tr.asis_total_input_tokens)} (${fmtDelta(tr.total_input_delta_pct)})<br/>
+              Cost estimate per turn: To-Be $${Number(tr.tobe_cost_usd || 0).toFixed(4)} vs As-Is $${Number(tr.asis_cost_usd || 0).toFixed(4)} (${fmtDelta(tr.cost_delta_pct)})
+            </div>
+            <div style="font-size:12.3px;color:var(--text-secondary);margin-top:6px;">${S.wbTraceNote} <span class="mono">${escapeHtml(cal.measured_at_utc || "")}</span></div>
+          </div>
+        ` : `<div class="sub-box" style="margin-bottom:16px;font-size:12.8px;color:var(--text-secondary);">${S.wbTraceUnavailable}</div>`;
 
       return `
         <div class="live-dual-card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
             <div>
-              <span class="tag tag-green" style="margin-bottom:4px;">${S.wbLiveCardBadge} · ${escapeHtml(res.scenario_code)}</span>
+              <span class="tag ${res.status === "SUCCESS" ? "tag-green" : "tag-red"}" style="margin-bottom:4px;">${S.wbLiveCardBadge} · ${escapeHtml(res.scenario_code)} · ${escapeHtml(res.status || "")}</span>
               <div style="font-size:13.5px;font-weight:600;color:var(--text);">${S.wbExecutedPromptLabel}: "${escapeHtml(res.prompt_executed)}"</div>
             </div>
             <div class="mono" style="font-size:12px;color:var(--text-secondary);">
-              Wall-Clock: <strong>${(Number(res.wall_clock_ms || 0) / 1000).toFixed(2)} s</strong>
+              Wall-Clock: <strong>${secs(res.wall_clock_ms)}</strong> · google-adk ${escapeHtml(res.adk_version || "")}
             </div>
           </div>
 
+          ${prereqHtml}
+
           <div class="metric-ribbon" style="margin-bottom:14px;">
             <div class="metric-cell">
-              <div class="m-k">${S.wbMetric2Tier}</div>
-              <div class="m-v good mono">${Number(cs.tobe_total_2tier_tokens || 0).toLocaleString()} vs ${Number(cs.asis_total_2tier_tokens || 0).toLocaleString()} (-${cs.total_token_reduction_pct}%)</div>
+              <div class="m-k">${S.wbMetricAdk}</div>
+              <div class="m-v mono" style="color:${deltaColor(m.adk_prompt_delta_pct)};">${fmtTok(m.tobe_adk_prompt_tokens)} vs ${fmtTok(m.asis_adk_prompt_tokens)} (${fmtDelta(m.adk_prompt_delta_pct)})</div>
             </div>
             <div class="metric-cell">
-              <div class="m-k">${S.wbMetricAdkExact}</div>
-              <div class="m-v mono" style="color:var(--blue);">${Number(cs.tobe_adk_measured_prompt_tokens || 0).toLocaleString()} vs ${Number(cs.asis_adk_measured_prompt_tokens || 0).toLocaleString()} tok</div>
+              <div class="m-k">${S.wbMetricCalls}</div>
+              <div class="m-v mono">${fmtTok(m.tobe_bqca_calls)} vs ${fmtTok(m.asis_bqca_calls)}</div>
             </div>
             <div class="metric-cell">
-              <div class="m-k">${S.wbMetricCost}</div>
-              <div class="m-v good mono">$${Number(cs.tobe_effective_cost_usd || 0).toFixed(4)} vs $${Number(cs.asis_effective_cost_usd || 0).toFixed(4)} (-${cs.effective_cost_reduction_pct}%)</div>
+              <div class="m-k">${S.wbMetricLatency}</div>
+              <div class="m-v mono">${secs(m.tobe_latency_ms)} vs ${secs(m.asis_latency_ms)}</div>
             </div>
             <div class="metric-cell">
-              <div class="m-k">${S.wbMetricLatencyPair}</div>
-              <div class="m-v mono">${(Number(tobe.latency_ms || 0) / 1000).toFixed(1)}s (To-Be) / ${(Number(asis.latency_ms || 0) / 1000).toFixed(1)}s (As-Is)</div>
+              <div class="m-k">${S.wbMetricLlmCalls}</div>
+              <div class="m-v mono">${fmtTok(m.tobe_llm_calls)} vs ${fmtTok(m.asis_llm_calls)}</div>
             </div>
           </div>
 
           <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">${S.wbVisualBarTitle}</div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">${S.wbBarTitle}</div>
             <div class="dual-bar-track">
               <div class="bar-line">
                 <span class="mono" style="font-size:11px;width:52px;color:var(--red);font-weight:700;">As-Is</span>
-                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-asis" style="width:100%;"></div></div>
-                <span class="mono" style="font-size:11.5px;width:185px;text-align:right;">${Number(cs.asis_total_2tier_tokens || 0).toLocaleString()} tok (ADK ${Number(asisAdk.prompt_tokens || 0).toLocaleString()} + BQCA ${Number(asis.bqca_input_tokens || 0).toLocaleString()})</span>
+                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-asis" style="width:${w(m.asis_adk_prompt_tokens)}%;"></div></div>
+                <span class="mono" style="font-size:11.5px;width:110px;text-align:right;">${fmtTok(m.asis_adk_prompt_tokens)} tok</span>
               </div>
               <div class="bar-line">
                 <span class="mono" style="font-size:11px;width:52px;color:var(--green);font-weight:700;">To-Be</span>
-                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-tobe" style="width:${tobePctWidth}%;"></div></div>
-                <span class="mono" style="font-size:11.5px;width:185px;text-align:right;color:var(--green);font-weight:700;">${Number(cs.tobe_total_2tier_tokens || 0).toLocaleString()} tok (ADK ${Number(tobeAdk.prompt_tokens || 0).toLocaleString()} + BQCA ${Number(tobe.bqca_input_tokens || 0).toLocaleString()})</span>
+                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-tobe" style="width:${w(m.tobe_adk_prompt_tokens)}%;"></div></div>
+                <span class="mono" style="font-size:11.5px;width:110px;text-align:right;color:var(--green);font-weight:700;">${fmtTok(m.tobe_adk_prompt_tokens)} tok</span>
               </div>
             </div>
           </div>
 
+          ${traceHtml}
           ${turnCurveHtml}
+          ${stateHtml}
 
           <div class="stack-list" style="margin-bottom:0;">
             <div class="sub-box asis-border" style="background:#FFFBFB;">
               <div class="evidence-header">
-                <span class="tag tag-red">${escapeHtml(asis.label || "As-Is Live Execution")}</span>
-                <span class="mono" style="font-size:11.8px;color:var(--red);">
-                  ADK Measured: ${Number(asisAdk.prompt_tokens || 0).toLocaleString()} tok (out+thought: ${Number(asisAdk.output_and_thoughts_tokens || 0).toLocaleString()}) · ${(Number(asis.latency_ms || 0) / 1000).toFixed(2)}s
-                </span>
+                <span class="tag tag-red">${escapeHtml(asis.label || "As-Is")}</span>
+                <span class="mono" style="font-size:11.8px;color:var(--red);">ADK prompt ${fmtTok(asisAdk.prompt_tokens)} tok · cached ${fmtTok(asisAdk.cached_tokens)} · ${secs(asis.latency_ms)}</span>
               </div>
-              ${asis.defect_summary ? `<div style="font-size:12.8px;color:var(--red);margin-bottom:8px;font-weight:500;">${escapeHtml(asis.defect_summary)}</div>` : ""}
+              <div class="mono" style="font-size:11.8px;color:var(--text-secondary);margin-bottom:8px;">
+                Tools called: ${escapeHtml((asis.tool_calls || []).join(", ") || "none")} · ${S.wbMsgsPerCall}: ${escapeHtml(JSON.stringify(asis.bqca_messages_sent || []))} · ${S.wbToolResp}: ${fmtTok(asis.tool_response_chars)} chars
+              </div>
+              ${sideErrors(asis)}
               ${asis.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(asis.generated_sql)}</pre>` : ""}
-              ${asis.markdown_table ? `<details style="margin-bottom:8px;"><summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--text-secondary);">${S.wbViewAsisRows}</summary><div style="margin-top:6px;">${parseMarkdownTableToHtml(asis.markdown_table)}</div></details>` : ""}
               <div class="answer-box" style="border-left-color:var(--red);">${formatAgentAnswer(asis.answer)}</div>
             </div>
 
             <div class="sub-box tobe-border" style="background:#F8FDF9;">
               <div class="evidence-header">
-                <span class="tag tag-green">${escapeHtml(tobe.label || "To-Be Live Execution")}</span>
-                <span class="mono" style="font-size:11.8px;color:var(--green);font-weight:700;">
-                  ADK Measured: ${Number(tobeAdk.prompt_tokens || 0).toLocaleString()} tok (cached: ${Number(tobeAdk.cached_tokens || 0).toLocaleString()}) · ${(Number(tobe.latency_ms || 0) / 1000).toFixed(2)}s
-                </span>
+                <span class="tag tag-green">${escapeHtml(tobe.label || "To-Be")}</span>
+                <span class="mono" style="font-size:11.8px;color:var(--green);font-weight:700;">ADK prompt ${fmtTok(tobeAdk.prompt_tokens)} tok · cached ${fmtTok(tobeAdk.cached_tokens)} · ${secs(tobe.latency_ms)}</span>
               </div>
-              <div class="mono" style="font-size:11.8px;color:var(--blue);margin-bottom:8px;">
-                ADK Agents Hop Trace: ${escapeHtml((tobeAdk.agents_invoked || []).join(" → ") || "root_agent")}
+              <div class="mono" style="font-size:11.8px;color:var(--text-secondary);margin-bottom:8px;">
+                Agents: ${escapeHtml((tobeAdk.agents_invoked || []).join(" > ") || "none")} · BQCA agents: ${escapeHtml((tobe.bqca_agents || []).join(", ") || "none")} · ${S.wbMsgsPerCall}: ${escapeHtml(JSON.stringify(tobe.bqca_messages_sent || []))}
               </div>
+              ${sideErrors(tobe)}
               ${tobe.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(tobe.generated_sql)}</pre>` : ""}
               ${tobe.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(tobe.markdown_table)}</div>` : ""}
               <div class="answer-box">${formatAgentAnswer(tobe.answer)}</div>
@@ -2344,9 +2382,11 @@ PORTAL_JS = r"""
         box.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
             <strong style="color:var(--green);">${S.liveDone} (${escapeHtml(data.scenario_code)})</strong>
-            <span class="mono" style="font-size:12.2px;">Latency: <strong>${(data.live_latency_ms / 1000).toFixed(2)} s</strong> · ADK <span class="mono">usage_metadata</span>: <strong>${Number(data.adk_measured_prompt_tokens || 0).toLocaleString()} tok</strong> · Total: <strong>${Number(data.scoped_tokens).toLocaleString()} tok (-${data.token_reduction_pct}%)</strong></span>
+            <span class="mono" style="font-size:12.2px;">Latency: <strong>${(data.live_latency_ms / 1000).toFixed(2)} s</strong> · ADK <span class="mono">usage_metadata</span>: <strong>${(data.adk_measured_prompt_tokens === null || data.adk_measured_prompt_tokens === undefined) ? S.legacyNoAdk : Number(data.adk_measured_prompt_tokens).toLocaleString() + " tok"}</strong> · BQCA calls: <strong>${fmtTok(data.bqca_calls)}</strong></span>
           </div>
-          <pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(data.generated_sql)}</pre>
+          <div style="font-size:12.3px;color:var(--text-secondary);margin-bottom:8px;">${escapeHtml(data.token_basis || "")}</div>
+          ${data.error_details ? `<div style="font-size:12.8px;color:var(--red);font-weight:600;margin-bottom:8px;">${S.wbErrorLabel}: ${escapeHtml(data.error_details)}</div>` : ""}
+          ${data.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(data.generated_sql)}</pre>` : ""}
           ${data.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(data.markdown_table)}</div>` : ""}
           <div style="font-size:13.5px;">${formatAgentAnswer(data.answer)}</div>
         `;
@@ -2490,6 +2530,12 @@ PORTAL_JS = r"""
       document.getElementById("bench-ts").textContent = BENCHMARK_DATA.generated_at_utc;
       renderHeroKpis();
 
+      const disclosureHtml = `<div class="sub-box" style="margin:14px 0;font-size:12.8px;">${S.baselineDisclosureHtml}</div>`;
+      const heroGrid = document.getElementById("hero-kpi-grid");
+      if (heroGrid) heroGrid.insertAdjacentHTML("afterend", disclosureHtml);
+      const benchDesc = document.querySelector("#benchmarks .section-desc");
+      if (benchDesc) benchDesc.insertAdjacentHTML("afterend", disclosureHtml);
+
       document.querySelectorAll("#diagram-tabs .tab-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           document.querySelectorAll("#diagram-tabs .tab-btn").forEach(b => b.classList.remove("active"));
@@ -2548,7 +2594,7 @@ PORTAL_JS = r"""
 
 UI_EN = {
     "heroKpis": {
-        "k1Label": "S1 · 2-Tier Input Token Diet",
+        "k1Label": "S1 · 2-Tier Input Tokens (Modeled BQCA Tier)",
         "k2Label": "S4 · ADK Upstream Compaction",
         "k3Label": "S3 · Parallel & Peer Routing",
         "k4Label": "S5 · Cross-Session Short-Circuit",
@@ -2587,7 +2633,7 @@ UI_EN = {
     "challengeLabel": "As-Is PoC Bottleneck",
     "mechanismLabel": "To-Be Best Practice Mechanism",
     "promptLabel": "Verification Input Prompt",
-    "metricScoped": "Combined 2-Tier Input Tokens",
+    "metricScoped": "Combined 2-Tier Input Tokens (Modeled BQCA Tier)",
     "metricLatency": "Wall-Clock Latency",
     "vsSeq": "vs seq",
     "returnedRows": "Returned BigQuery Result Rows (To-Be)",
@@ -2617,12 +2663,12 @@ UI_EN = {
         "Product, Margin & Return Analytics": "Product, Margin & Return Analytics",
         "Supply Chain, Inventory & Fulfillment": "Supply Chain, Inventory & Fulfillment",
     },
-    "trackerEyebrow": "Progressive S1 → S5 Architecture & Token Tracker",
-    "trackerLiveCountLabel": "Steps Live-Tested",
-    "trackerTitle": "Step-by-Step 2-Tier Token Reduction & Architecture Progression (S1 → S5)",
-    "trackerDesc": "Shows pre-verified GCP baselines at load and dynamically updates each bar as you execute custom prompts in S1 through S5.",
-    "trackerLiveTag": "LIVE VERIFIED",
-    "trackerBaseTag": "Baseline",
+    "trackerEyebrow": "S1 to S5 Live Tracker · Measured ADK Tier",
+    "trackerLiveCountLabel": "steps run live",
+    "trackerTitle": "Measured ADK Prompt Tokens per Step: As-Is vs To-Be",
+    "trackerDesc": "Bars show Vertex AI usage_metadata prompt tokens of the ADK tier. Each row starts with the pre-run baseline and switches to your own run once you execute that step.",
+    "trackerLiveTag": "LIVE RUN",
+    "trackerBaseTag": "Baseline · synthetic As-Is",
     "layerLabels": {
         "S1": "+L1 Static Enum & Scoped DDL",
         "S2": "+L2 Stateless 3-Turn Window",
@@ -2639,27 +2685,37 @@ UI_EN = {
     },
     "wbBadge": "Interactive Full Live Dual A/B Workbench",
     "wbTitle": "Test Custom Evaluator Prompt Live on GCP",
-    "wbSubtitle": "Executes BOTH the unoptimized As-Is Agent (including Monolithic CAA) and the To-Be Best-Practice Agent in parallel on Vertex AI & BigQuery.",
+    "wbSubtitle": "Runs your prompt on both pipelines at once on Google Cloud. As-Is is a plain ADK agent using the built-in data agent tools (list, get info, ask) on the single monolithic data agent. To-Be is the Root Router with three domain Sub-Agents.",
     "wbSchemaSummary": "View Available Dataset Schema & Business KPIs",
     "wbSchemaBodyHtml": "<strong>Dataset:</strong> <span class='mono'>thelook_ecommerce_agent</span> (7 Tables: <span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)<br/><strong>Sample Entities &amp; KPIs:</strong> VIP Customer (<span class='mono'>&gt;= $500</span> or <span class='mono'>&gt;= 5 orders</span>), Channels (<span class='mono'>Search, Organic, Email, Display</span>), Brands (<span class='mono'>Nordic Luxe, TheLook Atelier</span>), Distribution Centers (<span class='mono'>Memphis TN, Chicago IL</span>), Gross Margin %, Return Rate %, Delivery Lead Time.",
     "wbPresetLabel": "Quick Evaluator Prompt Variations (Click to Load or Type Any Question Below):",
     "wbPlaceholder": "Enter any analytical question to execute live against both As-Is and To-Be pipelines...",
     "wbBtnRunDual": "Run Full Live Dual A/B on GCP ({CODE}: As-Is vs To-Be)",
     "wbRunningDual": "Streaming Parallel As-Is & To-Be on GCP ({CODE})...",
-    "wbBtnAppendTurn": "+ Append Next Turn to Live S4 Session",
+    "wbBtnAppendTurn": "+ Run this prompt as the next turn of the live S4 session",
     "wbBtnNextStep": "Continue to Next Layer ({NEXT} →)",
     "wbBtnReset": "Reset Live Session & Tracker",
     "wbSseHeader": "Live GCP Parallel SSE Execution Stream",
     "wbLiveCardBadge": "Live Dual A/B Execution Result",
     "wbExecutedPromptLabel": "Custom Prompt Executed",
-    "wbMetric2Tier": "2-Tier Total Input Tokens (To-Be vs As-Is)",
-    "wbMetricAdkExact": "Live Vertex AI usage_metadata (ADK Prompt)",
-    "wbMetricCost": "Effective Cost w/ 90% Cache ($0.30/1M)",
-    "wbMetricLatencyPair": "Parallel Dual Wall-Clock",
-    "wbVisualBarTitle": "Live 2-Tier Input Token Footprint Comparison (Tier 1 Measured ADK + Tier 2 BQCA Payload)",
-    "wbLiveS4TableTitle": "Live Multi-Turn Measured Vertex AI usage_metadata Progression",
+    "wbLiveS4TableTitle": "Measured ADK prompt tokens per turn in this live session",
     "wbViewAsisRows": "View Returned As-Is Rows",
     "refBaselineHeading": "Pre-Verified Reference Baseline Evidence",
+    "wbMetricAdk": "ADK prompt tokens, measured (To-Be vs As-Is)",
+    "wbMetricCalls": "BQCA chat calls, measured (To-Be vs As-Is)",
+    "wbMetricLatency": "Latency, measured (To-Be vs As-Is)",
+    "wbMetricLlmCalls": "ADK LLM calls, measured (To-Be vs As-Is)",
+    "wbBarTitle": "ADK-tier prompt tokens for this run (Vertex AI usage_metadata)",
+    "wbTraceTitle": "BQCA tier: Cloud Trace medians, not measured for this run",
+    "wbTraceNote": "The chat API returns no token usage. These figures use the median per chat turn for each data agent called, measured from Cloud Trace. Cost uses list prices. Calibration time (UTC):",
+    "wbTraceUnavailable": "No Cloud Trace calibration exists for one of the data agents called, so BQCA-tier tokens are not shown.",
+    "wbPrereqNote": "Turn 1 ran first because this session had no earlier turn:",
+    "wbErrorLabel": "Error",
+    "wbMsgsPerCall": "messages per BQCA call",
+    "wbToolResp": "tool response returned to the root LLM",
+    "wbStateTitle": "New session state after this turn:",
+    "wbS4Hint": "The first S4 run executes three real warm-up turns on both pipelines before your prompt and takes about two to three minutes.",
+    "legacyNoAdk": "not run (direct BQCA call)",
     "wbPresets": {
         "S1": [
             {"label": "Default: 30-Day VIP Revenue & AOV by Channel", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
@@ -2692,7 +2748,7 @@ UI_EN = {
 
 UI_KO = {
     "heroKpis": {
-        "k1Label": "S1 · 2-Tier 통합 Input Token 절감",
+        "k1Label": "S1 · 2-Tier 합산 Input Token (BQCA 계층은 가정치)",
         "k2Label": "S4 · 상위 ADK 실측 압축 효과",
         "k3Label": "S3 · Peer 전환 및 병렬 가속",
         "k4Label": "S5 · 신규 Session 0-Token 우회",
@@ -2731,7 +2787,7 @@ UI_KO = {
     "challengeLabel": "고객 As-Is 문제상황 (Bottleneck)",
     "mechanismLabel": "제안 To-Be Best Practice 해결 구조",
     "promptLabel": "실측 검증 입력 Prompt (영문 원본)",
-    "metricScoped": "2-Tier 합산 Input Token",
+    "metricScoped": "2-Tier 합산 Input Token (BQCA 계층은 가정치)",
     "metricLatency": "실측 벽시계 Latency",
     "vsSeq": "순차 합계",
     "returnedRows": "To-Be 반환 BigQuery Result Table",
@@ -2761,12 +2817,12 @@ UI_KO = {
         "Product, Margin & Return Analytics": "Domain 2 · 상품 Margin 및 반품 분석",
         "Supply Chain, Inventory & Fulfillment": "Domain 3 · 물류센터(DC) 및 재고·배송",
     },
-    "trackerEyebrow": "S1 → S5 단계별 Architecture 진화 및 실시간 Token 절감 추이",
-    "trackerLiveCountLabel": "단계 실시간 검증 완료",
-    "trackerTitle": "S1 → S5 단계별 2-Tier Token 소모량 및 실효 비용 개선 시각화",
-    "trackerDesc": "초기 화면에는 사전 검증된 기준 실측치(Baseline)가 즉시 표시되며, 아래 각 단계에서 직접 질문을 입력·실행할 때마다 해당 단계의 실시간 계측 결과로 그래프가 즉시 갱신됩니다.",
-    "trackerLiveTag": "실시간 검증됨",
-    "trackerBaseTag": "기준 실측치",
+    "trackerEyebrow": "S1 ~ S5 실시간 Tracker · ADK 계층 실측",
+    "trackerLiveCountLabel": "단계 실시간 실행",
+    "trackerTitle": "단계별 ADK Prompt Token 실측치: As-Is vs To-Be",
+    "trackerDesc": "막대는 ADK 계층의 Vertex AI usage_metadata Prompt Token입니다. 각 행은 사전 실행 기준치로 시작하고, 해당 단계를 직접 실행하면 그 결과로 바뀝니다.",
+    "trackerLiveTag": "실시간 실행",
+    "trackerBaseTag": "기준치 · 합성 As-Is",
     "layerLabels": {
         "S1": "+L1 정적 Enum & 격리 Schema",
         "S2": "+L2 Stateless 3-Turn Window",
@@ -2783,27 +2839,37 @@ UI_KO = {
     },
     "wbBadge": "심사자 직접 입력 · Full Live Dual A/B Workbench",
     "wbTitle": "커스텀 Prompt 실시간 GCP 병렬 비교 실행",
-    "wbSubtitle": "입력하신 질문으로 비최적화 As-Is Agent(통합 Monolithic CAA 포함)와 제안 To-Be Best Practice Agent를 동시에 실제 GCP(Vertex AI + BigQuery)에서 병렬 실행하여 답변 품질·SQL·실측 Token을 나란히 대조합니다.",
+    "wbSubtitle": "입력한 질문을 두 구성에서 동시에 실행합니다. As-Is는 단일 통합 Data Agent에 ADK 내장 data agent Tool(list, get info, ask)을 그대로 쓰는 Agent이고, To-Be는 Root Router와 3개 Domain Sub-Agent 구성입니다.",
     "wbSchemaSummary": "질문 가능한 Dataset Table 및 핵심 KPI 가이드 펼치기",
     "wbSchemaBodyHtml": "<strong>대상 Dataset:</strong> <span class='mono'>thelook_ecommerce_agent</span> (7개 Table: <span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)<br/><strong>주요 분석 항목:</strong> VIP 고객(<span class='mono'>$500 이상</span> 또는 <span class='mono'>5회 이상 주문</span>), 유입 채널(<span class='mono'>Search, Organic, Email, Display</span>), Brand(<span class='mono'>Nordic Luxe, TheLook Atelier</span>), 물류센터(<span class='mono'>Memphis TN, Chicago IL</span>), Gross Margin %, 반품률(Return Rate %), 평균 배송 소요일(Delivery Lead Time).",
     "wbPresetLabel": "단계별 추천 실험 Prompt (클릭하여 불러오거나 아래 입력창에 자유롭게 수정·입력하세요):",
     "wbPlaceholder": "검증하고 싶은 분석 질문을 영문 또는 한국어로 자유롭게 입력하세요...",
     "wbBtnRunDual": "GCP 실시간 Dual A/B 병렬 실행 ({CODE}: As-Is vs To-Be 동시 비교)",
     "wbRunningDual": "GCP에서 {CODE} As-Is 및 To-Be 동시 병렬 실행 및 계측 중...",
-    "wbBtnAppendTurn": "+ 현재 S4 실시간 Session에 추가 Turn(Turn 6+) 누적 실행",
+    "wbBtnAppendTurn": "+ 이 질문을 현재 S4 Session의 다음 Turn으로 실행",
     "wbBtnNextStep": "다음 개선 단계({NEXT} →)로 이어서 진행",
     "wbBtnReset": "실시간 Session 및 그래프 초기화",
     "wbSseHeader": "실시간 GCP Dual A/B 병렬 SSE 실행 타임라인",
     "wbLiveCardBadge": "심사자 입력 실시간 Dual A/B 실행 결과",
     "wbExecutedPromptLabel": "실행된 입력 Prompt",
-    "wbMetric2Tier": "2-Tier 합산 Input Token (To-Be vs As-Is)",
-    "wbMetricAdkExact": "실시간 Vertex AI usage_metadata (ADK 실측)",
-    "wbMetricCost": "90% Cache 반영 실효 단가 ($0.30/1M)",
-    "wbMetricLatencyPair": "병렬 실행 소요 Latency",
-    "wbVisualBarTitle": "실시간 2-Tier Input Token 소모량 시각 비교 (Tier 1 ADK 실측치 + Tier 2 BQCA 입력 합산)",
-    "wbLiveS4TableTitle": "실시간 연속 Turn Vertex AI usage_metadata.prompt_token_count 계측 결과",
+    "wbLiveS4TableTitle": "이번 실시간 Session의 Turn별 ADK Prompt Token 실측치",
     "wbViewAsisRows": "As-Is 반환 결과 Table 펼치기",
     "refBaselineHeading": "사전 검증된 기준 실측 리포트 (Pre-Verified Reference Baseline)",
+    "wbMetricAdk": "ADK Prompt Token 실측 (To-Be vs As-Is)",
+    "wbMetricCalls": "BQCA Chat 호출 수 실측 (To-Be vs As-Is)",
+    "wbMetricLatency": "Latency 실측 (To-Be vs As-Is)",
+    "wbMetricLlmCalls": "ADK LLM 호출 수 실측 (To-Be vs As-Is)",
+    "wbBarTitle": "이번 실행의 ADK 계층 Prompt Token (Vertex AI usage_metadata)",
+    "wbTraceTitle": "BQCA 계층: Cloud Trace 중앙값이며 이번 실행의 측정값이 아님",
+    "wbTraceNote": "Chat API는 Token 사용량을 반환하지 않습니다. 호출된 Data Agent별로 Cloud Trace에서 측정한 Chat Turn당 중앙값을 사용했고, 비용은 공시 단가 기준입니다. 측정 시각(UTC):",
+    "wbTraceUnavailable": "호출된 Data Agent 중 Cloud Trace 측정값이 없는 것이 있어 BQCA 계층 Token은 표시하지 않습니다.",
+    "wbPrereqNote": "이 Session에 선행 Turn이 없어 Turn 1을 먼저 실행했습니다:",
+    "wbErrorLabel": "오류",
+    "wbMsgsPerCall": "BQCA 호출당 Message 수",
+    "wbToolResp": "Root LLM에 반환된 Tool 응답",
+    "wbStateTitle": "이번 Turn 이후 신규 Session State:",
+    "wbS4Hint": "S4 첫 실행은 입력한 질문 앞에 실제 Turn 3개를 두 구성 모두에서 먼저 실행하므로 2~3분이 걸립니다.",
+    "legacyNoAdk": "미실행 (BQCA 직접 호출)",
     "wbPresets": {
         "S1": [
             {"label": "기본 검증: 최근 30일 유입 채널별 VIP 고객수·매출·AOV", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
@@ -2930,6 +2996,49 @@ def build_ko_benchmark_data(en_data: dict) -> dict:
     return ko_data
 
 
+CALIBRATION_JSON = BENCHMARK_JSON.parent / "bqca_trace_token_calibration.json"
+
+
+def build_disclosure_html(lang: str) -> str:
+    """States which numbers are measured and which are modeled, with Cloud Trace medians when available."""
+    trace = ""
+    if CALIBRATION_JSON.is_file():
+        cal = json.loads(CALIBRATION_JSON.read_text(encoding="utf-8"))
+        per = cal.get("per_data_agent", {})
+
+        def med(agent_id: str) -> str:
+            row = per.get(agent_id)
+            return f"{row['median_input_tokens_per_turn']:,}" if row else "n/a"
+
+        scoped = " / ".join(med(a) for a in ("cymbal_customer_marketing_ca", "cymbal_product_profitability_ca", "cymbal_supply_chain_ca"))
+        mono = med("thelook_baseline_ca_agent")
+        day = str(cal.get("measured_at_utc", ""))[:10]
+        n = cal.get("total_chat_turns", 0)
+        if lang == "ko":
+            trace = (
+                f" 이 Dataset에서 Cloud Trace로 측정한 결과({day}, Chat Turn {n}건), Chat Turn당 BQCA Input Token 중앙값은 "
+                f"단일 통합 Data Agent가 <span class='mono'>{mono}</span>, Domain별 Data Agent 3종이 <span class='mono'>{scoped}</span>입니다. "
+                "실시간 Workbench는 이 중앙값을 사용합니다."
+            )
+        else:
+            trace = (
+                f" Cloud Trace on this dataset ({day}, {n} chat turns) shows a median BQCA input per chat turn of "
+                f"<span class='mono'>{mono}</span> tokens for the monolithic data agent and <span class='mono'>{scoped}</span> "
+                "for the three scoped data agents. The live workbench uses these medians."
+            )
+    if lang == "ko":
+        return (
+            "<strong>수치 읽는 법.</strong> ADK 계층 Token은 Vertex AI usage_metadata 실측치입니다. "
+            "사전 실행 기준치의 BQCA 계층 Token, 2-Tier 합산과 절감률, 10-Turn 추이, 비용 시뮬레이터는 고정 가정치로 계산한 값이며 측정값이 아닙니다. "
+            "기준치의 As-Is 실행은 Tool 응답을 인위적으로 늘린 합성 구성으로 수행했습니다." + trace
+        )
+    return (
+        "<strong>How to read these numbers.</strong> ADK-tier tokens are measured from Vertex AI usage_metadata. "
+        "In the pre-run baseline, BQCA-tier tokens, the 2-tier totals and reduction percentages, the 10-turn curve and the cost simulator "
+        "are computed from fixed assumption constants and were not measured. The baseline As-Is runs used a synthetic harness with padded tool payloads." + trace
+    )
+
+
 def render_page(template: str, data_obj: dict, ui_obj: dict) -> str:
     return (
         template.replace("__SHARED_CSS__", SHARED_CSS)
@@ -2942,6 +3051,9 @@ def render_page(template: str, data_obj: dict, ui_obj: dict) -> str:
 def main() -> None:
     en_data = json.loads(BENCHMARK_JSON.read_text(encoding="utf-8"))
     ko_data = build_ko_benchmark_data(en_data)
+
+    UI_EN["baselineDisclosureHtml"] = build_disclosure_html("en")
+    UI_KO["baselineDisclosureHtml"] = build_disclosure_html("ko")
 
     html_en = render_page(HTML_EN, en_data, UI_EN)
     html_ko = render_page(HTML_KO, ko_data, UI_KO)

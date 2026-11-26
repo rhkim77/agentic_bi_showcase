@@ -12,8 +12,8 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     "fastapi>=0.115.0" \
     "uvicorn[standard]>=0.32.0" \
-    "google-adk>=1.0.0" \
-    "google-genai>=1.0.0" \
+    "google-adk==2.15.1" \
+    "google-genai==2.34.0" \
     "google-auth>=2.35.0" \
     "requests>=2.32.0" \
     "truststore>=0.10.0" \
