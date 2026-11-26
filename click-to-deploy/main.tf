@@ -36,6 +36,7 @@ resource "google_project_iam_member" "showcase_sa_roles" {
     "roles/bigquery.dataViewer",
     "roles/aiplatform.user",
     "roles/geminidataanalytics.dataAgentUser",
+    "roles/cloudtrace.user",
   ])
   project = var.project_id
   role    = each.value
@@ -49,9 +50,9 @@ resource "google_cloud_run_v2_service" "showcase" {
 
   template {
     service_account = google_service_account.showcase_sa.email
-    timeout         = "180s"
+    timeout         = "600s"
     scaling {
-      min_instance_count = 0
+      min_instance_count = 1
       max_instance_count = 5
     }
     containers {
@@ -61,8 +62,8 @@ resource "google_cloud_run_v2_service" "showcase" {
       }
       resources {
         limits = {
-          cpu    = "1"
-          memory = "1Gi"
+          cpu    = "2"
+          memory = "2Gi"
         }
       }
       env {

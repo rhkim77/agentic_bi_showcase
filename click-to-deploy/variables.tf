@@ -48,11 +48,11 @@ variable "secret_stored_project" {
 variable "bq_dataset_id" {
   type        = string
   description = "BigQuery Dataset ID for Cymbal Global Commerce analytics."
-  default     = "thelook_ecommerce_agent"
+  default     = "cymbal_enterprise_dw"
 }
 
 variable "container_image" {
   type        = string
-  description = "Pre-built Artifact Registry container image URI tagged with Git SHA."
-  default     = "us-central1-docker.pkg.dev/ryan-sandbox-agent/demo-eng-images/cymbal-agentic-bi-showcase:v1"
+  description = "Pre-built Artifact Registry container image URI."
+  default     = "us-central1-docker.pkg.dev/ryan-sandbox-agent/demo-eng-images/cymbal-agentic-bi-showcase:latest"
 }

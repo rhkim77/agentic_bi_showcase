@@ -112,7 +112,7 @@
   <use href="#icon-vertex-ai" x="428" y="87" width="32" height="32"/>
   <text x="468" y="108" font-size="13.2" font-weight="700" fill="#202124">ADK Root Router &amp; Sub-Agents</text>
   <line x1="428" y1="128" x2="716" y2="128" stroke="#E8EAED" stroke-width="1"/>
-  <text x="430" y="150" font-size="11.4" font-weight="400" fill="#3C4043">• LlmAgent + Enum transfer_to_agent</text>
+  <text x="430" y="150" font-size="11.4" font-weight="400" fill="#3C4043">• LlmAgent + transfer_to_agent</text>
   <text x="430" y="171" font-size="11.4" font-weight="400" fill="#3C4043">• Peer-to-Peer Sub-Agent Handoff</text>
   <text x="430" y="192" font-size="11.4" font-weight="400" fill="#3C4043">• ThreadPoolExecutor Parallel Fan-out</text>
   <text x="430" y="213" font-size="11.4" font-weight="400" fill="#3C4043">• Static Agent ID Tool Binding</text>
@@ -151,7 +151,7 @@
   <text x="60" y="432" font-size="11.4" font-weight="400" fill="#3C4043">• ID : cymbal_customer_marketing_ca</text>
   <text x="60" y="453" font-size="11.4" font-weight="400" fill="#3C4043">• Scoped Tables (4) : users, events, orders, order_items</text>
   <text x="60" y="474" font-size="11.4" font-weight="400" fill="#3C4043">• Glossary : VIP (&gt;= $500 / &gt;= 5 orders), Churn, AOV, Cart%</text>
-  <text x="60" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn, Cloud Trace Median : 80,105</text>
+  <text x="60" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn (Uncached Median) : 54,749</text>
   <rect x="508" y="358" width="384" height="156" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="522" y="369" width="32" height="32"/>
   <text x="562" y="390" font-size="13.2" font-weight="700" fill="#202124">Domain 2: Product &amp; Margin CAA</text>
@@ -159,7 +159,7 @@
   <text x="524" y="432" font-size="11.4" font-weight="400" fill="#3C4043">• ID : cymbal_product_profitability_ca</text>
   <text x="524" y="453" font-size="11.4" font-weight="400" fill="#3C4043">• Scoped Tables (3) : products, order_items, orders</text>
   <text x="524" y="474" font-size="11.4" font-weight="400" fill="#3C4043">• Glossary : Gross Margin %, Net Rev, Realized Profit, Return%</text>
-  <text x="524" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn, Cloud Trace Median : 50,279</text>
+  <text x="524" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn (Uncached Median) : 50,318</text>
   <rect x="972" y="358" width="384" height="156" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="986" y="369" width="32" height="32"/>
   <text x="1026" y="390" font-size="13.2" font-weight="700" fill="#202124">Domain 3: Supply Chain &amp; DC CAA</text>
@@ -167,7 +167,7 @@
   <text x="988" y="432" font-size="11.4" font-weight="400" fill="#3C4043">• ID : cymbal_supply_chain_ca</text>
   <text x="988" y="453" font-size="11.4" font-weight="400" fill="#3C4043">• Scoped Tables (5) : distribution_centers, inventory_items + 3</text>
   <text x="988" y="474" font-size="11.4" font-weight="400" fill="#3C4043">• Glossary : Avg Delivery Lead Time, Unsold Inventory Cost</text>
-  <text x="988" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn, Cloud Trace Median : 55,015</text>
+  <text x="988" y="495" font-size="11.4" font-weight="400" fill="#3C4043">• BQCA Input / Turn (Uncached Median) : 54,782</text>
   <line x1="236" y1="535" x2="236" y2="570" stroke="#1A73E8" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
   <rect x="189.0" y="545.0" width="94" height="22" rx="6" ry="6" fill="#FFFFFF" stroke="#DADCE0" stroke-width="1"/>
   <text x="236" y="560.0" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">Governed SQL</text>
@@ -179,7 +179,7 @@
   <text x="1164" y="560.0" text-anchor="middle" font-size="10.8" font-weight="700" fill="#202124">Governed SQL</text>
   <rect x="20" y="580" width="1360" height="208" rx="12" ry="12" fill="#F8F9FA" stroke="#80868B" stroke-width="2"/>
   <line x1="40" y1="626" x2="1360" y2="626" stroke="#DADCE0" stroke-width="1"/>
-  <text x="40" y="610" font-size="15.5" font-weight="700" fill="#202124">Tier 3 — BigQuery Enterprise Data Warehouse &amp; Dataplex Knowledge Catalog Governance Foundation</text>
+  <text x="40" y="610" font-size="15.5" font-weight="700" fill="#202124">Tier 3 — BigQuery Enterprise Data Warehouse &amp; Scoped Business Glossary</text>
   <rect x="1050" y="591" width="310" height="24" rx="12" ry="12" fill="#E8EAED"/>
   <text x="1205.0" y="607" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3C4043">Synthetic Demo Schema Built from Public Datasets</text>
   <rect x="44" y="640" width="620" height="132" rx="10" ry="10" fill="#FFFFFF" stroke="#1A73E8" stroke-width="2" filter="url(#card-shadow)"/>
@@ -188,7 +188,7 @@
   <line x1="58" y1="692" x2="650" y2="692" stroke="#E8EAED" stroke-width="1"/>
   <text x="60" y="714" font-size="11.4" font-weight="400" fill="#3C4043">• Copied from bigquery-public-data: thelook_ecommerce (7 tables) + tpc_ds_1g (25 tables)</text>
   <text x="60" y="735" font-size="11.4" font-weight="400" fill="#3C4043">• Table and column descriptions on every table; demo seed rows anchored to the current date</text>
-  <text x="60" y="756" font-size="11.4" font-weight="400" fill="#3C4043">• As-Is: one monolithic data agent on all 32 tables (median 109,102 BQCA input / turn)</text>
+  <text x="60" y="756" font-size="11.4" font-weight="400" fill="#3C4043">• As-Is: one monolithic data agent on all 32 tables (uncached median 108,501 / turn)</text>
   <rect x="736" y="640" width="620" height="132" rx="10" ry="10" fill="#FFFDF5" stroke="#F9AB00" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-data-analytics" x="750" y="651" width="32" height="32"/>
   <text x="790" y="672" font-size="13.2" font-weight="700" fill="#202124">Business Glossary &amp; Table / Column Descriptions</text>

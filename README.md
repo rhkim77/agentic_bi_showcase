@@ -14,9 +14,9 @@
 When integrating **Google Agent Development Kit (`google-adk`)** with **BigQuery Conversational Analytics (`BQCA` / `geminidataanalytics.googleapis.com/v1`)** for enterprise NL2SQL platforms, engineering teams consistently hit two architectural walls:
 
 1. **Challenge 1 — `Root Agent <-> Sub-Agent (BQCA)` State, Stateless, Memory & Routing Friction**:
-   - ADK's built-in `DataAgentToolset` (`ask_data_agent`) invokes runtime discovery (`_get_data_agent_info`) every turn and sends `[1 UserMessage]` only—causing **Turn-2 context amnesia**.
+   - ADK's built-in `DataAgentToolset` (`ask_data_agent`) invokes runtime discovery (`_get_data_agent_info`) on every call and sends `[1 UserMessage]` only to BQCA—forcing the upstream ADK agent to replay its growing session history to restate prior context on follow-up questions.
    - Conversely, BQCA's server-managed `ConversationReference` locks **`1 Conversation = 1 Fixed DataAgent`**, blocking cross-domain pivots, serializing multi-domain queries, and lacking `CMEK` support in `global`.
-   - Without `App(context_cache_config=...)`, ADK `transfer_to_agent` swaps system instructions and invalidates prefix caches on every agent handoff.
+   - Composite root-cause questions spanning multiple business domains either hit one monolithic data agent carrying the entire warehouse schema or require coordinated delegation across domain-scoped data agents.
 2. **Challenge 2 — Token use in two tiers (`ADK` and `BQCA`)**:
    - BQCA re-reads the schema and glossary bound to a data agent on each of its internal LLM calls, so one data agent bound to a whole documented warehouse costs about twice the BQCA input of a domain-scoped one in the measurements below.
    - The default ADK agent replays the full session, including each raw `ask_data_agent` response, on every LLM call, so its prompt grows with the number of turns.
@@ -56,8 +56,8 @@ How to read it:
 
 ## 3. Repository Structure & Quickstart
 
-- **[`agents/bq_caa_3domain_multi_agent/agent.py`](./agents/bq_caa_3domain_multi_agent/agent.py)**: Production reference with `App(context_cache_config=ContextCacheConfig(...))`, 3 Domain-Scoped Sub-Agents, `before_model_callback` 3-turn compaction, `after_model_callback` `usage_metadata` telemetry, `[-6:]` sliding window, `ThreadPoolExecutor` parallel fan-out, and per-visitor isolated 4-Scope `Session.state` + `MemoryService`.
-- **[`backend/main.py`](./backend/main.py)** & **[`backend/workbench_engine.py`](./backend/workbench_engine.py)**: FastAPI + real-time `SSE` (`POST /api/workbench/stream`) engine powering the **Interactive S1–S5 Progressive Dual A/B Workbench**, executing both `As-Is` (Monolithic / One-Shot / Unbounded) and `To-Be` (Scoped / Sliding Window / Compacted / Memory-Rehydrated) pipelines in parallel on Google Cloud for any custom evaluator prompt.
+- **[`agents/bq_caa_3domain_multi_agent/agent.py`](./agents/bq_caa_3domain_multi_agent/agent.py)**: Production reference with Root Router + 3 Domain-Scoped Sub-Agents, static instructions, `before_model_callback` 3-turn compaction, `after_model_callback` `usage_metadata` telemetry, `[-6:]` sliding window, `ThreadPoolExecutor` parallel fan-out, and per-visitor isolated 4-Scope `Session.state` + `MemoryService`.
+- **[`backend/main.py`](./backend/main.py)**, **[`backend/workbench_engine.py`](./backend/workbench_engine.py)** & **[`backend/reference_answers.py`](./backend/reference_answers.py)**: FastAPI + real-time `SSE` (`POST /api/workbench/stream`) engine powering the **Interactive S1–S5 Progressive Dual A/B Workbench**, live ADK step-stream flow visualization, and BigQuery reference SQL execution alongside both pipelines.
 - **[`agents/bq_caa_streaming_agent/agent.py`](./agents/bq_caa_streaming_agent/agent.py)** & **[`agents/bq_caa_toolset_agent/agent.py`](./agents/bq_caa_toolset_agent/agent.py)**: Companion `SequentialAgent` custom `:chat` streamer and built-in `DataAgentToolset` baseline packages.
 - **[`docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md`](./docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md)** & **[`docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md`](./docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md)**: Full architectural specification and A/B SQL/telemetry walkthrough.
 - **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Portals with the measured baseline, the live Dual A/B workbench and a list-price cost calculator.

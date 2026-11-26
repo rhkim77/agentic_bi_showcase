@@ -101,16 +101,30 @@ def summarize(turns: list[dict[str, Any]]) -> dict[str, Any]:
         by_agent.setdefault(t["data_agent"].rsplit("/", 1)[-1], []).append(t)
     out: dict[str, Any] = {}
     for agent, rows in sorted(by_agent.items()):
-        ins = [r["input_tokens"] for r in rows]
-        out[agent] = {
+        all_ins = [r["input_tokens"] for r in rows]
+        uncached = [r for r in rows if r["cached_input_tokens"] == 0]
+        cached = [r for r in rows if r["cached_input_tokens"] > 0]
+        # Primary median uses uncached turns (`cache_read = 0`) when available so warm extra-pass
+        # bursts on one agent are not compared against cold single-pass turns on another.
+        basis = uncached or rows
+        basis_ins = [r["input_tokens"] for r in basis]
+        entry: dict[str, Any] = {
             "chat_turns_sampled": len(rows),
-            "median_input_tokens_per_turn": int(statistics.median(ins)),
-            "min_input_tokens_per_turn": min(ins),
-            "max_input_tokens_per_turn": max(ins),
-            "median_cached_input_tokens_per_turn": int(statistics.median(r["cached_input_tokens"] for r in rows)),
-            "median_output_tokens_per_turn": int(statistics.median(r["output_tokens"] for r in rows)),
-            "median_llm_calls_per_turn": statistics.median(r["llm_calls"] for r in rows),
+            "uncached_turns_sampled": len(uncached),
+            "cached_turns_sampled": len(cached),
+            "median_basis": "uncached_turns" if uncached else "all_turns",
+            "median_input_tokens_per_turn": int(statistics.median(basis_ins)),
+            "median_cached_input_tokens_per_turn": int(statistics.median(r["cached_input_tokens"] for r in basis)),
+            "median_output_tokens_per_turn": int(statistics.median(r["output_tokens"] for r in basis)),
+            "median_llm_calls_per_turn": statistics.median(r["llm_calls"] for r in basis),
+            "all_turns_median_input_tokens": int(statistics.median(all_ins)),
+            "min_input_tokens_per_turn": min(all_ins),
+            "max_input_tokens_per_turn": max(all_ins),
         }
+        if cached:
+            entry["cached_turns_median_input_tokens"] = int(statistics.median(r["input_tokens"] for r in cached))
+            entry["cached_turns_median_cache_read_tokens"] = int(statistics.median(r["cached_input_tokens"] for r in cached))
+        out[agent] = entry
     return out
 
 

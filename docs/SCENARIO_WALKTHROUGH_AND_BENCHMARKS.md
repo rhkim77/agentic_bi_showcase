@@ -1,91 +1,47 @@
-# Scenario Walkthrough & Empirical PoC A/B Benchmark Report (`S1` – `S5`)
+# Scenario Walkthrough & Empirical Dual A/B Benchmark Report (`S1` – `S5`)
 
-> **Superseded numbers.** This document was written for the first benchmark, which used a 7-table dataset, a synthetic As-Is harness and assumption constants for BQCA tokens. Its figures do not apply to the current setup. Current measured results are in [`benchmarks/scenario_benchmark_results.json`](../benchmarks/scenario_benchmark_results.json), the README scorecard and the portals. The architecture description still applies, with these changes: the warehouse is `cymbal_enterprise_dw` (32 documented tables), the As-Is side uses ADK's built-in data agent tools on one monolithic data agent, and the To-Be agents use static instructions, one tool per Sub-Agent and no summarization call after a data call.
+All five scenarios below run both pipelines (`As-Is` and `To-Be`) against `ryan-sandbox-agent.cymbal_enterprise_dw` (32 documented tables, 504 columns) through [`backend/workbench_engine.py`](../backend/workbench_engine.py) and [`scripts/04_run_scenario_benchmarks.py`](../scripts/04_run_scenario_benchmarks.py).
 
-
-All five PoC verification scenarios below contrast **As-Is Anti-Patterns** directly against **To-Be Best Practices** on live Google Cloud infrastructure (`ryan-sandbox-agent.thelook_ecommerce_agent`, Vertex AI `gemini-2.5-flash` instrumented via ADK `after_model_callback` `usage_metadata`, and `geminidataanalytics.googleapis.com/v1` `:chat`). Machine-readable telemetry is stored in [`benchmarks/scenario_benchmark_results.json`](../benchmarks/scenario_benchmark_results.json) and rendered interactively in [`docs/index.html`](./index.html) (`EN`) and [`docs/index_ko.html`](./index_ko.html) (`KO`).
-
----
-
-## Executive PoC Verification Scorecard
-
-| Scenario & Target PoC Problem | As-Is Anti-Pattern (Measured) | To-Be Best Practice (Measured) | Token & Latency Delta | Core Engineering Proof |
-| :--- | :--- | :--- | :--- | :--- |
-| **`S1` · Routing & Schema Diet**<br/>*(Track 1 + Track 2)* | Runtime Discovery + Monolithic CAA (`122,137` 2-tier tok; ADK `11,373` tok; `$0.251/turn`) | Static `enum transfer_to_agent` + 4-Table Customer CAA (`15,737` 2-tier tok; ADK `4,298` tok; `$0.041/turn`) | **`-87.1%` Total Tokens**<br/>(**`-62.2%` ADK Prompt**) | Eliminates discovery overhead and arbitrary `spend >= 100` SQL guesses via Hop-1 VIP formula. |
-| **`S2` · Stateless Multi-Turn**<br/>*(Track 1: State vs Stateless)* | Default ADK `ask_data_agent` (`[1 UserMessage]` sent -> **Turn-2 Context Amnesia**) | Stateless `:chat` + ADK `Session.state` `[-6:]` Window (`[3 Messages]` sent, `18,701` 2-tier tok) | **`-85.8%` Total Tokens**<br/>(`+257` BQCA window tok) | Live SQL diff proves As-Is drops Turn-1 VIP cohort while To-Be generates full `FULL OUTER JOIN`. |
-| **`S3` · Peer Switch & Parallel Fan-Out**<br/>*(Track 1: Breaking Lock-In)* | Stateful `ConversationReference` (`1 Conv = 1 Agent` lock-in; `34.25 s` sequential 3-domain sum) | Direct Peer `transfer_to_agent` (`0` Root bounce) + `ThreadPoolExecutor(3)` over `:chat` (**`13.47 s`**) | **`2.54x` Faster (`-60.7%`)**<br/>**`-82.1%` Total Tokens** | Resolves cross-domain `Nordic Luxe` `50.0%` return <-> `Memphis TN (DC #1)` `6.0d` delay in 1 turn. |
-| **`S4` · 5-Turn ADK `usage_metadata` & `90%` Cache**<br/>*(Track 2 Core)* | Unbounded `Session.events` (`Turn 1: 5,807 -> Turn 5: 51,376` measured ADK prompt tok; `$0.507` no-cache / `$0.306` cached) | `before_model_callback` 3-Turn Cap + Slim 20-Row Tool + `90%` Cached Prefix (`Turn 4: 3,806 -> Turn 5: 3,807` ADK tok; **`$0.041/turn`**) | **`-92.6%` ADK Prompt**<br/>**`-86.7%` Effective Cost** | Live `usage_metadata` proves `O(1)` flat ceiling (`3,806 -> 3,807` tok on Turn 5, `8` stale items evicted). |
-| **`S5` · 4-Scope State & Memory Short-Circuit**<br/>*(Track 1 + Track 2)* | `+ New Session` wipes context -> forces full `110K+` BQCA re-query | `temp:*` evicted + `user:*` & `ADK MemoryService` Turn-1 recall (`6,753` ADK tok, **`0` BQCA tok**) | **`-93.9%` Total Tokens**<br/>(`$0.0039/turn`, `6.05 s`) | Answers on Turn 1 of `session-B` with **`0` BigQuery CAA calls and `0` BigQuery bytes scanned**. |
+- **ADK tokens**: `Vertex AI usage_metadata` (`gemini-2.5-flash`) captured in `after_model_callback`.
+- **BQCA tokens**: `gen_ai.usage.*` attributes summed from the OpenTelemetry `generate_content` spans written to Cloud Trace for each `:chat` call in the run.
+- **Machine-readable results**: [`benchmarks/scenario_benchmark_results.json`](../benchmarks/scenario_benchmark_results.json), [`benchmarks/bqca_trace_token_calibration.json`](../benchmarks/bqca_trace_token_calibration.json), and [`benchmarks/reference_answers.json`](../benchmarks/reference_answers.json).
 
 ---
 
-## Scenario `S1`: Eliminating Discovery Overhead & Monolithic DDL Bloat (`As-Is` vs `To-Be`)
+## 1. Measured Scorecard (2026-11-26, One Run per Scenario)
 
-- **Measured `Vertex AI usage_metadata` (`gemini-2.5-flash`)**:
-  - **As-Is (`asis_discovery_monolithic_agent`)**: `prompt_token_count = 11,373`, `output_and_thoughts = 1,127` (`3` LLM calls) + `110,764` BQCA monolithic tokens = **`122,137` combined input tokens** (`$0.385/turn` uncached, `$0.251/turn` with implicit cache). Guessed `WHEN user_total_spend >= 100`.
-  - **To-Be (`cymbal_enterprise_root_router` -> `customer_marketing_subagent`)**: `prompt_token_count = 4,298` (**`-62.2%`**), `output_and_thoughts = 589` + `11,439` BQCA scoped tokens = **`15,737` combined input tokens (`-87.1%`, `$0.0405/turn` effective cost)**. Enforced `HAVING SUM(sale_price) >= 500 OR COUNT(DISTINCT order_id) >= 5`.
-
----
-
-## Scenario `S2`: Solving One-Shot Stateless Amnesia (`[1 Msg]` Failure vs. `ADK [-6:]` Continuity)
-
-> **Turn-2 Follow-Up Prompt**: `"Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source."`
-
-- **As-Is SQL (`ask_data_agent` Default — `1` Message Sent -> Context Amnesia)**:
-  ```sql
-  -- Completely lost Turn-1 30-day VIP customer count, gross revenue, and AOV!
-  SELECT traffic_source,
-         COUNT(DISTINCT CASE WHEN has_cart = 1 THEN session_id END) AS cart_session_count,
-         ROUND((COUNT(DISTINCT CASE WHEN has_cart = 1 AND has_purchase = 0 THEN session_id END) * 100.0)
-               / NULLIF(COUNT(DISTINCT CASE WHEN has_cart = 1 THEN session_id END), 0), 2) AS cart_abandonment_rate_pct
-  FROM session_events
-  GROUP BY traffic_source;
-  ```
-- **To-Be SQL (`ADK [-6:] Sliding Window` — `3` Messages Sent -> Full Context Preserved)**:
-  ```sql
-  -- Preserved Turn-1 30-day VIP cohort + revenue + AOV and joined 14-day cart abandonment via FULL OUTER JOIN!
-  SELECT COALESCE(o.traffic_source, c.traffic_source) AS traffic_source,
-         COALESCE(o.vip_customer_count, 0) AS vip_customer_count,
-         COALESCE(o.total_gross_revenue, 0.0) AS total_gross_revenue,
-         COALESCE(o.average_order_value, 0.0) AS average_order_value,
-         COALESCE(c.cart_session_count, 0) AS cart_session_count,
-         c.cart_abandonment_rate_pct AS cart_abandonment_rate_percentage
-  FROM last_30_days_orders AS o
-  FULL OUTER JOIN last_14_days_cart_events AS c ON o.traffic_source = c.traffic_source
-  ORDER BY total_gross_revenue DESC;
-  ```
+| Scenario | ADK prompt As-Is | ADK prompt To-Be | BQCA input As-Is | BQCA input To-Be | Total input As-Is | Total input To-Be | Total delta | Cost As-Is | Cost To-Be | BQCA calls As-Is / To-Be | Latency As-Is / To-Be |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
+| `S1` schema scoping | 6,593 | 1,712 | 162,669 | 81,090 | 169,262 | 82,802 | **-51.1%** | $0.2529 | $0.1645 | 1 / 1 | 24.0s / 23.3s |
+| `S2` follow-up question | 11,925 | 1,493 | 109,243 | 54,887 | 121,168 | 56,380 | **-53.5%** | $0.3779 | $0.2078 | 1 / 1 | 26.2s / 16.6s |
+| `S3` domain switch | 18,283 | 2,962 | 163,520 | 54,480 | 181,803 | 57,442 | **-68.4%** | $0.2617 | $0.1915 | 1 / 1 | 24.2s / 17.0s |
+| `S3` three-domain fan-out | 53,407 | 5,659 | 323,986 | 191,527 | 377,393 | 197,186 | **-47.8%** | $1.0603 | $0.6710 | 3 / 3 | 62.0s / 34.2s |
+| `S4` turn 8 of the session | 33,099 | 2,494 | 161,541 | 55,513 | 194,640 | 58,007 | **-70.2%** | $0.2381 | $0.2175 | 1 / 1 | 21.5s / 19.1s |
+| `S5` recall in a new session | 2,238 | 2,476 | 0 | 0 | 2,238 | 2,476 | **+10.6%** | $0.0019 | $0.0028 | 0 / 0 | 4.9s / 6.8s |
 
 ---
 
-## Scenario `S3`: Peer-to-Peer Domain Switch (`Path B`) & Lock-Free Parallel Fan-Out (`Path C`)
+## 2. Scenario-by-Scenario Findings
 
-1. **Part A — Direct Peer Transfer (`0` Root Router Bounce)**:
-   - Active `customer_marketing_subagent` pivoted directly to `supply_chain_logistics_subagent` (`agents_hop_trace = ['customer_marketing_subagent', 'supply_chain_logistics_subagent', 'supply_chain_logistics_subagent']`, `10,369` measured ADK prompt tokens), overcoming `ConversationReference`'s `1 Conversation = 1 DataAgent` lock-in.
-2. **Part B — 3-Domain Concurrent `:chat` Execution (`ThreadPoolExecutor`)**:
-   - Completed all 3 domain queries in **`13,472 ms` parallel wall-clock vs. `34,251 ms` sequential sum (`2.54x` speedup / `-60.7%` latency)**, pinpointing `Nordic Luxe`'s `50.0%` return rate (`$7,200` vs `$11,520` profit) alongside `Memphis TN (DC #1)`'s `6.0-day` delivery bottleneck (vs `2.0 days` at `Chicago IL`).
+### Scenario `S1` — Routing & Domain Schema Scoping
+- **Prompt**: `"Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."`
+- **Mechanism & Telemetry**: `cymbal_enterprise_root_router` delegates via `transfer_to_agent` to `customer_marketing_subagent` (`4` tables), ending on the tool response (`skip_summarization = True`). Total input: `82,802` vs `169,262` (`-51.1%`). Across 442 Cloud Trace turns collected on 2026-11-26, uncached single-pass medians are `54,718` (`cymbal_customer_marketing_ca`) vs `108,438` (`cymbal_enterprise_monolithic_ca`).
+- **Reference SQL Check**: `To-Be` matched all 15 reference cells (`Search`: 203–204 VIPs, ~$88.3K VIP gross revenue, ~$248 AOV) in 5 of 5 spot-check runs; `As-Is` matched VIP counts in 5 of 5 runs but often computed channel revenue across all customers (~$608.5K).
 
----
+### Scenario `S2` — Multi-Turn Follow-Up over Stateless `:chat`
+- **Prompt**: `"Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source."`
+- **Mechanism & Telemetry**: `As-Is` sends `[1 UserMessage]` to BQCA after replaying its full ADK session (`11,925` ADK prompt tokens), whereas `To-Be` stays in `customer_marketing_subagent` (`1,493` ADK prompt tokens, `-87.5%`) and attaches the domain's `[-6:]` message window (`3` messages sent to `:chat`). Total input: `56,380` vs `121,168` (`-53.5%`).
+- **Nuance on Follow-Up Wording**: Both pipelines preserve the 30-day VIP customer counts and join 14-day cart abandonment accurately, but both usually compute 30-day revenue and AOV over all customers in each channel rather than VIP-only customers when combining the two CTEs. [`backend/reference_answers.py`](../backend/reference_answers.py) documents both readings explicitly.
 
-## Scenario `S4`: Live 5-Turn `Vertex AI usage_metadata` & `90%` Cached Input Cost Proof
+### Scenario `S3` — Direct Peer Handoff & 3-Domain Parallel Fan-Out
+- **Part A (Peer Switch)**: From active `customer_marketing_subagent`, `"Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers."` transfers directly to `supply_chain_logistics_subagent` with zero Root Router hop (`57,442` vs `181,803` total input, `-68.4%`; matched all 20 reference cells in 5 of 5 runs).
+- **Part B (3-Domain Fan-Out)**: Dispatches three domain `:chat` calls concurrently via `ThreadPoolExecutor` (`34.2s` vs `62.0s` sequential 3-call `As-Is` run). Token delta depends on how many calls `As-Is` chooses to make: `-47.8%` when `As-Is` made 3 calls (`197,186` vs `377,393`), versus `+49.3%` in an earlier run where `As-Is` answered in 1 call (`195,065` vs `130,637`).
 
-Directly measured `prompt_token_count` captured by ADK `after_model_callback` on `gemini-2.5-flash` across 5 consecutive turns:
+### Scenario `S4` — 8-Turn Session Scaling (`Vertex AI usage_metadata` + Cloud Trace)
+- Across 8 distinct analytical questions in one session:
+  - **`As-Is` ADK prompt tokens**: `5,760` → `9,851` → `14,710` → `20,442` → `25,223` → `27,590` → `30,184` → `33,099`.
+  - **`To-Be` ADK prompt tokens**: `2,104`, `3,524`, `3,630`, `2,520`, `1,560`, `3,024`, `1,282`, `2,494` (`before_model_callback` evicted up to `29` older content items by Turn 8).
+  - **8-Turn Average Total Input (ADK + BQCA)**: `75,406` (`To-Be`) vs `163,656` (`As-Is`), **`-53.9%`**; list-price average cost `$0.2316` vs `$0.3302` (**`-29.8%`**).
 
-| Turn | As-Is Unbounded ADK (`usage_metadata`) | To-Be 3-Turn Compacted ADK (`usage_metadata`) | `before_model_callback` Evicted Items | ADK Tier Savings |
-| :---: | ---: | ---: | :---: | ---: |
-| **Turn 1** | `5,807 tok` | **`882 tok`** | `0` | `-84.8%` |
-| **Turn 2** | `17,180 tok` | **`2,300 tok`** | `0` | `-86.6%` |
-| **Turn 3** | `28,589 tok` | **`3,769 tok`** | `0` | `-86.8%` |
-| **Turn 4** | `39,990 tok` | **`3,806 tok`** *(O(1) Ceiling)* | `4 items dropped` | `-90.5%` |
-| **Turn 5** | `51,376 tok` | **`3,807 tok`** *(+1 tok!)* | `8 items dropped` | **`-92.6%`** |
-
-- **Effective Per-Turn Cost on Turn 5** (combining Vertex AI `gemini-2.5-flash` + Data Cloud Agent PAYG `$3.00/1M` Non-Cached vs. **`$0.30/1M` `90%` Cached Input**):
-  - As-Is Monolithic (`0%` Cache): `$0.5068 / turn`
-  - As-Is Monolithic (`50%` Implicit Cache): `$0.3065 / turn`
-  - **Proposed To-Be (`2-Tier Token Diet` + `65%` Cached Prefix @ `$0.30/1M`)**: **`$0.0406 / turn` (`-86.7%` net cost reduction even after applying cache discounts to both!)**
-
----
-
-## Scenario `S5`: 4-Scope `Session.state` Isolation & `0-Token BQCA` Cross-Session Recall
-
-- **`session-A` Post-Turn Verification**: `temp_scope_keys_after_turn = []` (100% of temporary row buffers evicted) while `user:profile` and `user:pinned_insights` persisted to `ADK MemoryService`.
-- **`session-B` Turn-1 Recall**: Answered in **`6,050 ms`** using **`6,753` measured ADK prompt tokens**, **`0` BQCA calls (`0` BQCA tokens)**, and **`0` BigQuery bytes scanned (`$0.0039` effective turn cost)**.
+### Scenario `S5` — New-Session Recall via `user:*` State & `MemoryService`
+- In a brand-new session (`tobe-s5-*` vs `asis-s5-*`), `To-Be` answers from rehydrated `user:*` state and `MemoryService` in `6.8s` with **`0` BQCA calls** (`2,476` ADK prompt tokens, `$0.0028`), whereas `As-Is` has no cross-session memory (`2,238` ADK prompt tokens, `+10.6%` ADK delta).

@@ -983,7 +983,7 @@ HTML_EN = r"""<!DOCTYPE html>
           <div>
             <h3 id="fig-title" style="margin-bottom:4px;">Fig 1. End-to-End 3-Tier Enterprise System Architecture</h3>
             <p id="fig-caption" style="font-size:13.5px;color:var(--text-secondary);">
-              Tier 1 (ADK Root Orchestrator, ContextCacheConfig &amp; 4-Scope State/Memory) → Tier 2 (3 Scoped Stateless BigQuery CAA Agents) → Tier 3 (BigQuery &amp; Hop-1 Glossary).
+              Tier 1 (ADK Root Orchestrator &amp; 4-Scope State/Memory) → Tier 2 (3 Domain-Scoped Stateless BigQuery CAA Agents) → Tier 3 (32-Table BigQuery Warehouse &amp; Scoped Glossary).
             </p>
           </div>
           <button class="btn-outline" id="zoom-fig-btn">Expand Full Resolution</button>
@@ -1101,21 +1101,28 @@ HTML_EN = r"""<!DOCTYPE html>
     </section>
 
     <section id="repository">
-      <h2>5. Git Repository Implementation Map &amp; 4-Step PoC Reproduction</h2>
+      <h2>5. Git Repository Implementation Map &amp; PoC Reproduction</h2>
       <div class="stack-list">
         <div class="info-card">
           <h3>Key Implementation Files</h3>
           <pre class="sql-block" style="max-height:none;font-size:12px;">agentic_bi_showcase/  (https://github.com/rhkim77/agentic_bi_showcase)
 ├── agents/
-│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 3 Sub-Agents + ContextCacheConfig + 4-Scope State
+│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 3 Sub-Agents + 4-Scope State + MemoryService
 │   │                                            # + before_model_callback (3-turn cap) + after_model_callback
 │   ├── bq_caa_streaming_agent/agent.py          # SequentialAgent + BaseAgent :chat SSE Streamer
 │   └── bq_caa_toolset_agent/agent.py            # Built-in DataAgentToolset baseline comparison
+├── backend/
+│   ├── main.py                                  # FastAPI portal + SSE Workbench endpoints
+│   ├── workbench_engine.py                      # Dual A/B live runner + ADK step stream
+│   └── reference_answers.py                     # Hand-written reference SQL for preset questions
 ├── scripts/
-│   ├── 04_run_scenario_benchmarks.py            # Runs live S1-S5 As-Is vs To-Be + Vertex usage_metadata
-│   ├── provision_cymbal_caa_agents.py           # Provisions 3 Domain-Scoped BigQuery CAA Agents
+│   ├── provision_enterprise_warehouse.py        # 32-table documented warehouse + monolithic As-Is agent
+│   ├── provision_cymbal_caa_agents.py           # 3 Domain-Scoped BigQuery CAA Data Agents
+│   ├── 04_run_scenario_benchmarks.py            # Live S1-S5 Dual A/B + Cloud Trace span matching
+│   ├── 05_measure_bqca_tokens_from_trace.py     # Cloud Trace medians per Data Agent
+│   ├── 06_build_reference_answers.py            # Reference SQL snapshot for baseline cards
 │   └── build_outcome_portal.py                  # Compiles EN (index.html) &amp; KO (index_ko.html) portals
-├── benchmarks/scenario_benchmark_results.json   # Empirical SQL, state diffs &amp; usage_metadata telemetry
+├── benchmarks/scenario_benchmark_results.json   # Measured S1-S5 SQL, answers &amp; 2-tier token telemetry
 └── docs/
     ├── ARCHITECTURE_AND_CONFIGURATION_GUIDE.md
     └── SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md</pre>
@@ -1136,6 +1143,7 @@ uv run python scripts/refresh_demo_seed.py
 uv run python scripts/provision_cymbal_caa_agents.py
 uv run python scripts/04_run_scenario_benchmarks.py
 uv run python scripts/05_measure_bqca_tokens_from_trace.py
+uv run python scripts/06_build_reference_answers.py
 uv run python scripts/build_outcome_portal.py
 uv run adk web agents --port 8000</pre>
           <p style="font-size:12.8px;color:var(--text-secondary);">
@@ -1280,7 +1288,7 @@ HTML_KO = r"""<!DOCTYPE html>
           <div>
             <h3 id="fig-title" style="margin-bottom:4px;">Fig 1. End-to-End 3-Tier Enterprise System Architecture</h3>
             <p id="fig-caption" style="font-size:13.5px;color:var(--text-secondary);">
-              Tier 1 (ADK Root Orchestrator, ContextCacheConfig 및 4-Scope State/Memory) → Tier 2 (3개 Domain-Scoped Stateless BigQuery CAA) → Tier 3 (BigQuery 및 Hop-1 Glossary).
+              Tier 1 (ADK Root Orchestrator 및 4-Scope State/Memory) → Tier 2 (3개 Domain-Scoped Stateless BigQuery CAA) → Tier 3 (32-Table BigQuery Warehouse 및 Domain 용어집).
             </p>
           </div>
           <button class="btn-outline" id="zoom-fig-btn">원본 해상도로 확대 보기</button>
@@ -1398,21 +1406,28 @@ HTML_KO = r"""<!DOCTYPE html>
     </section>
 
     <section id="repository">
-      <h2>5. Git Repository 핵심 구현 위치 및 4단계 PoC 재현 명령어</h2>
+      <h2>5. Git Repository 핵심 구현 위치 및 PoC 재현 절차</h2>
       <div class="stack-list">
         <div class="info-card">
           <h3>핵심 구현 File 매핑</h3>
           <pre class="sql-block" style="max-height:none;font-size:12px;">agentic_bi_showcase/  (https://github.com/rhkim77/agentic_bi_showcase)
 ├── agents/
-│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 3 Sub-Agent + App(ContextCacheConfig)
+│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 3 Sub-Agent + 4-Scope State + MemoryService
 │   │                                            # + before_model_callback(3-Turn 압축) + after_model_callback(실측)
 │   ├── bq_caa_streaming_agent/agent.py          # SequentialAgent + BaseAgent :chat SSE Streamer
 │   └── bq_caa_toolset_agent/agent.py            # 내장 DataAgentToolset 대조군
+├── backend/
+│   ├── main.py                                  # FastAPI Portal + SSE Workbench Endpoint
+│   ├── workbench_engine.py                      # Dual A/B 실시간 실행기 + ADK Step Stream
+│   └── reference_answers.py                     # Preset 질문용 기준 SQL 정의
 ├── scripts/
-│   ├── 04_run_scenario_benchmarks.py            # S1-S5 As-Is vs To-Be + Vertex usage_metadata 실측 Script
-│   ├── provision_cymbal_caa_agents.py           # 3종 Domain-Scoped BigQuery CAA 자동 생성
+│   ├── provision_enterprise_warehouse.py        # 32-Table Warehouse + 통합 As-Is Data Agent 생성
+│   ├── provision_cymbal_caa_agents.py           # 3종 Domain-Scoped BigQuery CAA Data Agent 생성
+│   ├── 04_run_scenario_benchmarks.py            # S1-S5 Dual A/B 실행 + Cloud Trace Span 매칭
+│   ├── 05_measure_bqca_tokens_from_trace.py     # Data Agent별 Cloud Trace 중앙값 집계
+│   ├── 06_build_reference_answers.py            # 기준치 카드용 기준 SQL Snapshot 생성
 │   └── build_outcome_portal.py                  # 영문(index.html) 및 한국어(index_ko.html) Portal 생성
-├── benchmarks/scenario_benchmark_results.json   # 실측 SQL, 4-Scope JSON Diff 및 usage_metadata 원본
+├── benchmarks/scenario_benchmark_results.json   # S1-S5 실측 SQL, 답변 및 2-Tier Token Telemetry 원본
 └── docs/
     ├── ARCHITECTURE_AND_CONFIGURATION_GUIDE.md
     └── SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md</pre>
@@ -1433,6 +1448,7 @@ uv run python scripts/refresh_demo_seed.py
 uv run python scripts/provision_cymbal_caa_agents.py
 uv run python scripts/04_run_scenario_benchmarks.py
 uv run python scripts/05_measure_bqca_tokens_from_trace.py
+uv run python scripts/06_build_reference_answers.py
 uv run python scripts/build_outcome_portal.py
 uv run adk web agents --port 8000</pre>
           <p style="font-size:12.8px;color:var(--text-secondary);">
@@ -2673,17 +2689,17 @@ UI_EN = {
         "fig1": {
             "src": "./diagrams/fig1_3tier_system_architecture.svg",
             "title": "Fig 1. End-to-End 3-Tier Enterprise System Architecture",
-            "caption": "Tier 1 (ADK Root Orchestrator, ContextCacheConfig & 4-Scope State/Memory) → Tier 2 (3 Domain-Scoped Stateless BigQuery CAA Agents) → Tier 3 (BigQuery Warehouse & Hop-1 Glossary).",
+            "caption": "Tier 1 (ADK Root Orchestrator & 4-Scope State/Memory) → Tier 2 (3 Domain-Scoped Stateless BigQuery CAA Agents) → Tier 3 (32-Table BigQuery Warehouse & Scoped Glossary).",
         },
         "fig2": {
             "src": "./diagrams/fig2_state_architectures_comparison.svg",
             "title": "Fig 2. Stateless One-Shot vs. Stateful ConversationReference vs. Proposed Hybrid",
-            "caption": "Contrasts ADK Default DataAgentToolset (Turn-2 amnesia), Managed ConversationReference (single-agent lock-in), and ADK 3-Turn Window Sliding Window over Stateless Chat API.",
+            "caption": "Contrasts ADK Default DataAgentToolset (1-message stateless calls), Managed ConversationReference (single-agent lock-in), and ADK 3-Turn Sliding Window over Stateless Chat API.",
         },
         "fig3": {
             "src": "./diagrams/fig3_routing_paths_abc.svg",
             "title": "Fig 3. Root-to-SubAgent 3-Way Hybrid Routing (Paths A, B, C)",
-            "caption": "Path A: Static enum transfer_to_agent | Path B: Direct Peer-to-Peer Handoff | Path C: Lock-Free ThreadPoolExecutor Concurrent Chat API Fan-Out.",
+            "caption": "Path A: Single-domain transfer_to_agent | Path B: Direct Peer-to-Peer Handoff | Path C: ThreadPoolExecutor Concurrent Chat API Fan-Out.",
         },
         "fig4": {
             "src": "./diagrams/fig4_token_diet_4scope_lifecycle.svg",
@@ -2777,8 +2793,8 @@ UI_EN = {
     "wbMetricLatency": "Latency, measured (To-Be vs As-Is)",
     "wbMetricLlmCalls": "ADK LLM calls, measured (To-Be vs As-Is)",
     "wbBarTitle": "ADK-tier prompt tokens for this run (Vertex AI usage_metadata)",
-    "wbTraceTitle": "BQCA tier: Cloud Trace medians, not measured for this run",
-    "wbTraceNote": "The chat API returns no token usage. These figures use the median per chat turn for each data agent called, measured from Cloud Trace. A median covers many runs, so it can differ from the baseline rows, which use the spans of that one pre-run. Cost uses list prices. Calibration time (UTC):",
+    "wbTraceTitle": "BQCA tier: Cloud Trace uncached-turn medians, not measured for this run",
+    "wbTraceNote": "The chat API returns no token usage. These figures use the Cloud Trace median of uncached chat turns (cache_read = 0) for each data agent called, so warm and cold turns are compared on the same basis. Baseline rows instead sum the actual Cloud Trace spans of that pre-run (which can include cached passes). Cost uses list prices. Calibration time (UTC):",
     "wbTraceUnavailable": "No Cloud Trace calibration exists for one of the data agents called, so BQCA-tier tokens are not shown.",
     "wbPrereqNote": "Turn 1 ran first because this session had no earlier turn:",
     "wbErrorLabel": "Error",
@@ -2832,17 +2848,17 @@ UI_KO = {
         "fig1": {
             "src": "./diagrams/fig1_3tier_system_architecture.svg",
             "title": "Fig 1. End-to-End 3-Tier Enterprise System Architecture",
-            "caption": "Tier 1 (ADK Root Orchestrator, ContextCacheConfig 및 4-Scope State/Memory) → Tier 2 (3개 Domain-Scoped Stateless BigQuery CAA) → Tier 3 (BigQuery 및 Hop-1 Glossary).",
+            "caption": "Tier 1 (ADK Root Orchestrator 및 4-Scope State/Memory) → Tier 2 (3개 Domain-Scoped Stateless BigQuery CAA) → Tier 3 (32-Table BigQuery Warehouse 및 Domain 용어집).",
         },
         "fig2": {
             "src": "./diagrams/fig2_state_architectures_comparison.svg",
             "title": "Fig 2. One-Shot Stateless vs 관리형 ConversationReference vs 제안 Hybrid 비교",
-            "caption": "ADK 기본 Toolset(2턴 문맥 유실), 단일 DataAgent 종속형 ConversationReference, 그리고 Stateless Chat API 위 ADK 3-Turn Window Sliding Window의 구조적 차이를 대조합니다.",
+            "caption": "ADK 기본 Toolset(단발성 1-Message 호출), 단일 DataAgent 종속형 ConversationReference, 그리고 Stateless Chat API 위 ADK 3-Turn Sliding Window의 구조적 차이를 대조합니다.",
         },
         "fig3": {
             "src": "./diagrams/fig3_routing_paths_abc.svg",
             "title": "Fig 3. Root-to-SubAgent 3-Way Hybrid Routing (Path A, B, C)",
-            "caption": "Path A: 정적 enum transfer_to_agent | Path B: Sub-Agent 간 직접 Peer 전환(Root 생략) | Path C: 무잠금 ThreadPoolExecutor 동시 병렬 Fan-out.",
+            "caption": "Path A: 단일 Domain transfer_to_agent | Path B: Sub-Agent 간 직접 Peer 전환(Root 생략) | Path C: ThreadPoolExecutor 동시 병렬 Fan-out.",
         },
         "fig4": {
             "src": "./diagrams/fig4_token_diet_4scope_lifecycle.svg",
@@ -2936,8 +2952,8 @@ UI_KO = {
     "wbMetricLatency": "Latency 실측 (To-Be vs As-Is)",
     "wbMetricLlmCalls": "ADK LLM 호출 수 실측 (To-Be vs As-Is)",
     "wbBarTitle": "이번 실행의 ADK 계층 Prompt Token (Vertex AI usage_metadata)",
-    "wbTraceTitle": "BQCA 계층: Cloud Trace 중앙값이며 이번 실행의 측정값이 아님",
-    "wbTraceNote": "Chat API는 Token 사용량을 반환하지 않습니다. 호출된 Data Agent별로 Cloud Trace에서 측정한 Chat Turn당 중앙값을 사용했고, 비용은 공시 단가 기준입니다. 중앙값은 여러 실행을 합친 값이라, 사전 실행 한 번의 Span을 그대로 쓴 기준치 행과 다를 수 있습니다. 측정 시각(UTC):",
+    "wbTraceTitle": "BQCA 계층: Cloud Trace 비캐시 Turn 중앙값이며 이번 실행의 측정값이 아님",
+    "wbTraceNote": "Chat API는 Token 사용량을 반환하지 않습니다. 호출된 Data Agent별로 Cloud Trace에서 비캐시 Chat Turn(cache_read = 0)의 중앙값을 사용해 동일 조건에서 비교합니다. 반면 기준치 행은 사전 실행 한 번의 실제 Span을 그대로 합산한 값(캐시 재조회 포함 가능)이라 차이가 날 수 있습니다. 비용은 공시 단가 기준입니다. 측정 시각(UTC):",
     "wbTraceUnavailable": "호출된 Data Agent 중 Cloud Trace 측정값이 없는 것이 있어 BQCA 계층 Token은 표시하지 않습니다.",
     "wbPrereqNote": "이 Session에 선행 Turn이 없어 Turn 1을 먼저 실행했습니다:",
     "wbErrorLabel": "오류",

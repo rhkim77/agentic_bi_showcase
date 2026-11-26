@@ -1,11 +1,10 @@
-"""Cymbal Global Commerce — Governed 3-Domain Multi-Agent Architecture with Live 2-Tier Token Telemetry.
+"""Cymbal Global Commerce — 3-Domain Multi-Agent Architecture with Live 2-Tier Token Telemetry.
 
 Implements:
-  1. Google ADK (`LlmAgent`) Root Router + 3 Domain-Scoped Sub-Agents (`Path A` Enum Transfer, `Path B` Peer Transfer, `Path C` Parallel Fan-out)
-  2. 4-Scope `Session.state` (`temp:*` turn-evicted rows, `session [-6:]` window + compact digest, `user:*` profile/KPIs, `app:*` counters)
-  3. Upstream ADK `before_model_callback` 3-Turn History Compaction + `after_model_callback` Real `Vertex AI usage_metadata` Telemetry
-  4. Long-Term `MemoryService` (`preload_memory`, `load_memory`, persistent JSON store) for Zero-Scan Cross-Session Recall
-  5. 2-Tier Token & Effective Cost Model (`Vertex AI Orchestration Tier` + `BQCA Data Cloud Agent Tier` with `90%` Cached Input Discount)
+  1. Google ADK (`LlmAgent`) Root Router + 3 Domain-Scoped Sub-Agents (`Path A` Root Delegation, `Path B` Peer Handoff, `Path C` Parallel Fan-out)
+  2. 4-Scope `Session.state` (`temp:*` turn-evicted rows, `session [-6:]` window, `user:*` profile/KPIs, `app:*` counters)
+  3. Upstream ADK `before_model_callback` 3-Turn History Compaction + `after_model_callback` `Vertex AI usage_metadata` Telemetry
+  4. Long-Term `MemoryService` (`load_memory`, persistent JSON store) for Cross-Session Recall without BQCA calls
 """
 
 from __future__ import annotations
@@ -27,7 +26,6 @@ from google.genai import types
 
 from google.adk.agents import LlmAgent
 from google.adk.agents.callback_context import CallbackContext
-from google.adk.agents.context_cache_config import ContextCacheConfig
 from google.adk.apps import App
 from google.adk.events import Event
 from google.adk.models.llm_request import LlmRequest
@@ -99,19 +97,6 @@ VERTEX_FLASH_INPUT_USD_PER_1M = 0.30
 VERTEX_FLASH_CACHED_USD_PER_1M = 0.03
 VERTEX_FLASH_OUTPUT_USD_PER_1M = 2.50
 
-# MODELED ASSUMPTIONS, NOT MEASUREMENTS. The Conversational Analytics `:chat` API does not return
-# token usage, and these constants were not measured on this dataset. They are used only for
-# values labelled "Modeled" in the portal. Only ADK-tier `usage_metadata` is measured.
-MONOLITHIC_SINGLE_TURN_INPUT_TOKENS = 110_764
-MONOLITHIC_SINGLE_TURN_OUTPUT_TOKENS = 6_764
-MONOLITHIC_FANOUT_EQUIV_INPUT_TOKENS = 248_500
-DOMAIN_SCHEMA_BASE_TOKENS = {
-    CUSTOMER_CA_ID: 11_400,   # 4 scoped tables + Hop-1 glossary formulas
-    PRODUCT_CA_ID: 9_800,     # 3 scoped tables + Hop-1 glossary formulas
-    SUPPLY_CA_ID: 12_900,     # 5 scoped tables + Hop-1 glossary formulas
-    BASELINE_CA_ID: MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
-}
-
 DOMAIN_CATALOG_METADATA: list[dict[str, Any]] = [
     {
         "domain_id": "customer_marketing",
@@ -120,32 +105,25 @@ DOMAIN_CATALOG_METADATA: list[dict[str, Any]] = [
         "caa_agent_id": CUSTOMER_CA_ID,
         "caa_resource": CUSTOMER_CA_RESOURCE,
         "scoped_tables": ["users", "events", "orders", "order_items"],
-        "scoped_base_tokens": DOMAIN_SCHEMA_BASE_TOKENS[CUSTOMER_CA_ID],
-        "monolithic_unscoped_tokens": MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
         "glossary_terms": [
             {
                 "term": "VIP Customer",
-                "hop": "Hop-1 Direct Link",
                 "formula": "SUM(order_items.sale_price) >= $500 OR COUNT(DISTINCT order_id) >= 5",
             },
             {
                 "term": "Dormant / Churned Customer",
-                "hop": "Hop-1 Direct Link",
                 "formula": "Zero orders in last 90 days (orders.created_at)",
             },
             {
                 "term": "Acquisition Traffic Source",
-                "hop": "Hop-1 Direct Link",
                 "formula": "users.traffic_source IN ('Search','Email','Organic','Display','Facebook')",
             },
             {
                 "term": "Cart Abandonment Rate (%)",
-                "hop": "Hop-1 Direct Link",
                 "formula": "Cart sessions without purchase / Total cart sessions * 100",
             },
             {
                 "term": "Average Order Value (AOV)",
-                "hop": "Hop-1 Direct Link",
                 "formula": "SUM(sale_price) / COUNT(DISTINCT order_id)",
             },
         ],
@@ -157,27 +135,21 @@ DOMAIN_CATALOG_METADATA: list[dict[str, Any]] = [
         "caa_agent_id": PRODUCT_CA_ID,
         "caa_resource": PRODUCT_CA_RESOURCE,
         "scoped_tables": ["products", "order_items", "orders"],
-        "scoped_base_tokens": DOMAIN_SCHEMA_BASE_TOKENS[PRODUCT_CA_ID],
-        "monolithic_unscoped_tokens": MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
         "glossary_terms": [
             {
                 "term": "Product Gross Margin %",
-                "hop": "Hop-1 Direct Link",
                 "formula": "SAFE_DIVIDE(retail_price - cost, retail_price) * 100",
             },
             {
                 "term": "Net Revenue",
-                "hop": "Hop-1 Direct Link",
                 "formula": "SUM(sale_price) WHERE status NOT IN ('Returned','Cancelled')",
             },
             {
                 "term": "Realized Gross Profit",
-                "hop": "Hop-1 Direct Link",
                 "formula": "SUM(sale_price - cost) excluding Returned & Cancelled items",
             },
             {
                 "term": "Return & Cancellation Rate (%)",
-                "hop": "Hop-1 Direct Link",
                 "formula": "COUNTIF(status IN ('Returned','Cancelled')) * 100.0 / COUNT(*)",
             },
         ],
@@ -189,27 +161,21 @@ DOMAIN_CATALOG_METADATA: list[dict[str, Any]] = [
         "caa_agent_id": SUPPLY_CA_ID,
         "caa_resource": SUPPLY_CA_RESOURCE,
         "scoped_tables": ["distribution_centers", "inventory_items", "order_items", "orders", "products"],
-        "scoped_base_tokens": DOMAIN_SCHEMA_BASE_TOKENS[SUPPLY_CA_ID],
-        "monolithic_unscoped_tokens": MONOLITHIC_SINGLE_TURN_INPUT_TOKENS,
         "glossary_terms": [
             {
                 "term": "Distribution Center (DC)",
-                "hop": "Hop-1 Direct Link",
                 "formula": "distribution_centers.id = products.distribution_center_id",
             },
             {
                 "term": "Average Delivery Lead Time (Days)",
-                "hop": "Hop-1 Direct Link",
                 "formula": "AVG(TIMESTAMP_DIFF(delivered_at, shipped_at, DAY))",
             },
             {
                 "term": "Unsold Inventory Rate (%)",
-                "hop": "Hop-1 Direct Link",
                 "formula": "COUNTIF(inventory_items.sold_at IS NULL) * 100.0 / COUNT(*)",
             },
             {
                 "term": "Unsold Inventory Holding Cost ($)",
-                "hop": "Hop-1 Direct Link",
                 "formula": "SUM(cost) WHERE inventory_items.sold_at IS NULL",
             },
         ],
@@ -239,41 +205,6 @@ def _emit_telemetry(event_type: str, payload: dict[str, Any]) -> None:
         q.put({"type": event_type, "data": payload})
 
 
-def compute_effective_cost_usd(
-    adk_prompt_tokens: int,
-    adk_cached_tokens: int,
-    adk_output_tokens: int,
-    bqca_input_tokens: int,
-    bqca_cached_ratio: float = 0.55,
-    bqca_output_tokens: int = 1_250,
-) -> dict[str, float]:
-    """Calculates 2-Tier PAYG USD cost with and without BQCA 90% Cached Input Token discount."""
-    adk_non_cached = max(0, adk_prompt_tokens - adk_cached_tokens)
-    adk_cost = (
-        (adk_non_cached / 1_000_000) * VERTEX_FLASH_INPUT_USD_PER_1M
-        + (adk_cached_tokens / 1_000_000) * VERTEX_FLASH_CACHED_USD_PER_1M
-        + (adk_output_tokens / 1_000_000) * VERTEX_FLASH_OUTPUT_USD_PER_1M
-    )
-
-    bqca_raw_input_cost = (bqca_input_tokens / 1_000_000) * BQCA_INPUT_NON_CACHED_USD_PER_1M
-    bqca_cached_tokens = int(round(bqca_input_tokens * bqca_cached_ratio))
-    bqca_non_cached_tokens = max(0, bqca_input_tokens - bqca_cached_tokens)
-    bqca_discounted_input_cost = (
-        (bqca_non_cached_tokens / 1_000_000) * BQCA_INPUT_NON_CACHED_USD_PER_1M
-        + (bqca_cached_tokens / 1_000_000) * BQCA_INPUT_CACHED_USD_PER_1M
-    )
-    bqca_out_cost = (bqca_output_tokens / 1_000_000) * BQCA_OUTPUT_USD_PER_1M
-
-    return {
-        "adk_tier_cost_usd": round(adk_cost, 6),
-        "bqca_unoptimized_no_cache_cost_usd": round(bqca_raw_input_cost + bqca_out_cost, 6),
-        "bqca_with_90pct_cache_cost_usd": round(bqca_discounted_input_cost + bqca_out_cost, 6),
-        "total_effective_cost_usd": round(adk_cost + bqca_discounted_input_cost + bqca_out_cost, 6),
-        "bqca_cached_tokens": bqca_cached_tokens,
-        "bqca_effective_quota_input_tokens": bqca_non_cached_tokens + int(round(0.1 * bqca_cached_tokens)),
-    }
-
-
 def load_persistent_memory_store() -> dict[str, Any]:
     mem_file = _get_visitor_memory_file()
     if not mem_file.exists():
@@ -282,8 +213,6 @@ def load_persistent_memory_store() -> dict[str, Any]:
             "sessions": {},
             "explicit_memories": [],
             "total_caa_queries_executed": 0,
-            "cumulative_scoped_tokens": 0,
-            "cumulative_monolithic_tokens": 0,
         }
     try:
         return json.loads(mem_file.read_text(encoding="utf-8"))
@@ -293,8 +222,6 @@ def load_persistent_memory_store() -> dict[str, Any]:
             "sessions": {},
             "explicit_memories": [],
             "total_caa_queries_executed": 0,
-            "cumulative_scoped_tokens": 0,
-            "cumulative_monolithic_tokens": 0,
         }
 
 
@@ -589,7 +516,6 @@ def _record_caa_result_into_session_state(
     generated_sql: str,
     rows: list[dict[str, Any]],
     ca_final_answer: str,
-    scoped_tokens_est: int,
     session_id: str = "active_session",
     user_id: str = "analyst_01",
 ) -> None:
@@ -607,7 +533,7 @@ def _record_caa_result_into_session_state(
     prior_agent_msgs = list((state.get("domain_ca_multiturn_messages") or {}).get(agent_id, []))[-6:]
     msgs_sent_this_turn = len(prior_agent_msgs) + 1
 
-    # Full audit record stored in Session.state for UI/telemetry inspection ONLY (NOT injected into LLM system prompt)
+    # Full audit record stored in Session.state for UI/telemetry inspection and MemoryService indexing
     history_entry = {
         "turn": turn_num,
         "timestamp": _utc_now_iso(),
@@ -618,7 +544,6 @@ def _record_caa_result_into_session_state(
         "markdown_table": _format_markdown_table(rows, max_rows=20),
         "multiturn_context_messages_sent": msgs_sent_this_turn,
         "row_count": len(rows),
-        "scoped_tokens": scoped_tokens_est,
         "answer_preview": ca_final_answer[:280],
     }
     history = list(state.get("domain_query_history", []))
@@ -797,10 +722,6 @@ def _query_domain_caa_agent_impl(
     glossary_matched = _detect_matched_glossary_terms(query, generated_sql, agent_id)
     raw_thoughts_chars = sum(len(t) for t in thoughts)
 
-    base_tokens = DOMAIN_SCHEMA_BASE_TOKENS.get(agent_id, 11_000)
-    window_tokens = len(json.dumps(messages, ensure_ascii=False)) // 4
-    bqca_input_tokens = base_tokens + window_tokens
-
     if tool_context is not None and not include_raw_thoughts_for_baseline:
         _record_caa_result_into_session_state(
             state=tool_context.state,
@@ -811,7 +732,6 @@ def _query_domain_caa_agent_impl(
             generated_sql=generated_sql,
             rows=rows,
             ca_final_answer=ca_final_answer,
-            scoped_tokens_est=bqca_input_tokens,
             session_id=tool_context.session.id,
             user_id=tool_context.user_id or "analyst_01",
         )
@@ -829,7 +749,6 @@ def _query_domain_caa_agent_impl(
         "markdown_table": markdown_table,
         "ca_final_answer": ca_final_answer,
         "stripped_thought_chars": raw_thoughts_chars,
-        "scoped_tokens": bqca_input_tokens,
         "latency_ms": latency_ms,
     }
     if include_raw_thoughts_for_baseline:
@@ -1082,7 +1001,6 @@ def run_cross_domain_caa_analysis_sync(
                     generated_sql=res.get("generated_sql", ""),
                     rows=[],
                     ca_final_answer=res.get("ca_final_answer", ""),
-                    scoped_tokens_est=int(res.get("scoped_tokens", 12_000)),
                     session_id=tool_context.session.id,
                     user_id=tool_context.user_id or "analyst_01",
                 )
@@ -1175,13 +1093,7 @@ root_agent = LlmAgent(
 )
 
 
-# `App` with `ContextCacheConfig` keeps a separate prefix cache per agent across `transfer_to_agent`.
 adk_app = App(
     name="bq_caa_3domain_multi_agent",
     root_agent=root_agent,
-    context_cache_config=ContextCacheConfig(
-        min_tokens=2048,
-        ttl_seconds=1800,
-        cache_intervals=10,
-    ),
 )

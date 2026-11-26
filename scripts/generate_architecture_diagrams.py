@@ -245,7 +245,7 @@ def build_fig1() -> None:
         "• Cross-Session KPI Continuity",
     ])
     draw_card(p, 414, 76, 316, 154, GREEN_BORDER, "icon-vertex-ai", "ADK Root Router & Sub-Agents", [
-        "• LlmAgent + Enum transfer_to_agent",
+        "• LlmAgent + transfer_to_agent",
         "• Peer-to-Peer Sub-Agent Handoff",
         "• ThreadPoolExecutor Parallel Fan-out",
         "• Static Agent ID Tool Binding",
@@ -274,19 +274,19 @@ def build_fig1() -> None:
         "• ID : cymbal_customer_marketing_ca",
         "• Scoped Tables (4) : users, events, orders, order_items",
         "• Glossary : VIP (>= $500 / >= 5 orders), Churn, AOV, Cart%",
-        f"• BQCA Input / Turn, Cloud Trace Median : {N['med_customer']:,}",
+        f"• BQCA Input / Turn (Uncached Median) : {N['med_customer']:,}",
     ])
     draw_card(p, 508, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 2: Product & Margin CAA", [
         "• ID : cymbal_product_profitability_ca",
         "• Scoped Tables (3) : products, order_items, orders",
         "• Glossary : Gross Margin %, Net Rev, Realized Profit, Return%",
-        f"• BQCA Input / Turn, Cloud Trace Median : {N['med_product']:,}",
+        f"• BQCA Input / Turn (Uncached Median) : {N['med_product']:,}",
     ])
     draw_card(p, 972, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 3: Supply Chain & DC CAA", [
         "• ID : cymbal_supply_chain_ca",
         "• Scoped Tables (5) : distribution_centers, inventory_items + 3",
         "• Glossary : Avg Delivery Lead Time, Unsold Inventory Cost",
-        f"• BQCA Input / Turn, Cloud Trace Median : {N['med_supply']:,}",
+        f"• BQCA Input / Turn (Uncached Median) : {N['med_supply']:,}",
     ])
 
     # Vertical Connectors Tier 2 -> Tier 3
@@ -294,16 +294,16 @@ def build_fig1() -> None:
     draw_v_arrow(p, 700, 532, 580, BLUE, "arrow-blue", "Governed SQL")
     draw_v_arrow(p, 1164, 532, 580, BLUE, "arrow-blue", "Governed SQL")
 
-    # Tier 3 (Bottom): BigQuery Data & Dataplex Knowledge Catalog Layer
+    # Tier 3 (Bottom): BigQuery Data & Scoped Business Glossary Layer
     draw_lane(
         p, 20, 580, 1360, 208, GREY_BORDER, GREY_TINT, TEXT_MAIN,
-        "Tier 3 — BigQuery Enterprise Data Warehouse & Dataplex Knowledge Catalog Governance Foundation",
+        "Tier 3 — BigQuery Enterprise Data Warehouse & Scoped Business Glossary",
         "Synthetic Demo Schema Built from Public Datasets", GREY_LIGHT, TEXT_SUB
     )
     draw_card(p, 44, 640, 620, 132, BLUE, "icon-bigquery", "BigQuery Dataset cymbal_enterprise_dw (32 Documented Tables · 504 Columns)", [
         "• Copied from bigquery-public-data: thelook_ecommerce (7 tables) + tpc_ds_1g (25 tables)",
         "• Table and column descriptions on every table; demo seed rows anchored to the current date",
-        f"• As-Is: one monolithic data agent on all 32 tables (median {N['med_mono']:,} BQCA input / turn)",
+        f"• As-Is: one monolithic data agent on all 32 tables (uncached median {N['med_mono']:,} / turn)",
     ])
     draw_card(p, 736, 640, 620, 132, YELLOW_BORDER, "icon-data-analytics", "Business Glossary & Table / Column Descriptions", [
         "• Each domain data agent carries only its own tables and glossary terms",
@@ -553,8 +553,8 @@ def build_fig2() -> None:
     add_card(
         1, L1, GREEN_BORDER, "icon-vertex-ai", "ADK Root & Sub-Agents",
         [
-            "• LlmAgent / BaseAgent",
-            "• transfer_to_agent (Enum)",
+            "• Root & 3 Domain LlmAgents",
+            "• Peer & Root transfer_to_agent",
             "• Parallel 3-Domain Fan-out",
             "• Slim 20-Row Token Diet",
         ],
@@ -733,13 +733,13 @@ def build_fig3() -> None:
         "• 1 Domain Required",
     ])
     draw_card(p, 388, 76, 276, 154, BLUE, "icon-vertex-ai", "ADK Root Router", [
-        "• Evaluates Enum schema",
+        "• Selects target Sub-Agent",
         "• Emits transfer_to_agent",
         "• Zero SQL generation here",
     ])
     draw_card(p, 782, 76, 266, 154, GREEN_BORDER, "icon-agents", "Customer Sub-Agent", [
         "• Hard-bound to Customer CAA",
-        "• Resolves pronouns via State",
+        "• Restates filters in query",
         "• Attaches [-6:] msg window",
     ])
     draw_card(p, 1146, 76, 214, 154, GREEN_BORDER, "icon-bigquery", "Customer BQ CAA", [
@@ -748,7 +748,7 @@ def build_fig3() -> None:
         "• vs 32-Table Mono",
     ])
     draw_h_arrow(p, 270, 153, 388, BLUE, "arrow-blue", ["Turn 1"])
-    draw_h_arrow(p, 664, 153, 782, GREEN_BORDER, "arrow-green", ["Enum Transfer", "(Same Turn)"])
+    draw_h_arrow(p, 664, 153, 782, GREEN_BORDER, "arrow-green", ["Agent Transfer", "(Same Turn)"])
     draw_h_arrow(p, 1048, 153, 1146, GREEN_BORDER, "arrow-green", [":chat API"])
 
     # Path B Lane
@@ -768,9 +768,9 @@ def build_fig3() -> None:
         "• Bypasses Root Router hop!",
     ])
     draw_card(p, 782, 328, 266, 154, YELLOW_BORDER, "icon-agents", "Supply Chain Sub-Agent", [
-        "• Reads domain_query_history",
-        "• Rewrites standalone query",
-        "• Preserves filter continuity",
+        "• Reads 3-turn ADK history",
+        "• Sends standalone query",
+        "• Scoped [-6:] BQCA window",
     ])
     draw_card(p, 1146, 328, 214, 154, GREEN_BORDER, "icon-bigquery", "Supply Chain CAA", [
         "• 5 Tables Scoped",
@@ -830,7 +830,7 @@ def build_fig4() -> None:
     draw_card(p, 44, 78, 396, 166, RED_BORDER, "icon-bigquery", "1. Schema & Glossary Bloat", [
         "• All 32 tables / 504 columns bound to 1 agent",
         "• Schema and descriptions sent on every turn",
-        f"• Median {N['med_mono']:,} BQCA input tokens / turn",
+        f"• Uncached median {N['med_mono']:,} BQCA input / turn",
         "• list / get_data_agent_info calls at runtime",
     ])
     draw_card(p, 502, 78, 396, 166, RED_BORDER, "icon-cloud-storage", "2. Unbounded ADK Prompt Growth", [
@@ -860,8 +860,8 @@ def build_fig4() -> None:
     draw_card(p, 378, 352, 306, 172, BLUE, "icon-vertex-ai", "2. session Scope ([-6:] Cap)", [
         "• Per-agent [-6:] (3-turn) window",
         f"• ADK prompt {N['tobe_adk_min']:,}–{N['tobe_adk_max']:,} over 8 turns",
-        "• domain_query_history enables",
-        "  cross-domain query rewriting",
+        "• before_model_callback keeps",
+        "  last 3 user turns in ADK",
     ])
     draw_card(p, 716, 352, 306, 172, YELLOW_BORDER, "icon-mdi-person", "3. user:* & app:* Scopes", [
         "• user:profile & preferred_kpis",

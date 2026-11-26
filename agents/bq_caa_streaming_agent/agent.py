@@ -23,7 +23,7 @@ from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "ryan-sandbox-agent") or "ryan-sandbox-agent"
-DATASET_ID = os.environ.get("BQ_DATASET_ID", "thelook_ecommerce_agent") or "thelook_ecommerce_agent"
+DATASET_ID = os.environ.get("BQ_DATASET_ID", "cymbal_enterprise_dw") or "cymbal_enterprise_dw"
 DATA_AGENT_ID = os.environ.get("CAA_DATA_AGENT_ID", "cymbal_customer_marketing_ca")
 DATA_AGENT_RESOURCE = f"projects/{PROJECT_ID}/locations/global/dataAgents/{DATA_AGENT_ID}"
 

@@ -1,7 +1,7 @@
 [project]
 name = "cymbal-agentic-bi-showcase"
 version = "1.0.0"
-description = "Cymbal Global Commerce — Governed Multi-Agent BI & FinOps Command Center (Google ADK + BigQuery CAA + Dataplex Knowledge Catalog)"
+description = "Cymbal Global Commerce — Multi-Agent BI Reference Architecture & Dual A/B Benchmark Suite (Google ADK + BigQuery Conversational Analytics)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

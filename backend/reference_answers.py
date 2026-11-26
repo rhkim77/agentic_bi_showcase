@@ -18,7 +18,7 @@ import google.auth
 from google.auth.transport.requests import AuthorizedSession
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "ryan-sandbox-agent")
-DATASET_ID = os.environ.get("CYMBAL_DATASET_ID", "cymbal_enterprise_dw")
+DATASET_ID = os.environ.get("BQ_DATASET_ID") or os.environ.get("CYMBAL_DATASET_ID") or "cymbal_enterprise_dw"
 MAX_ROWS = 20
 
 _VIP = """vip AS (
@@ -166,8 +166,8 @@ REFERENCES: list[dict[str, Any]] = [
             "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source.",
         ],
         "note": {
-            "en": "Assumes the previous turn was the default S1 question. Reading used: the three S1 columns, plus sessions of the last 14 days that have a cart event, and the share of those with no purchase event (glossary formula). Cart figures use the traffic source recorded on the events, joined to the customer traffic source by name.",
-            "ko": "직전 Turn이 S1 기본 질문이었다고 가정합니다. 적용한 해석: S1의 세 Column에, 최근 14일 동안 cart Event가 있는 Session 수와 그중 purchase Event가 없는 비율(Glossary 계산식)을 더했습니다. Cart 수치는 Event에 기록된 Traffic Source 기준이며, 고객의 Traffic Source와 이름으로 Join했습니다.",
+            "en": "Assumes the previous turn was the default S1 question. Reading used here: all three S1 columns stay restricted to VIP customers (Search gross revenue ~$88.3K), joined with 14-day cart sessions and cart abandonment rate (%) from events by traffic source. Both pipelines often compute gross revenue and AOV across all customers in each channel (~$608.5K for Search) while keeping vip_customer_count VIP-only — an ambiguity in the follow-up wording rather than a join failure.",
+            "ko": "직전 Turn이 S1 기본 질문이었다고 가정합니다. 이 기준 SQL은 S1의 세 Column을 모두 VIP 고객 한정(Search 매출 약 $88.3K)으로 유지한 뒤 events의 최근 14일 Cart Session 수와 이탈률을 결합했습니다. 반면 두 Pipeline은 후속 질문 해석 시 VIP 고객 수만 VIP로 두고 매출·AOV는 채널 전체 고객 기준(Search 약 $608.5K)으로 집계하는 경우가 많으며, 이는 후속 질문 표현의 모호성에 따른 해석 차이입니다.",
         },
         "queries": [{"label": {"en": "VIP columns plus 14-day cart sessions and abandonment", "ko": "VIP Column + 14일 Cart Session 및 이탈률"}, "sql": _SQL_VIP_PLUS_CART}],
     },

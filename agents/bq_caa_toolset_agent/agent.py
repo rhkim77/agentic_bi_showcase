@@ -18,10 +18,11 @@ from google.adk.tools.data_agent.config import DataAgentToolConfig
 from google.adk.tools.tool_context import ToolContext
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "ryan-sandbox-agent") or "ryan-sandbox-agent"
-DATASET_ID = os.environ.get("BQ_DATASET_ID", "thelook_ecommerce_agent") or "thelook_ecommerce_agent"
+DATASET_ID = os.environ.get("BQ_DATASET_ID", "cymbal_enterprise_dw") or "cymbal_enterprise_dw"
+BASELINE_CA_ID = os.environ.get("CYMBAL_BASELINE_CA_ID", "cymbal_enterprise_monolithic_ca")
 
 GOVERNED_CUSTOMER_AGENT = f"projects/{PROJECT_ID}/locations/global/dataAgents/cymbal_customer_marketing_ca"
-BASELINE_DATA_AGENT = f"projects/{PROJECT_ID}/locations/global/dataAgents/thelook_baseline_ca_agent"
+BASELINE_DATA_AGENT = f"projects/{PROJECT_ID}/locations/global/dataAgents/{BASELINE_CA_ID}"
 
 _TOOL_SETTINGS = DataAgentToolConfig(
     max_query_result_rows=50,
