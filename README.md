@@ -88,7 +88,7 @@ How to read it:
 - **[`backend/main.py`](./backend/main.py)**, **[`backend/workbench_engine.py`](./backend/workbench_engine.py)** & **[`backend/reference_answers.py`](./backend/reference_answers.py)**: FastAPI + real-time `SSE` (`POST /api/workbench/stream`) engine powering the **Interactive S1–S5 Progressive Dual A/B Workbench**, live ADK step-stream flow visualization, and BigQuery reference SQL execution alongside both pipelines.
 - **[`agents/bq_caa_streaming_agent/agent.py`](./agents/bq_caa_streaming_agent/agent.py)** & **[`agents/bq_caa_toolset_agent/agent.py`](./agents/bq_caa_toolset_agent/agent.py)**: Companion `SequentialAgent` custom `:chat` streamer and built-in `DataAgentToolset` baseline packages.
 - **[`docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md`](./docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md)** & **[`docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md`](./docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md)**: Full architectural specification and A/B SQL/telemetry walkthrough.
-- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Portals with the measured baseline, the live Dual A/B workbench and a cost calculator.
+- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): 6-slide horizontal portals (with a 1-click `Full Page View` toggle) opening on a plain-language Executive Summary One-Pager, followed by the measured scorecard, live Dual A/B workbench, architecture diagrams, 8-turn cost calculator, and setup guide.
 - **[`click-to-deploy/`](./click-to-deploy/)**: Terraform IaC (`main.tf`, `variables.tf`, `outputs.tf`, `README.md`) for Cloud Run, BigQuery dataset, Artifact Registry, and least-privilege IAM.
 
 ```bash

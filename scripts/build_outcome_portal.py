@@ -955,6 +955,481 @@ SHARED_CSS = r"""
       gap: 12px;
     }
     .footer a { color: var(--blue); text-decoration: none; }
+
+    /* --- 6-Slide Horizontal Deck & Executive One-Pager --- */
+    .topbar-inner {
+      max-width: 1360px;
+      padding: 9px 20px;
+      gap: 10px;
+    }
+    .brand {
+      font-size: 13.6px;
+      white-space: nowrap;
+    }
+    .topbar-right {
+      gap: 7px;
+    }
+    @media (max-width: 1480px) {
+      .topbar-right .env-pill {
+        display: none;
+      }
+    }
+    .nav-stepper {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+    .step-pill {
+      appearance: none;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .step-pill:hover {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+    .step-pill.active {
+      background: var(--blue);
+      color: #FFFFFF;
+      border-color: var(--blue);
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(32, 33, 36, 0.08);
+      color: inherit;
+    }
+    .step-pill.active .step-num {
+      background: rgba(255, 255, 255, 0.24);
+      color: #FFFFFF;
+    }
+    .view-toggle-btn {
+      appearance: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 7px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .view-toggle-btn:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+    .view-toggle-btn.active-full {
+      background: var(--blue-soft);
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    /* Slide visibility & directional transition in deck-mode */
+    body.deck-mode .container {
+      padding-top: 14px;
+      padding-bottom: 36px;
+    }
+    body.deck-mode section.portal-slide {
+      display: none;
+      margin-bottom: 16px;
+    }
+    body.deck-mode section.portal-slide.active-slide {
+      display: block;
+    }
+    body.deck-mode section.portal-slide.anim-next {
+      animation: deckSlideFromRight 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    body.deck-mode section.portal-slide.anim-prev {
+      animation: deckSlideFromLeft 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes deckSlideFromRight {
+      from { opacity: 0; transform: translate3d(28px, 0, 0); }
+      to   { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+    @keyframes deckSlideFromLeft {
+      from { opacity: 0; transform: translate3d(-28px, 0, 0); }
+      to   { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body.deck-mode section.portal-slide.anim-next,
+      body.deck-mode section.portal-slide.anim-prev {
+        animation: none;
+      }
+    }
+
+    /* Floating left/right edge arrows on wide viewports */
+    .deck-edge-btn {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 85;
+      width: 44px;
+      height: 64px;
+      border-radius: 10px;
+      border: 1px solid var(--border-strong);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(6px);
+      color: var(--text);
+      box-shadow: 0 4px 14px rgba(32, 33, 36, 0.10);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+    }
+    .deck-edge-btn:hover:not(:disabled) {
+      background: var(--blue-soft);
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+    .deck-edge-btn:disabled {
+      opacity: 0.28;
+      cursor: default;
+    }
+    .deck-edge-btn.prev { left: 14px; }
+    .deck-edge-btn.next { right: 14px; }
+    @media (max-width: 1360px) {
+      .deck-edge-btn { display: none !important; }
+    }
+    body.scroll-mode .deck-edge-btn,
+    body.scroll-mode .deck-bottom-nav {
+      display: none !important;
+    }
+
+    /* Bottom slide pager bar */
+    .deck-bottom-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+    .deck-nav-btn {
+      appearance: none;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+    }
+    .deck-nav-btn:hover:not(:disabled) {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #F8FAFD;
+    }
+    .deck-nav-btn.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #FFFFFF;
+    }
+    .deck-nav-btn.primary:hover:not(:disabled) {
+      background: #1557B0;
+      border-color: #1557B0;
+      color: #FFFFFF;
+    }
+    .deck-nav-btn:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+    .deck-progress-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+    }
+    .deck-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .deck-dot {
+      appearance: none;
+      border: none;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--border-strong);
+      cursor: pointer;
+      padding: 0;
+      transition: width 0.18s, background 0.18s;
+    }
+    .deck-dot.active {
+      width: 24px;
+      background: var(--blue);
+    }
+    .deck-key-hint {
+      font-size: 11.8px;
+      color: var(--text-secondary);
+    }
+
+    /* Slide 1: Executive One-Pager Layout */
+    .onepager-shell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 24px;
+      box-shadow: 0 2px 8px rgba(32, 33, 36, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+    .op-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 11px;
+    }
+    .op-kicker-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .op-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--blue);
+      background: var(--blue-soft);
+      padding: 3px 9px;
+      border-radius: 4px;
+    }
+    .op-audience-note {
+      font-size: 11.8px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--surface-subtle);
+      padding: 3px 9px;
+      border-radius: 6px;
+    }
+    .op-title {
+      font-size: 23.5px;
+      line-height: 1.26;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 6px;
+      max-width: 1100px;
+    }
+    .op-lead {
+      font-size: 14px;
+      line-height: 1.48;
+      color: #3C4043;
+      max-width: 1080px;
+    }
+    .op-compare-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 920px) {
+      .op-compare-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    .op-compare-card {
+      border-radius: 10px;
+      padding: 13px 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+    .op-compare-card.before {
+      background: #FFFBFB;
+      border-color: #F3C7C5;
+    }
+    .op-compare-card.after {
+      background: #F7FBF8;
+      border-color: #B7DFC2;
+    }
+    .op-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .op-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+    }
+    .op-flow-diagram {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+      padding: 7px 10px;
+      border-radius: 7px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 11.8px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .op-flow-node {
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+    }
+    .op-flow-node.bad {
+      background: var(--red-soft);
+      border-color: #F1B6B3;
+      color: var(--red);
+    }
+    .op-flow-node.good {
+      background: var(--green-soft);
+      border-color: #A8DAB5;
+      color: var(--green);
+    }
+    .op-flow-node.router {
+      background: var(--blue-soft);
+      border-color: #B8D1FA;
+      color: #174EA6;
+    }
+    .op-flow-arrow {
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+    .op-points {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12.9px;
+      line-height: 1.44;
+      color: var(--text-secondary);
+    }
+    .op-points li {
+      position: relative;
+      padding-left: 13px;
+    }
+    .op-points li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 7px;
+      width: 5.5px;
+      height: 5.5px;
+      border-radius: 50%;
+      background: var(--border-strong);
+    }
+    .op-compare-card.before .op-points li::before { background: var(--red); }
+    .op-compare-card.after .op-points li::before { background: var(--green); }
+    .op-points strong { color: var(--text); }
+
+    .op-impact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 920px) {
+      .op-impact-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    .op-impact-card {
+      background: #F8FAFD;
+      border: 1px solid #D6E3F8;
+      border-radius: 9px;
+      padding: 11px 14px;
+      min-width: 0;
+    }
+    .op-impact-num {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--green);
+      line-height: 1.18;
+      margin-bottom: 3px;
+    }
+    .op-impact-label {
+      font-size: 12.8px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .op-impact-desc {
+      font-size: 12px;
+      line-height: 1.44;
+      color: var(--text-secondary);
+    }
+    .op-cta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .op-cta-note {
+      font-size: 12.6px;
+      color: var(--text-secondary);
+      line-height: 1.48;
+      max-width: 640px;
+    }
+    .op-cta-note strong { color: var(--text); }
+    .op-cta-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .quick-try-banner {
+      background: #F4F8FE;
+      border: 1px solid #C2D7FA;
+      border-radius: 8px;
+      padding: 11px 15px;
+      margin-bottom: 16px;
+      font-size: 13.4px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 """
 
 
@@ -969,22 +1444,24 @@ HTML_EN = r"""<!DOCTYPE html>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>__SHARED_CSS__</style>
 </head>
-<body>
+<body class="deck-mode">
 
   <header class="topbar">
     <div class="topbar-inner">
-      <a href="#overview" class="brand">
+      <a href="#one-pager" class="brand" data-goto-slide="0">
         <span class="brand-mark"></span>
-        <span>Google ADK + BigQuery CAA · State, Routing &amp; 2-Tier Token Blueprint</span>
+        <span>ADK + BigQuery CAA · Enterprise BI</span>
       </a>
-      <nav class="nav-links">
-        <a href="#overview">1. Overview &amp; KPIs</a>
-        <a href="#architecture">2. Best-Practice Architecture</a>
-        <a href="#scenarios">3. As-Is vs To-Be Scenarios (S1–S5)</a>
-        <a href="#benchmarks">4. Tokens over 8 Turns &amp; Cost</a>
-        <a href="#repository">5. Git Repo &amp; Quickstart</a>
+      <nav class="nav-stepper" id="deck-stepper" aria-label="Slide navigation">
+        <button type="button" class="step-pill active" data-goto-slide="0"><span class="step-num">1</span><span>Summary</span></button>
+        <button type="button" class="step-pill" data-goto-slide="1"><span class="step-num">2</span><span>Scorecard</span></button>
+        <button type="button" class="step-pill" data-goto-slide="2"><span class="step-num">3</span><span>Live Demo</span></button>
+        <button type="button" class="step-pill" data-goto-slide="3"><span class="step-num">4</span><span>Architecture</span></button>
+        <button type="button" class="step-pill" data-goto-slide="4"><span class="step-num">5</span><span>8-Turn &amp; Cost</span></button>
+        <button type="button" class="step-pill" data-goto-slide="5"><span class="step-num">6</span><span>Code &amp; Setup</span></button>
       </nav>
       <div class="topbar-right">
+        <button type="button" class="view-toggle-btn" id="view-mode-toggle" title="Switch between horizontal slides and full single-page scroll">Full Page View</button>
         <a href="https://github.com/rhkim77/agentic_bi_showcase" target="_blank" rel="noopener" class="gh-link">GitHub Repo</a>
         <div class="lang-switch" aria-label="Language Switcher">
           <a href="./index.html" class="active">EN</a>
@@ -1000,10 +1477,14 @@ HTML_EN = r"""<!DOCTYPE html>
 
   <main class="container">
 
-    <section id="overview">
+    <section id="one-pager" class="portal-slide active-slide" data-slide-index="0">
+      __ONEPAGER_HTML__
+    </section>
+
+    <section id="overview" class="portal-slide" data-slide-index="1">
       <div class="hero-card">
         <span class="eyebrow">Enterprise NL2SQL Reference Blueprint · Google ADK + BigQuery CAA</span>
-        <h1>From Monolithic Text-to-SQL PoC to Multi-Domain Enterprise Analytics</h1>
+        <h2 style="font-size:26px;margin-bottom:12px;">2. Detailed Context, Technical Mechanism &amp; Verified Scorecard</h2>
         <p class="lead">
           Teams adopt single-table Text-to-SQL PoCs quickly, then stall when they connect a production warehouse with dozens of documented tables and department glossaries. One monolithic BigQuery Conversational Analytics (BQCA) data agent re-reads the entire warehouse schema on every internal LLM call. At the same time, default Google ADK tools send only one stateless message per turn and lose context across sessions. This portal reproduces that enterprise bottleneck on a 32-table documented BigQuery warehouse and compares the default single-agent setup (<strong>As-Is</strong>) against a domain-scoped ADK + BQCA multi-agent architecture (<strong>To-Be</strong>) on live Google Cloud runs, measuring ADK tokens from <span class="mono">Vertex AI usage_metadata</span> and BQCA tokens from Cloud Trace.
         </p>
@@ -1012,7 +1493,7 @@ HTML_EN = r"""<!DOCTYPE html>
           <span class="meta-chip"><strong>Warehouse:</strong> 32 tables (<span class="mono">cymbal_enterprise_dw</span>)</span>
           <span class="meta-chip"><strong>Setup:</strong> 1 data agent vs. Root + 6 domain Sub-Agents + fallback</span>
           <span class="meta-chip"><strong>Measured (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
-          <a href="#scenarios" class="btn-jump-wb">Jump to Live Workbench (S1-S5)</a>
+          <button type="button" class="btn-jump-wb" data-goto-slide="2" style="cursor:pointer;font-family:inherit;">Open Live Workbench (Slide 3)</button>
         </div>
 
         <div class="kpi-grid" id="hero-kpi-grid"></div>
@@ -1021,8 +1502,20 @@ HTML_EN = r"""<!DOCTYPE html>
       __OVERVIEW_CARDS__
     </section>
 
-    <section id="architecture">
-      <h2>2. Best-Practice Multi-Agent Architecture &amp; Trade-Off Matrix</h2>
+    <section id="scenarios" class="portal-slide" data-slide-index="2">
+      <h2>3. Live As-Is vs. To-Be PoC Scenario Verification &amp; Progressive Workbench (S1 – S5)</h2>
+      <p class="section-desc">
+        Pre-verified GCP baseline results load immediately below, while the <strong>Interactive Dual A/B Workbench</strong> lets you enter or customize prompts at every step from <strong>S1 to S5</strong> to run both the <strong>As-Is</strong> pipeline (ADK built-in data agent tools on one monolithic data agent) and the <strong>To-Be</strong> pipeline live in parallel on Google Cloud and compare answers, SQL and measured ADK-tier <span class="mono">Vertex AI usage_metadata</span> tokens.
+      </p>
+
+      <div class="quick-try-banner"><div><strong>Quick Interactive Try:</strong> Select any scenario tab (<span class="mono">S1</span> to <span class="mono">S5</span>), pick a sample question chip inside the dark Workbench box, and click <strong>Run Dual A/B Live on GCP</strong> to compare both designs in real time.</div></div>
+      <div class="prog-tracker-card" id="progressive-tracker"></div>
+      <div class="tab-bar" id="scenario-tabs"></div>
+      <div class="scenario-shell" id="scenario-detail"></div>
+    </section>
+
+    <section id="architecture" class="portal-slide" data-slide-index="3">
+      <h2>4. Multi-Agent System Architecture &amp; Trade-Off Matrix</h2>
       <p class="section-desc">
         Four architecture diagrams drawn for this repository, and a trade-off comparison of one-shot stateless calls, the server-managed stateful conversation and the ADK-managed design measured here.
       </p>
@@ -1077,7 +1570,7 @@ HTML_EN = r"""<!DOCTYPE html>
               <td><strong>BQCA context per call</strong></td>
               <td>The whole warehouse schema and every glossary</td>
               <td>Same as the bound data agent</td>
-              <td><strong>3 to 13 tables and one domain glossary per data agent; the fallback reads the whole warehouse (measured in Sections 3 and 4)</strong></td>
+              <td><strong>3 to 13 tables and one domain glossary per data agent; the fallback reads the whole warehouse (measured in Slides 3 and 5)</strong></td>
             </tr>
             <tr>
               <td><strong>Cross-session memory</strong></td>
@@ -1090,19 +1583,8 @@ HTML_EN = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="scenarios">
-      <h2>3. Live As-Is vs. To-Be PoC Scenario Verification &amp; Progressive Workbench (S1 – S5)</h2>
-      <p class="section-desc">
-        Pre-verified GCP baseline results load immediately below, while the <strong>Interactive Dual A/B Workbench</strong> lets you enter or customize prompts at every step from <strong>S1 to S5</strong> to run both the <strong>As-Is</strong> pipeline (ADK built-in data agent tools on one monolithic data agent) and the <strong>To-Be</strong> pipeline live in parallel on Google Cloud and compare answers, SQL and measured ADK-tier <span class="mono">Vertex AI usage_metadata</span> tokens.
-      </p>
-
-      <div class="prog-tracker-card" id="progressive-tracker"></div>
-      <div class="tab-bar" id="scenario-tabs"></div>
-      <div class="scenario-shell" id="scenario-detail"></div>
-    </section>
-
-    <section id="benchmarks">
-      <h2>4. Token Development over an 8-Turn Session and Cost at List Prices</h2>
+    <section id="benchmarks" class="portal-slide" data-slide-index="4">
+      <h2>5. Token Development over an 8-Turn Session &amp; Annualized Cost</h2>
       <p class="section-desc">Measured in the S4 baseline run. Left: total input tokens per turn, that is ADK prompt tokens from <span class="mono">Vertex AI usage_metadata</span> plus BQCA input tokens from Cloud Trace. Right: ADK prompt tokens per turn. Below: yearly cost at list prices, scaled from the measured average cost per turn.</p>
 
       <div class="two-col" style="margin-bottom: 24px;">
@@ -1156,8 +1638,8 @@ HTML_EN = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="repository">
-      <h2>5. Git Repository Implementation Map &amp; PoC Reproduction</h2>
+    <section id="repository" class="portal-slide" data-slide-index="5">
+      <h2>6. Git Repository Implementation Map &amp; PoC Reproduction</h2>
       <div class="stack-list">
         <div class="info-card">
           <h3>Key Implementation Files</h3>
@@ -1215,11 +1697,27 @@ uv run adk web agents --port 8000</pre>
       </div>
     </section>
 
+    <div class="deck-bottom-nav" id="deck-bottom-nav" aria-label="Slide pagination">
+      <button type="button" class="deck-nav-btn" id="deck-prev-btn">Previous</button>
+      <div class="deck-progress-center">
+        <div class="deck-dots" id="deck-dots"></div>
+        <div class="deck-key-hint" id="deck-counter-label">Slide 1 of 6 · Use Left / Right buttons or arrow keys</div>
+      </div>
+      <button type="button" class="deck-nav-btn primary" id="deck-next-btn">Next</button>
+    </div>
+
     <footer class="footer">
       <div>Google Cloud Customer Engineering · ADK + BigQuery CAA State, Routing &amp; 2-Tier Token Optimization Blueprint</div>
       <div>Empirical Telemetry: <span class="mono">Vertex AI usage_metadata</span> + <span class="mono">geminidataanalytics.googleapis.com/v1</span></div>
     </footer>
   </main>
+
+  <button type="button" class="deck-edge-btn prev" id="deck-edge-prev" aria-label="Previous slide" title="Previous slide (Left arrow)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </button>
+  <button type="button" class="deck-edge-btn next" id="deck-edge-next" aria-label="Next slide" title="Next slide (Right arrow)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </button>
 
   <div class="modal-backdrop" id="fig-modal">
     <div class="modal-box">
@@ -1255,22 +1753,24 @@ HTML_KO = r"""<!DOCTYPE html>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>__SHARED_CSS__</style>
 </head>
-<body>
+<body class="deck-mode">
 
   <header class="topbar">
     <div class="topbar-inner">
-      <a href="#overview" class="brand">
+      <a href="#one-pager" class="brand" data-goto-slide="0">
         <span class="brand-mark"></span>
-        <span>Google ADK + BigQuery CAA · State·Routing 및 Token 최적화 PoC</span>
+        <span>ADK + BigQuery CAA · Enterprise BI</span>
       </a>
-      <nav class="nav-links">
-        <a href="#overview">1. 배경·해결 구조 및 KPI</a>
-        <a href="#architecture">2. Best Practice Architecture</a>
-        <a href="#scenarios">3. As-Is vs To-Be 시현 (S1–S5)</a>
-        <a href="#benchmarks">4. 8-Turn Token 추이 및 비용</a>
-        <a href="#repository">5. Git Repository 및 재현</a>
+      <nav class="nav-stepper" id="deck-stepper" aria-label="Slide 이동">
+        <button type="button" class="step-pill active" data-goto-slide="0"><span class="step-num">1</span><span>핵심 요약</span></button>
+        <button type="button" class="step-pill" data-goto-slide="1"><span class="step-num">2</span><span>상세·실측</span></button>
+        <button type="button" class="step-pill" data-goto-slide="2"><span class="step-num">3</span><span>실시간 Demo</span></button>
+        <button type="button" class="step-pill" data-goto-slide="3"><span class="step-num">4</span><span>Architecture</span></button>
+        <button type="button" class="step-pill" data-goto-slide="4"><span class="step-num">5</span><span>8-Turn·비용</span></button>
+        <button type="button" class="step-pill" data-goto-slide="5"><span class="step-num">6</span><span>Git·재현</span></button>
       </nav>
       <div class="topbar-right">
+        <button type="button" class="view-toggle-btn" id="view-mode-toggle" title="좌우 Slide 보기와 한 화면 전체 펼쳐보기를 전환합니다">전체 펼쳐보기</button>
         <a href="https://github.com/rhkim77/agentic_bi_showcase" target="_blank" rel="noopener" class="gh-link">GitHub Repo</a>
         <div class="lang-switch" aria-label="언어 전환">
           <a href="./index.html">EN</a>
@@ -1286,10 +1786,14 @@ HTML_KO = r"""<!DOCTYPE html>
 
   <main class="container">
 
-    <section id="overview">
+    <section id="one-pager" class="portal-slide active-slide" data-slide-index="0">
+      __ONEPAGER_HTML__
+    </section>
+
+    <section id="overview" class="portal-slide" data-slide-index="1">
       <div class="hero-card">
         <span class="eyebrow">엔터프라이즈 NL2SQL 검증 Blueprint · Google ADK + BigQuery CAA</span>
-        <h1>단일 통합 Data Agent PoC의 운영 한계와 Domain 분리형 Multi-Agent 설계 검증</h1>
+        <h2 style="font-size:26px;margin-bottom:12px;">2. 상세 배경·기술적 해결 구조 및 실측 Scorecard</h2>
         <p class="lead">
           소규모 Table 몇 개로 시작하는 Text-to-SQL PoC는 빠르게 동작하지만 설명이 붙은 수십 개 Table과 부서별 Glossary가 모인 운영 Data Warehouse로 넓히는 단계에서 자주 막힙니다. 통합 BigQuery Conversational Analytics(BQCA) Data Agent 하나에 전체 Schema를 연결하면 내부 LLM 호출마다 모든 Table 정의를 다시 읽습니다. 상위 Google ADK 기본 Tool 역시 Stateless Chat API에 현재 질문 하나만 보내 후속 문맥을 놓치고 새 Session을 열면 앞선 분석 결과도 남지 않습니다. 이 Portal은 32개 Table 규모의 BigQuery 환경에서 기본 단일 Data Agent 구성(<strong>As-Is</strong>)과 Domain 분리형 ADK + BQCA Multi-Agent 구조(<strong>To-Be</strong>)를 같은 질문으로 실행해 <span class="mono">Vertex AI usage_metadata</span>와 Cloud Trace 실측치를 비교합니다.
         </p>
@@ -1298,7 +1802,7 @@ HTML_KO = r"""<!DOCTYPE html>
           <span class="meta-chip"><strong>Warehouse:</strong> 설명 포함 32개 Table (<span class="mono">cymbal_enterprise_dw</span>)</span>
           <span class="meta-chip"><strong>비교:</strong> Data Agent 1개 vs. Root + Domain Sub-Agent 6개 + Fallback</span>
           <span class="meta-chip"><strong>측정 (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
-          <a href="#scenarios" class="btn-jump-wb">실시간 A/B Workbench 바로가기</a>
+          <button type="button" class="btn-jump-wb" data-goto-slide="2" style="cursor:pointer;font-family:inherit;">실시간 A/B Workbench 열기 (Slide 3)</button>
         </div>
 
         <div class="kpi-grid" id="hero-kpi-grid"></div>
@@ -1307,8 +1811,20 @@ HTML_KO = r"""<!DOCTYPE html>
       __OVERVIEW_CARDS__
     </section>
 
-    <section id="architecture">
-      <h2>2. Best Practice Architecture 및 다각도 Trade-off 비교</h2>
+    <section id="scenarios" class="portal-slide" data-slide-index="2">
+      <h2>3. As-Is 문제 재현 vs To-Be 해결 직접 대조 시현 및 실시간 단계별 Workbench (S1 – S5)</h2>
+      <p class="section-desc">
+        사전 검증된 기준 실측치(Reference Baseline)가 즉시 표시되며, 각 단계(<strong>S1 → S5</strong>) 입력창에 직접 질문을 수정·입력하여 실행하면 실제 GCP에서 <strong>As-Is</strong>(단일 통합 Data Agent에 ADK 내장 data agent Tool을 그대로 사용)와 <strong>To-Be</strong>가 동시에 실행되며, 답변·SQL과 ADK 계층의 <span class="mono">Vertex AI usage_metadata</span> 실측 Token을 나란히 비교할 수 있습니다.
+      </p>
+
+      <div class="quick-try-banner"><div><strong>빠른 체험 안내:</strong> 아래 단계 Tab(<span class="mono">S1</span>~<span class="mono">S5</span>)을 고른 뒤 어두운 Workbench 상자 안의 예시 질문을 선택하고 <strong>실시간 Dual A/B 실행</strong>을 누르면 기존 방식(As-Is)과 개선 방식(To-Be)이 동시에 동작하며 차이를 바로 보여줍니다.</div></div>
+      <div class="prog-tracker-card" id="progressive-tracker"></div>
+      <div class="tab-bar" id="scenario-tabs"></div>
+      <div class="scenario-shell" id="scenario-detail"></div>
+    </section>
+
+    <section id="architecture" class="portal-slide" data-slide-index="3">
+      <h2>4. Best Practice Architecture 및 다각도 Trade-off 비교</h2>
       <p class="section-desc">
         이 Repository용으로 그린 Architecture Diagram 4종과, One-Shot Stateless 호출·Server 관리형 Stateful 대화·여기서 측정한 ADK 관리형 구성의 Trade-off 비교입니다.
       </p>
@@ -1363,7 +1879,7 @@ HTML_KO = r"""<!DOCTYPE html>
               <td><strong>호출당 BQCA Context</strong></td>
               <td>Warehouse 전체 Schema와 모든 용어집</td>
               <td>연결된 Data Agent와 동일</td>
-              <td><strong>Data Agent당 Table 3~13개와 Domain 용어집 하나. Fallback은 Warehouse 전체를 읽음 (Section 3, 4에서 측정)</strong></td>
+              <td><strong>Data Agent당 Table 3~13개와 Domain 용어집 하나. Fallback은 Warehouse 전체를 읽음 (Slide 3, 5에서 측정)</strong></td>
             </tr>
             <tr>
               <td><strong>Session 간 Memory</strong></td>
@@ -1376,19 +1892,8 @@ HTML_KO = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="scenarios">
-      <h2>3. As-Is 문제 재현 vs To-Be 해결 직접 대조 시현 및 실시간 단계별 Workbench (S1 – S5)</h2>
-      <p class="section-desc">
-        사전 검증된 기준 실측치(Reference Baseline)가 즉시 표시되며, 각 단계(<strong>S1 → S5</strong>) 입력창에 직접 질문을 수정·입력하여 실행하면 실제 GCP에서 <strong>As-Is</strong>(단일 통합 Data Agent에 ADK 내장 data agent Tool을 그대로 사용)와 <strong>To-Be</strong>가 동시에 실행되며, 답변·SQL과 ADK 계층의 <span class="mono">Vertex AI usage_metadata</span> 실측 Token을 나란히 비교할 수 있습니다.
-      </p>
-
-      <div class="prog-tracker-card" id="progressive-tracker"></div>
-      <div class="tab-bar" id="scenario-tabs"></div>
-      <div class="scenario-shell" id="scenario-detail"></div>
-    </section>
-
-    <section id="benchmarks">
-      <h2>4. 8-Turn Session의 Token 추이와 연간 환산 비용</h2>
+    <section id="benchmarks" class="portal-slide" data-slide-index="4">
+      <h2>5. 8-Turn Session의 Token 추이와 연간 환산 비용</h2>
       <p class="section-desc">S4 기준 실행에서 측정한 값입니다. 왼쪽은 Turn별 Input Token 합계로, <span class="mono">Vertex AI usage_metadata</span>의 ADK Prompt Token과 Cloud Trace의 BQCA Input Token을 더한 것입니다. 오른쪽은 Turn별 ADK Prompt Token입니다. 아래는 측정한 Turn당 평균 비용을 연 단위로 단순 환산한 값입니다.</p>
 
       <div class="two-col" style="margin-bottom: 24px;">
@@ -1442,8 +1947,8 @@ HTML_KO = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="repository">
-      <h2>5. Git Repository 핵심 구현 위치 및 PoC 재현 절차</h2>
+    <section id="repository" class="portal-slide" data-slide-index="5">
+      <h2>6. Git Repository 핵심 구현 위치 및 PoC 재현 절차</h2>
       <div class="stack-list">
         <div class="info-card">
           <h3>핵심 구현 File 매핑</h3>
@@ -1501,11 +2006,27 @@ uv run adk web agents --port 8000</pre>
       </div>
     </section>
 
+    <div class="deck-bottom-nav" id="deck-bottom-nav" aria-label="Slide 이동">
+      <button type="button" class="deck-nav-btn" id="deck-prev-btn">이전 Slide</button>
+      <div class="deck-progress-center">
+        <div class="deck-dots" id="deck-dots"></div>
+        <div class="deck-key-hint" id="deck-counter-label">Slide 1 / 6 · 좌우 이동 단추 또는 방향키로 전환</div>
+      </div>
+      <button type="button" class="deck-nav-btn primary" id="deck-next-btn">다음 Slide</button>
+    </div>
+
     <footer class="footer">
       <div>Google Cloud Customer Engineering · ADK + BigQuery CAA State·Routing 및 2-Tier Token 최적화 검증 Blueprint</div>
       <div>실측 Telemetry: <span class="mono">Vertex AI usage_metadata</span> + <span class="mono">geminidataanalytics.googleapis.com/v1</span></div>
     </footer>
   </main>
+
+  <button type="button" class="deck-edge-btn prev" id="deck-edge-prev" aria-label="이전 Slide" title="이전 Slide (왼쪽 방향키)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </button>
+  <button type="button" class="deck-edge-btn next" id="deck-edge-next" aria-label="다음 Slide" title="다음 Slide (오른쪽 방향키)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  </button>
 
   <div class="modal-backdrop" id="fig-modal">
     <div class="modal-box">
@@ -2703,13 +3224,184 @@ PORTAL_JS = r"""
       renderAdkMeasuredSvg();
       updateTcoCalculator();
 
+
+    let activeSlideIdx = 0;
+    const SLIDE_HASHES = ["#one-pager", "#overview", "#scenarios", "#architecture", "#benchmarks", "#repository"];
+
+    function goToSlide(targetIdx, opts) {
+      const options = opts || {};
+      const slides = Array.from(document.querySelectorAll("section.portal-slide"));
+      if (!slides.length) return;
+      const clamped = Math.max(0, Math.min(slides.length - 1, Number(targetIdx) || 0));
+
+      if (document.body.classList.contains("scroll-mode")) {
+        const el = slides[clamped];
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        activeSlideIdx = clamped;
+        syncDeckControls();
+        return;
+      }
+
+      const dir = clamped >= activeSlideIdx ? "anim-next" : "anim-prev";
+      slides.forEach((sec, i) => {
+        sec.classList.remove("active-slide", "anim-next", "anim-prev");
+        if (i === clamped) {
+          sec.classList.add("active-slide");
+          if (clamped !== activeSlideIdx) sec.classList.add(dir);
+        }
+      });
+      activeSlideIdx = clamped;
+      syncDeckControls();
+
+      if (!options.skipHash && SLIDE_HASHES[clamped]) {
+        try {
+          history.replaceState(null, "", SLIDE_HASHES[clamped]);
+        } catch (e) {}
+      }
+      if (options.scrollTargetId) {
+        const sub = document.getElementById(options.scrollTargetId);
+        if (sub) {
+          sub.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+      }
+      window.scrollTo({ top: 0, behavior: options.instantScroll ? "auto" : "smooth" });
+    }
+
+    function syncDeckControls() {
+      const D = UI_STRINGS.deck || {};
+      const titles = D.slideTitles || [];
+      const tot = SLIDE_HASHES.length;
+
+      document.querySelectorAll("#deck-stepper .step-pill").forEach((btn, idx) => {
+        const isAct = idx === activeSlideIdx && document.body.classList.contains("deck-mode");
+        btn.classList.toggle("active", isAct);
+        if (isAct) btn.setAttribute("aria-current", "step");
+        else btn.removeAttribute("aria-current");
+      });
+
+      const prevBtn = document.getElementById("deck-prev-btn");
+      const nextBtn = document.getElementById("deck-next-btn");
+      const edgePrev = document.getElementById("deck-edge-prev");
+      const edgeNext = document.getElementById("deck-edge-next");
+      const counter = document.getElementById("deck-counter-label");
+
+      const atStart = activeSlideIdx <= 0;
+      const atEnd = activeSlideIdx >= tot - 1;
+
+      if (prevBtn) {
+        prevBtn.disabled = atStart;
+        prevBtn.textContent = atStart
+          ? (D.firstLabel || "Start")
+          : `${D.prevPrefix || "← Prev:"} ${titles[activeSlideIdx - 1] || ""}`;
+      }
+      if (nextBtn) {
+        nextBtn.disabled = atEnd;
+        nextBtn.textContent = atEnd
+          ? (D.lastLabel || "End")
+          : `${D.nextPrefix || "Next:"} ${titles[activeSlideIdx + 1] || ""} →`;
+      }
+      if (edgePrev) edgePrev.disabled = atStart;
+      if (edgeNext) edgeNext.disabled = atEnd;
+
+      if (counter) {
+        counter.textContent = (D.counterTpl || "Slide {CUR} of {TOT}")
+          .replace("{CUR}", String(activeSlideIdx + 1))
+          .replace("{TOT}", String(tot));
+      }
+
+      document.querySelectorAll("#deck-dots .deck-dot").forEach((d, idx) => {
+        d.classList.toggle("active", idx === activeSlideIdx);
+      });
+    }
+
+    function initDeckNavigation() {
+      const D = UI_STRINGS.deck || {};
+      const titles = D.slideTitles || [];
+      const dotsWrap = document.getElementById("deck-dots");
+      if (dotsWrap) {
+        dotsWrap.innerHTML = SLIDE_HASHES.map((_, i) =>
+          `<button type="button" class="deck-dot${i === 0 ? " active" : ""}" data-goto-slide="${i}" title="${titles[i] || ("Slide " + (i + 1))}" aria-label="${titles[i] || ("Slide " + (i + 1))}"></button>`
+        ).join("");
+      }
+
+      document.querySelectorAll("[data-goto-slide]").forEach(el => {
+        el.addEventListener("click", e => {
+          e.preventDefault();
+          const idx = Number(el.dataset.gotoSlide);
+          if (!isNaN(idx)) goToSlide(idx);
+        });
+      });
+
+      const prevBtn = document.getElementById("deck-prev-btn");
+      const nextBtn = document.getElementById("deck-next-btn");
+      const edgePrev = document.getElementById("deck-edge-prev");
+      const edgeNext = document.getElementById("deck-edge-next");
+      if (prevBtn) prevBtn.addEventListener("click", () => goToSlide(activeSlideIdx - 1));
+      if (nextBtn) nextBtn.addEventListener("click", () => goToSlide(activeSlideIdx + 1));
+      if (edgePrev) edgePrev.addEventListener("click", () => goToSlide(activeSlideIdx - 1));
+      if (edgeNext) edgeNext.addEventListener("click", () => goToSlide(activeSlideIdx + 1));
+
+      const viewToggle = document.getElementById("view-mode-toggle");
+      if (viewToggle) {
+        viewToggle.addEventListener("click", () => {
+          const toScroll = document.body.classList.contains("deck-mode");
+          document.body.classList.toggle("deck-mode", !toScroll);
+          document.body.classList.toggle("scroll-mode", toScroll);
+          viewToggle.classList.toggle("active-full", toScroll);
+          viewToggle.textContent = toScroll
+            ? (D.slideModeBtn || "Slide Deck View")
+            : (D.fullPageBtn || "Full Page View");
+          syncDeckControls();
+          if (!toScroll) goToSlide(activeSlideIdx, { instantScroll: true });
+        });
+      }
+
+      document.addEventListener("keydown", e => {
+        if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        if (!document.body.classList.contains("deck-mode")) return;
+        const modal = document.getElementById("fig-modal");
+        if (modal && modal.classList.contains("open")) return;
+        const ae = document.activeElement;
+        if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT" || ae.isContentEditable)) return;
+        if (e.key === "ArrowRight") {
+          if (activeSlideIdx < SLIDE_HASHES.length - 1) {
+            e.preventDefault();
+            goToSlide(activeSlideIdx + 1);
+          }
+        } else if (e.key === "ArrowLeft") {
+          if (activeSlideIdx > 0) {
+            e.preventDefault();
+            goToSlide(activeSlideIdx - 1);
+          }
+        }
+      });
+
+      window.addEventListener("hashchange", () => {
+        const h = (window.location.hash || "").toLowerCase();
+        const m = SLIDE_HASHES.indexOf(h);
+        if (m >= 0 && m !== activeSlideIdx) {
+          goToSlide(m, { skipHash: true });
+        }
+      });
+
+      const initialHash = (window.location.hash || "").toLowerCase();
+      const matchedIdx = SLIDE_HASHES.indexOf(initialHash);
+      if (matchedIdx >= 0) {
+        goToSlide(matchedIdx, { skipHash: true, instantScroll: true });
+      } else {
+        syncDeckControls();
+      }
+    }
+
+      initDeckNavigation();
+
       document.querySelectorAll("[data-jump-scenario]").forEach(btn => {
         btn.addEventListener("click", () => {
           const idx = Number(btn.dataset.jumpScenario);
           if (!isNaN(idx) && BENCHMARK_DATA.scenarios[idx]) {
             renderScenario(idx);
-            const target = document.getElementById("scenarios");
-            if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+            goToSlide(2, { scrollTargetId: "scenario-tabs" });
           }
         });
       });
@@ -2732,6 +3424,16 @@ PORTAL_JS = r"""
 
 
 UI_EN = {
+    "deck": {
+        "slideTitles": ["1. Executive Summary", "2. Context & Scorecard", "3. Live A/B Demo (S1-S5)", "4. Architecture", "5. 8-Turn & Cost", "6. Code & Setup"],
+        "prevPrefix": "← Prev:",
+        "nextPrefix": "Next:",
+        "firstLabel": "Start of Deck",
+        "lastLabel": "End of Deck",
+        "counterTpl": "Slide {CUR} of {TOT} · Use Left / Right buttons or keyboard arrows",
+        "fullPageBtn": "Full Page View",
+        "slideModeBtn": "Slide Deck View",
+    },
     "heroKpis": {
         "k1Label": "S1 · BQCA input tokens per turn",
         "k1Sub": "To-Be vs As-Is, from Cloud Trace.",
@@ -2897,6 +3599,16 @@ UI_EN = {
 
 
 UI_KO = {
+    "deck": {
+        "slideTitles": ["1. 핵심 요약 (One-Pager)", "2. 상세 배경·실측", "3. 실시간 비교 Demo", "4. Architecture 설계", "5. 8-Turn 추이·비용", "6. Git Repo·재현"],
+        "prevPrefix": "← 이전:",
+        "nextPrefix": "다음:",
+        "firstLabel": "첫 Slide",
+        "lastLabel": "마지막 Slide",
+        "counterTpl": "Slide {CUR} / {TOT} · 좌우 이동 단추 또는 방향키(← / →)로 전환",
+        "fullPageBtn": "전체 펼쳐보기",
+        "slideModeBtn": "Slide 보기",
+    },
     "heroKpis": {
         "k1Label": "S1 · Turn당 BQCA Input Token",
         "k1Sub": "To-Be vs As-Is, Cloud Trace 기준.",
@@ -3160,6 +3872,209 @@ _CHECK_LABELS = {
 }
 
 
+
+def build_onepager_html(lang: str, data: dict) -> str:
+    """Slide 1 Executive Summary One-Pager in plain business language, backed 100% by measured files."""
+    ko = lang == "ko"
+    sc = {x["code"]: x for x in data["scenarios"]}
+    cal = json.loads(CALIBRATION_FILE.read_text(encoding="utf-8"))["per_data_agent"]
+    med = lambda a: int(cal[a]["median_input_tokens_per_turn"])
+    mono = med(_MONO_AGENT)
+    names = {
+        "cymbal_customer_marketing_ca": "Customer",
+        "cymbal_product_profitability_ca": "Product",
+        "cymbal_supply_chain_ca": "Supply Chain",
+        "cymbal_store_channel_ca": "Store",
+        "cymbal_catalog_channel_ca": "Catalog",
+        "cymbal_web_channel_ca": "Web",
+    }
+    red = {a: (1 - med(a) / mono) * 100 for a in names}
+    gain = [a for a in names if red[a] >= 5]
+    flat = [a for a in names if red[a] < 5]
+    g_lo, g_hi = f"{min(red[a] for a in gain):.0f}%", f"{max(red[a] for a in gain):.0f}%"
+    flat_names = ", ".join(names[a] for a in flat)
+
+    rr = _repeat_runs()["runs"]
+    s4_cost_vals = [abs(r["rows"]["s4_average_8_turns"]["cost_delta_pct"]) for r in rr]
+    s4_tok_vals = [abs(r["rows"]["s4_average_8_turns"]["total_input_delta_pct"]) for r in rr]
+    cost_lo, cost_hi = f"{min(s4_cost_vals):.0f}%", f"{max(s4_cost_vals):.0f}%"
+    tok_lo, tok_hi = f"{min(s4_tok_vals):.0f}%", f"{max(s4_tok_vals):.0f}%"
+
+    avg = data["s4_average_per_turn"]
+    curve = data["s4_turn_curve"]
+    asis_first, asis_last = curve[0]["asis_adk_prompt_tokens"], max(r["asis_adk_prompt_tokens"] for r in curve)
+    tobe_min, tobe_max = min(r["tobe_adk_prompt_tokens"] for r in curve), max(r["tobe_adk_prompt_tokens"] for r in curve)
+    s5 = sc["S5"]["result"]["comparison_summary"]["measured"]
+    s5_calls, s5_secs = s5["tobe_bqca_calls"], s5["tobe_latency_ms"] / 1000
+
+    if ko:
+        return f"""<div class="onepager-shell">
+        <div class="op-header">
+          <div class="op-kicker-row">
+            <span class="op-kicker">Executive Summary · One-Pager</span>
+            <span class="op-audience-note">비전공자·의사결정자용 1장 요약 (실측 기준일: {str(data.get("generated_at_utc", ""))[:10]})</span>
+          </div>
+          <h1 class="op-title">기업용 대화형 분석 PoC를 실제 운영으로 넓히는 법: 단일 Agent의 한계와 Domain 분업 구조</h1>
+          <p class="op-lead">
+            Table 몇 개로 시작한 대화형 분석 PoC는 빠르게 성공하지만, 여러 사업부가 함께 쓰는 실제 전사 Data Warehouse(32개 Table)에 그대로 연결하면 질문할 때마다 방대한 설명서 전체를 처음부터 다시 읽느라 느리고 비싸집니다. 본 설계는 모든 질문을 혼자 처리하는 단일 Data Agent 대신 <strong>안내 창구(Router) + 6개 영역 전담 Data Agent + 통합 Fallback</strong>으로 역할을 나누고 기억 저장소(Memory)를 붙여 운영 비용을 줄이면서도 대화 연속성을 확보한 실증 사례입니다.
+          </p>
+        </div>
+
+        <div class="op-compare-grid">
+          <div class="op-compare-card before">
+            <div class="op-card-head">
+              <h2 class="op-card-title">기존 방식 (As-Is) · 만능 단일 창구 1개</h2>
+              <span class="tag tag-red" style="margin:0;">왜 PoC 이후 멈추는가</span>
+            </div>
+            <div class="op-flow-diagram" aria-label="기존 방식 흐름">
+              <span class="op-flow-node">사용자 질문</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node bad">단일 통합 Data Agent</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node bad">매번 32개 Table 설명서 전체 재독</span>
+            </div>
+            <ul class="op-points">
+              <li><strong>매 질문마다 백과사전 전체 재독:</strong> 간단한 질문 하나에도 32개 Table 정의와 전 부서 기준을 매번 다시 읽어 기본 입력량(중앙값 <strong>{mono:,} Token</strong>)이 고정 발생합니다.</li>
+              <li><strong>대화가 길어질수록 눈덩이처럼 불어나는 이력:</strong> 이전 답변 원본이 계속 누적되어 8번째 연속 질문에서는 상위 Prompt가 약 6배(<strong>{asis_first:,} → {asis_last:,} Token</strong>)까지 커집니다.</li>
+              <li><strong>대화창을 닫으면 기억 초기화:</strong> 후속 질문의 세부 조건을 놓치기 쉽고, 새 Session을 열면 직전에 찾은 핵심 원인을 전혀 기억하지 못합니다.</li>
+            </ul>
+          </div>
+
+          <div class="op-compare-card after">
+            <div class="op-card-head">
+              <h2 class="op-card-title">개선 방식 (To-Be) · 안내 창구 + 6개 전담 분업</h2>
+              <span class="tag tag-green" style="margin:0;">어떻게 해결했는가</span>
+            </div>
+            <div class="op-flow-diagram" aria-label="개선 방식 흐름">
+              <span class="op-flow-node">사용자 질문</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node router">안내 Router</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node good">전담 Agent 6종 (3~13개 Table) · 통합 Fallback</span>
+              <span class="op-flow-arrow">+</span>
+              <span class="op-flow-node good">요약 Memory</span>
+            </div>
+            <ul class="op-points">
+              <li><strong>필요한 부서 설명서만 가볍게 열람:</strong> 안내 Router가 고객·상품·물류·매장 등 6개 전담 Sub-Agent(각 3~13개 Table)로 배정하고, 부서 간 합산이 꼭 필요한 질문만 통합 Fallback으로 보냅니다.</li>
+              <li><strong>대화가 길어져도 일정한 크기 유지:</strong> 최근 3회 대화 요약만 선별해 전달하므로 8회 연속 질의 내내 상위 Prompt(<strong>{tobe_min:,}~{tobe_max:,} Token</strong>)가 가볍게 유지됩니다.</li>
+              <li><strong>부서 전환 및 재방문 기억 유지:</strong> 대화 도중 다른 부서 주제로 자연스럽게 넘어가며, 새 Session에서도 추가 Warehouse 조회 없이 이전 핵심 결과를 바로 요약합니다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="op-impact-grid">
+          <div class="op-impact-card">
+            <div class="op-impact-num">{cost_lo}~{cost_hi} 비용 절감</div>
+            <div class="op-impact-label">8회 연속 분석 대화 평균 (3회 반복 실측)</div>
+            <p class="op-impact-desc">전체 입력량 <strong>{tok_lo}~{tok_hi} 감소</strong> (기준 실행 평균 Turn당 <strong>${avg["tobe_cost_usd"]:.4f}</strong> vs <strong>${avg["asis_cost_usd"]:.4f}</strong>). 대화가 이어질수록 절감 효과가 뚜렷합니다.</p>
+          </div>
+          <div class="op-impact-card">
+            <div class="op-impact-num">{len(gain)} / 6 영역 {g_lo}~{g_hi} 감소</div>
+            <div class="op-impact-label">부서 전담 Data Agent 단건 입력량 비교</div>
+            <p class="op-impact-desc">Online Shop 3개 영역은 51~55%, Store·Catalog는 33~34% 감소했습니다. <strong>투명한 한계 공개:</strong> {flat_names} 영역 1곳은 감소가 없었고, 3개 영역 동시 병렬 호출은 단일 호출보다 비용이 높습니다.</p>
+          </div>
+          <div class="op-impact-card">
+            <div class="op-impact-num">추가 DB 호출 {s5_calls}회</div>
+            <div class="op-impact-label">새 Session에서 이전 분석 결과 복원 (S5)</div>
+            <p class="op-impact-desc">저장된 선호 지표와 핵심 발견 사항을 Memory에서 <strong>{s5_secs:.1f}초</strong> 만에 불러와 요약해 주며, 기존 단일 방식은 이전 대화를 조회하지 못합니다.</p>
+          </div>
+        </div>
+
+        <div class="op-cta-bar">
+          <p class="op-cta-note">
+            <strong>심사자 빠른 안내:</strong> 핵심 개념과 실제 작동 확인은 <strong>현재 요약(Slide 1)</strong>과 <strong>실시간 비교 체험(Slide 3)</strong> 두 장만으로 2분 안에 보실 수 있습니다. 상세 실측 근거·Architecture Diagram·연간 비용 계산·재현 Code는 Slide 2, 4, 5, 6에 수록되어 있습니다.
+          </p>
+          <div class="op-cta-actions">
+            <button type="button" class="deck-nav-btn" data-goto-slide="1">상세 배경·수치 보기 (Slide 2) →</button>
+            <button type="button" class="deck-nav-btn primary" data-goto-slide="2">실시간 비교 Demo 체험하기 (Slide 3) →</button>
+          </div>
+        </div>
+      </div>"""
+
+    return f"""<div class="onepager-shell">
+        <div class="op-header">
+          <div class="op-kicker-row">
+            <span class="op-kicker">Executive Summary · One-Pager</span>
+            <span class="op-audience-note">Plain-Language Business Overview · Measured on Google Cloud ({str(data.get("generated_at_utc", ""))[:10]})</span>
+          </div>
+          <h1 class="op-title">Scaling Conversational Analytics: Why Single Agents Stall and How Domain Routing Works</h1>
+          <p class="op-lead">
+            Conversational analytics prototypes succeed quickly on a few tables, then turn slow and expensive once connected to a shared enterprise warehouse of dozens of tables. This blueprint replaces one overloaded generalist agent with a <strong>front-desk Router, six department-scoped Domain Data Agents, and a shared Fallback</strong> backed by cross-session memory, cutting multi-turn operating cost while keeping follow-up context intact.
+          </p>
+        </div>
+
+        <div class="op-compare-grid">
+          <div class="op-compare-card before">
+            <div class="op-card-head">
+              <h2 class="op-card-title">Before (As-Is) · One Overloaded Generalist</h2>
+              <span class="tag tag-red" style="margin:0;">Why PoCs Stall at Scale</span>
+            </div>
+            <div class="op-flow-diagram" aria-label="Before flow">
+              <span class="op-flow-node">Analyst Question</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node bad">1 Monolithic Agent</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node bad">Re-reads All 32 Tables Every Turn</span>
+            </div>
+            <ul class="op-points">
+              <li><strong>Re-reading the whole encyclopedia on every question:</strong> Even a simple single-department question forces the agent to read all 32 table schemas and every department glossary (<strong>{mono:,}</strong> median input tokens per turn).</li>
+              <li><strong>Snowballing conversation history:</strong> Raw prior answers accumulate on every follow-up, expanding the upstream orchestration prompt nearly 6x across 8 turns (<strong>{asis_first:,} → {asis_last:,}</strong> tokens).</li>
+              <li><strong>Blank slate on every new session:</strong> Follow-up nuances are fragile, and opening a new session erases prior findings and analyst preferences completely.</li>
+            </ul>
+          </div>
+
+          <div class="op-compare-card after">
+            <div class="op-card-head">
+              <h2 class="op-card-title">After (To-Be) · Front-Desk Router + 6 Specialists</h2>
+              <span class="tag tag-green" style="margin:0;">How This Blueprint Works</span>
+            </div>
+            <div class="op-flow-diagram" aria-label="After flow">
+              <span class="op-flow-node">Analyst Question</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node router">Front-Desk Router</span>
+              <span class="op-flow-arrow">→</span>
+              <span class="op-flow-node good">6 Domain Specialists (3–13 Tables) · Shared Fallback</span>
+              <span class="op-flow-arrow">+</span>
+              <span class="op-flow-node good">Saved Memory</span>
+            </div>
+            <ul class="op-points">
+              <li><strong>Only the relevant department manual is opened:</strong> The Router delegates to 6 focused specialists (Customer, Product, Supply Chain, Store, Catalog, Web; 3–13 tables each), sending cross-department joins to a shared Fallback.</li>
+              <li><strong>Flat, predictable multi-turn size:</strong> Passing only a 3-turn rolling summary keeps the upstream prompt compact across an 8-turn session (<strong>{tobe_min:,}–{tobe_max:,}</strong> tokens).</li>
+              <li><strong>Seamless topic shifts &amp; cross-session recall:</strong> Analysts switch departments mid-conversation and recall saved insights in brand-new sessions without re-querying BigQuery.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="op-impact-grid">
+          <div class="op-impact-card">
+            <div class="op-impact-num">{cost_lo}–{cost_hi} Lower Cost</div>
+            <div class="op-impact-label">Average per turn across 8-turn sessions (3 runs)</div>
+            <p class="op-impact-desc"><strong>{tok_lo}–{tok_hi} fewer</strong> total input tokens across three full 8-question cross-department runs (<strong>${avg["tobe_cost_usd"]:.4f}</strong> vs <strong>${avg["asis_cost_usd"]:.4f}</strong> per turn in the baseline run).</p>
+          </div>
+          <div class="op-impact-card">
+            <div class="op-impact-num">{g_lo}–{g_hi} Less Input</div>
+            <div class="op-impact-label">Measured on {len(gain)} of 6 domain specialists</div>
+            <p class="op-impact-desc">Online shop domains save 51%–55%; Store and Catalog save 33%–34%. <strong>Honest boundary:</strong> the {flat_names} specialist stayed flat, and 3-domain parallel fan-out costs more when As-Is answers in 1 call.</p>
+          </div>
+          <div class="op-impact-card">
+            <div class="op-impact-num">{s5_calls} Extra DB Queries</div>
+            <div class="op-impact-label">Cross-session recall in a brand-new session (S5)</div>
+            <p class="op-impact-desc">Prior findings and user KPI preferences are recalled directly from saved state and memory in <strong>{s5_secs:.1f}s</strong>, whereas the default single-agent setup has no cross-session memory.</p>
+          </div>
+        </div>
+
+        <div class="op-cta-bar">
+          <p class="op-cta-note">
+            <strong>Reviewer Quick Guide:</strong> For a 2-minute business walkthrough, review this <strong>One-Pager (Slide 1)</strong> and try a preset question in the <strong>Live Side-by-Side Demo (Slide 3)</strong>. Full Cloud Trace spans, architecture diagrams, cost modeling, and code are on Slides 2, 4, 5, and 6.
+          </p>
+          <div class="op-cta-actions">
+            <button type="button" class="deck-nav-btn" data-goto-slide="1">Detailed Scorecard (Slide 2) →</button>
+            <button type="button" class="deck-nav-btn primary" data-goto-slide="2">Try Live A/B Demo (Slide 3) →</button>
+          </div>
+        </div>
+      </div>"""
+
+
 def build_overview_html(lang: str, data: dict) -> str:
     """The three overview cards. Every figure is read from the benchmark, calibration and answer-check files."""
     ko = lang == "ko"
@@ -3340,6 +4255,7 @@ def build_overview_html(lang: str, data: dict) -> str:
 def render_page(template: str, data_obj: dict, ui_obj: dict, lang: str, en_data: dict) -> str:
     return (
         template.replace("__SHARED_CSS__", SHARED_CSS)
+        .replace("__ONEPAGER_HTML__", build_onepager_html(lang, en_data))
         .replace("__OVERVIEW_CARDS__", build_overview_html(lang, en_data))
         .replace("__BENCHMARK_JSON_PAYLOAD__", json.dumps(data_obj, ensure_ascii=False))
         .replace("__UI_STRINGS_PAYLOAD__", json.dumps(ui_obj, ensure_ascii=False))
