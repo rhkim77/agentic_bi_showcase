@@ -956,79 +956,35 @@ SHARED_CSS = r"""
     }
     .footer a { color: var(--blue); text-decoration: none; }
 
-    /* --- 6-Slide Horizontal Deck & Executive One-Pager --- */
-    .topbar-inner {
-      max-width: 1360px;
-      padding: 9px 20px;
+    /* --- 7-Slide Top-Fixed Selector Bar, TOC, Demo Guide & Stage Wizard --- */
+    .topbar {
+      box-shadow: 0 1px 4px rgba(32, 33, 36, 0.06);
+    }
+    .topbar-row-util {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 7px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 10px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #EEF0F4;
     }
     .brand {
-      font-size: 13.6px;
+      font-size: 13.8px;
       white-space: nowrap;
     }
     .topbar-right {
-      gap: 7px;
-    }
-    @media (max-width: 1480px) {
-      .topbar-right .env-pill {
-        display: none;
-      }
-    }
-    .nav-stepper {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      flex-wrap: wrap;
-    }
-    .step-pill {
-      appearance: none;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text-secondary);
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 9px;
-      border-radius: 999px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
-      white-space: nowrap;
-    }
-    .step-pill:hover {
-      background: var(--blue-soft);
-      color: var(--blue);
-    }
-    .step-pill.active {
-      background: var(--blue);
-      color: #FFFFFF;
-      border-color: var(--blue);
-    }
-    .step-num {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      font-size: 11px;
-      font-weight: 700;
-      background: rgba(32, 33, 36, 0.08);
-      color: inherit;
-    }
-    .step-pill.active .step-num {
-      background: rgba(255, 255, 255, 0.24);
-      color: #FFFFFF;
+      gap: 8px;
     }
     .view-toggle-btn {
       appearance: none;
       font-family: inherit;
-      font-size: 12px;
+      font-size: 11.8px;
       font-weight: 700;
-      padding: 5px 11px;
-      border-radius: 7px;
+      padding: 4px 10px;
+      border-radius: 6px;
       border: 1px solid var(--border-strong);
       background: var(--surface);
       color: var(--text);
@@ -1046,169 +1002,158 @@ SHARED_CSS = r"""
       color: var(--blue);
     }
 
+    /* Row 2: Fixed-position Slide 1..7 Button Strip */
+    .topbar-row-slides {
+      background: #F8FAFD;
+    }
+    .topbar-row-slides-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 6px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .slide-tab-strip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .slide-tab-btn {
+      appearance: none;
+      font-family: inherit;
+      border: 1px solid #D5DCE6;
+      background: #FFFFFF;
+      color: var(--text-secondary);
+      border-radius: 7px;
+      padding: 5px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+      white-space: nowrap;
+    }
+    .slide-tab-btn:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #F4F8FE;
+    }
+    .slide-tab-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #EEF2F7;
+      color: #3C4043;
+      letter-spacing: 0.01em;
+    }
+    .slide-tab-btn.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #FFFFFF;
+      box-shadow: 0 1px 4px rgba(26, 115, 232, 0.28);
+    }
+    .slide-tab-btn.active .slide-tab-badge {
+      background: rgba(255, 255, 255, 0.22);
+      color: #FFFFFF;
+    }
+    .topbar-slide-arrows {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .top-arrow-btn {
+      appearance: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 7px;
+      border: 1px solid var(--border-strong);
+      background: #FFFFFF;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+    .top-arrow-btn:hover:not(:disabled) {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #F4F8FE;
+    }
+    .top-arrow-btn.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #FFFFFF;
+    }
+    .top-arrow-btn.primary:hover:not(:disabled) {
+      background: #1557B0;
+      border-color: #1557B0;
+      color: #FFFFFF;
+    }
+    .top-arrow-btn:disabled {
+      opacity: 0.34;
+      cursor: default;
+    }
+    body.scroll-mode .topbar-slide-arrows {
+      display: none !important;
+    }
+
     /* Slide visibility & directional transition in deck-mode */
     body.deck-mode .container {
+      max-width: 1280px;
       padding-top: 14px;
-      padding-bottom: 36px;
+      padding-bottom: 40px;
     }
     body.deck-mode section.portal-slide {
       display: none;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
     body.deck-mode section.portal-slide.active-slide {
       display: block;
     }
     body.deck-mode section.portal-slide.anim-next {
-      animation: deckSlideFromRight 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: deckSlideFromRight 0.22s cubic-bezier(0.22, 1, 0.36, 1);
     }
     body.deck-mode section.portal-slide.anim-prev {
-      animation: deckSlideFromLeft 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: deckSlideFromLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1);
     }
     @keyframes deckSlideFromRight {
-      from { opacity: 0; transform: translate3d(28px, 0, 0); }
+      from { opacity: 0; transform: translate3d(26px, 0, 0); }
       to   { opacity: 1; transform: translate3d(0, 0, 0); }
     }
     @keyframes deckSlideFromLeft {
-      from { opacity: 0; transform: translate3d(-28px, 0, 0); }
+      from { opacity: 0; transform: translate3d(-26px, 0, 0); }
       to   { opacity: 1; transform: translate3d(0, 0, 0); }
     }
     @media (prefers-reduced-motion: reduce) {
       body.deck-mode section.portal-slide.anim-next,
-      body.deck-mode section.portal-slide.anim-prev {
-        animation: none;
+      body.deck-mode section.portal-slide.anim-prev,
+      .stage-anim-next,
+      .stage-anim-prev {
+        animation: none !important;
       }
     }
 
-    /* Floating left/right edge arrows on wide viewports */
-    .deck-edge-btn {
-      position: fixed;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 85;
-      width: 44px;
-      height: 64px;
-      border-radius: 10px;
-      border: 1px solid var(--border-strong);
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(6px);
-      color: var(--text);
-      box-shadow: 0 4px 14px rgba(32, 33, 36, 0.10);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
-    }
-    .deck-edge-btn:hover:not(:disabled) {
-      background: var(--blue-soft);
-      border-color: var(--blue);
-      color: var(--blue);
-    }
-    .deck-edge-btn:disabled {
-      opacity: 0.28;
-      cursor: default;
-    }
-    .deck-edge-btn.prev { left: 14px; }
-    .deck-edge-btn.next { right: 14px; }
-    @media (max-width: 1360px) {
-      .deck-edge-btn { display: none !important; }
-    }
-    body.scroll-mode .deck-edge-btn,
-    body.scroll-mode .deck-bottom-nav {
-      display: none !important;
-    }
-
-    /* Bottom slide pager bar */
-    .deck-bottom-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 18px;
-      margin-bottom: 22px;
-      box-shadow: var(--shadow-sm);
-    }
-    .deck-nav-btn {
-      appearance: none;
-      font-family: inherit;
-      font-size: 13.5px;
-      font-weight: 700;
-      padding: 9px 16px;
-      border-radius: 8px;
-      border: 1px solid var(--border-strong);
-      background: var(--surface);
-      color: var(--text);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
-    }
-    .deck-nav-btn:hover:not(:disabled) {
-      border-color: var(--blue);
-      color: var(--blue);
-      background: #F8FAFD;
-    }
-    .deck-nav-btn.primary {
-      background: var(--blue);
-      border-color: var(--blue);
-      color: #FFFFFF;
-    }
-    .deck-nav-btn.primary:hover:not(:disabled) {
-      background: #1557B0;
-      border-color: #1557B0;
-      color: #FFFFFF;
-    }
-    .deck-nav-btn:disabled {
-      opacity: 0.35;
-      cursor: default;
-    }
-    .deck-progress-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      text-align: center;
-    }
-    .deck-dots {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-    }
-    .deck-dot {
-      appearance: none;
-      border: none;
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: var(--border-strong);
-      cursor: pointer;
-      padding: 0;
-      transition: width 0.18s, background 0.18s;
-    }
-    .deck-dot.active {
-      width: 24px;
-      background: var(--blue);
-    }
-    .deck-key-hint {
-      font-size: 11.8px;
-      color: var(--text-secondary);
-    }
-
-    /* Slide 1: Executive One-Pager Layout */
+    /* --- Slide 1: Cover Title + Brief Overview + Clickable Table of Contents --- */
     .onepager-shell {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 18px 24px;
-      box-shadow: 0 2px 8px rgba(32, 33, 36, 0.06);
+      box-shadow: 0 2px 8px rgba(32, 33, 36, 0.05);
       display: flex;
       flex-direction: column;
-      gap: 13px;
+      gap: 14px;
     }
     .op-header {
       border-bottom: 1px solid var(--border);
@@ -1241,194 +1186,366 @@ SHARED_CSS = r"""
       border-radius: 6px;
     }
     .op-title {
-      font-size: 23.5px;
+      font-size: 23px;
       line-height: 1.26;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--text);
       margin-bottom: 6px;
-      max-width: 1100px;
+      max-width: 1140px;
     }
     .op-lead {
-      font-size: 14px;
-      line-height: 1.48;
+      font-size: 13.8px;
+      line-height: 1.5;
       color: #3C4043;
-      max-width: 1080px;
+      max-width: 1140px;
     }
-    .op-compare-grid {
+    .op-summary-strip {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
+      grid-template-columns: 1fr 1fr 1.05fr;
+      gap: 12px;
     }
-    @media (max-width: 920px) {
-      .op-compare-grid { grid-template-columns: minmax(0, 1fr); }
+    @media (max-width: 980px) {
+      .op-summary-strip { grid-template-columns: minmax(0, 1fr); }
     }
-    .op-compare-card {
-      border-radius: 10px;
-      padding: 13px 16px;
+    .op-mini-box {
+      border-radius: 9px;
+      padding: 12px 14px;
       border: 1px solid var(--border);
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      min-width: 0;
+      gap: 6px;
     }
-    .op-compare-card.before {
+    .op-mini-box.before {
       background: #FFFBFB;
       border-color: #F3C7C5;
     }
-    .op-compare-card.after {
+    .op-mini-box.after {
       background: #F7FBF8;
       border-color: #B7DFC2;
     }
-    .op-card-head {
+    .op-mini-box.metrics {
+      background: #F8FAFD;
+      border-color: #D2E1F9;
+    }
+    .op-mini-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 6px;
     }
-    .op-card-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
+    .op-mini-list {
       margin: 0;
+      padding-left: 15px;
+      font-size: 12.4px;
+      line-height: 1.45;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-    .op-flow-diagram {
+    .op-mini-list strong { color: var(--text); }
+    .op-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .op-kpi-pill {
+      background: #FFFFFF;
+      border: 1px solid #DCE6F7;
+      border-radius: 7px;
+      padding: 7px 8px;
+      text-align: center;
+    }
+    .op-kpi-pill .num {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--green);
+      line-height: 1.2;
+    }
+    .op-kpi-pill .lbl {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.3;
+      margin-top: 2px;
+    }
+
+    /* Table of Contents Grid on Slide 1 */
+    .toc-section-head {
       display: flex;
       align-items: center;
-      gap: 5px;
+      justify-content: space-between;
+      gap: 10px;
       flex-wrap: wrap;
-      padding: 7px 10px;
-      border-radius: 7px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      font-size: 11.8px;
-      font-weight: 600;
-      color: var(--text);
+      margin-bottom: 8px;
     }
-    .op-flow-node {
-      padding: 2px 7px;
-      border-radius: 5px;
-      background: var(--surface-subtle);
-      border: 1px solid var(--border);
-    }
-    .op-flow-node.bad {
-      background: var(--red-soft);
-      border-color: #F1B6B3;
-      color: var(--red);
-    }
-    .op-flow-node.good {
-      background: var(--green-soft);
-      border-color: #A8DAB5;
-      color: var(--green);
-    }
-    .op-flow-node.router {
-      background: var(--blue-soft);
-      border-color: #B8D1FA;
-      color: #174EA6;
-    }
-    .op-flow-arrow {
-      color: var(--text-secondary);
+    .toc-section-title {
+      font-size: 14px;
       font-weight: 700;
-    }
-    .op-points {
-      list-style: none;
-      padding: 0;
+      color: var(--text);
       margin: 0;
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 11px;
+    }
+    @media (max-width: 920px) {
+      .toc-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    .toc-card {
+      appearance: none;
+      font-family: inherit;
+      text-align: left;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 12px 14px;
+      cursor: pointer;
       display: flex;
       flex-direction: column;
       gap: 5px;
-      font-size: 12.9px;
-      line-height: 1.44;
-      color: var(--text-secondary);
-    }
-    .op-points li {
-      position: relative;
-      padding-left: 13px;
-    }
-    .op-points li::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 7px;
-      width: 5.5px;
-      height: 5.5px;
-      border-radius: 50%;
-      background: var(--border-strong);
-    }
-    .op-compare-card.before .op-points li::before { background: var(--red); }
-    .op-compare-card.after .op-points li::before { background: var(--green); }
-    .op-points strong { color: var(--text); }
-
-    .op-impact-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-    @media (max-width: 920px) {
-      .op-impact-grid { grid-template-columns: minmax(0, 1fr); }
-    }
-    .op-impact-card {
-      background: #F8FAFD;
-      border: 1px solid #D6E3F8;
-      border-radius: 9px;
-      padding: 11px 14px;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s, background 0.15s;
       min-width: 0;
     }
-    .op-impact-num {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--green);
-      line-height: 1.18;
-      margin-bottom: 3px;
+    .toc-card:hover {
+      border-color: var(--blue);
+      background: #F8FAFE;
+      box-shadow: 0 3px 10px rgba(26, 115, 232, 0.10);
+      transform: translateY(-1px);
     }
-    .op-impact-label {
-      font-size: 12.8px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 3px;
+    .toc-card.featured {
+      border-color: #90B8F8;
+      background: #F4F8FE;
     }
-    .op-impact-desc {
-      font-size: 12px;
-      line-height: 1.44;
-      color: var(--text-secondary);
-    }
-    .op-cta-bar {
+    .toc-card-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
+      gap: 6px;
+      width: 100%;
     }
-    .op-cta-note {
-      font-size: 12.6px;
+    .toc-slide-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--blue);
+      background: var(--blue-soft);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .toc-arrow {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--blue);
+    }
+    .toc-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .toc-card-desc {
+      font-size: 12.2px;
       color: var(--text-secondary);
-      line-height: 1.48;
-      max-width: 640px;
+      line-height: 1.42;
     }
-    .op-cta-note strong { color: var(--text); }
-    .op-cta-actions {
+
+    /* --- Slide 2: Live Demo Guide --- */
+    .guide-shell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(32, 33, 36, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .guide-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .guide-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 920px) {
+      .guide-steps-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    .guide-step-card {
+      background: #F8FAFD;
+      border: 1px solid #D5E3F8;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .guide-step-num {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      font-size: 11px;
+      font-weight: 700;
+      color: #FFFFFF;
+      background: var(--blue);
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+    .guide-step-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .guide-step-desc {
+      font-size: 12.6px;
+      line-height: 1.48;
+      color: var(--text-secondary);
+    }
+    .guide-step-desc strong { color: var(--text); }
+    .guide-stages-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 1060px) {
+      .guide-stages-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .guide-stages-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    .guide-stage-card {
+      appearance: none;
+      font-family: inherit;
+      text-align: left;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 12px 13px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      min-width: 0;
+    }
+    .guide-stage-card:hover {
+      border-color: var(--blue);
+      background: #F4F8FE;
+      box-shadow: 0 2px 8px rgba(26, 115, 232, 0.10);
+    }
+    .guide-stage-cta {
+      font-size: 11.8px;
+      font-weight: 700;
+      color: var(--blue);
+    }
+
+    /* --- Slide 3: Horizontal Stage Wizard Bar & Top-Placed Workbench --- */
+    .stage-wizard-bar {
+      background: var(--surface);
+      border: 1px solid #C6D8F8;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 10px;
       flex-wrap: wrap;
+      box-shadow: 0 1px 4px rgba(26, 115, 232, 0.08);
     }
-    .quick-try-banner {
+    .stage-pill-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+    .stage-wiz-pill {
+      appearance: none;
+      font-family: inherit;
+      font-size: 11.8px;
+      font-weight: 600;
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid var(--border-strong);
+      background: #FFFFFF;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .stage-wiz-pill:hover {
+      border-color: var(--blue);
+      color: var(--blue);
       background: #F4F8FE;
-      border: 1px solid #C2D7FA;
-      border-radius: 8px;
-      padding: 11px 15px;
-      margin-bottom: 16px;
-      font-size: 13.4px;
-      color: var(--text);
+    }
+    .stage-wiz-pill.active {
+      background: #174EA6;
+      border-color: #174EA6;
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+    .stage-wiz-pill .stage-done-dot {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+    }
+    .stage-wiz-pill.active .stage-done-dot {
+      background: rgba(255, 255, 255, 0.24);
+      color: #FFFFFF;
+    }
+    .stage-compact-banner {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       flex-wrap: wrap;
+      padding: 10px 14px;
+      background: #F8FAFD;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .stage-why-details {
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .stage-why-details summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--blue);
+      font-size: 12.8px;
+    }
+    .stage-anim-next {
+      animation: deckSlideFromRight 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .stage-anim-prev {
+      animation: deckSlideFromLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1);
     }
 """
 
@@ -1447,21 +1564,13 @@ HTML_EN = r"""<!DOCTYPE html>
 <body class="deck-mode">
 
   <header class="topbar">
-    <div class="topbar-inner">
+    <div class="topbar-row-util">
       <a href="#one-pager" class="brand" data-goto-slide="0">
         <span class="brand-mark"></span>
-        <span>ADK + BigQuery CAA · Enterprise BI</span>
+        <span>Google ADK + BigQuery CAA · Enterprise BI Blueprint</span>
       </a>
-      <nav class="nav-stepper" id="deck-stepper" aria-label="Slide navigation">
-        <button type="button" class="step-pill active" data-goto-slide="0"><span class="step-num">1</span><span>Summary</span></button>
-        <button type="button" class="step-pill" data-goto-slide="1"><span class="step-num">2</span><span>Scorecard</span></button>
-        <button type="button" class="step-pill" data-goto-slide="2"><span class="step-num">3</span><span>Live Demo</span></button>
-        <button type="button" class="step-pill" data-goto-slide="3"><span class="step-num">4</span><span>Architecture</span></button>
-        <button type="button" class="step-pill" data-goto-slide="4"><span class="step-num">5</span><span>8-Turn &amp; Cost</span></button>
-        <button type="button" class="step-pill" data-goto-slide="5"><span class="step-num">6</span><span>Code &amp; Setup</span></button>
-      </nav>
       <div class="topbar-right">
-        <button type="button" class="view-toggle-btn" id="view-mode-toggle" title="Switch between horizontal slides and full single-page scroll">Full Page View</button>
+        <button type="button" class="view-toggle-btn" id="view-mode-toggle" title="Switch between slide deck mode and full single-page scroll">Full Page View</button>
         <a href="https://github.com/rhkim77/agentic_bi_showcase" target="_blank" rel="noopener" class="gh-link">GitHub Repo</a>
         <div class="lang-switch" aria-label="Language Switcher">
           <a href="./index.html" class="active">EN</a>
@@ -1473,6 +1582,23 @@ HTML_EN = r"""<!DOCTYPE html>
         </span>
       </div>
     </div>
+    <div class="topbar-row-slides">
+      <div class="topbar-row-slides-inner">
+        <nav class="slide-tab-strip" id="deck-stepper" aria-label="Slide navigation">
+          <button type="button" class="slide-tab-btn active" data-goto-slide="0"><span class="slide-tab-badge">Slide 1</span><span>Overview &amp; Agenda</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="1"><span class="slide-tab-badge">Slide 2</span><span>Demo Guide</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="2"><span class="slide-tab-badge">Slide 3</span><span>Live Demo</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="3"><span class="slide-tab-badge">Slide 4</span><span>Step Tokens &amp; Scorecard</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="4"><span class="slide-tab-badge">Slide 5</span><span>Architecture</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="5"><span class="slide-tab-badge">Slide 6</span><span>8-Turn &amp; Cost</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="6"><span class="slide-tab-badge">Slide 7</span><span>Code &amp; Setup</span></button>
+        </nav>
+        <div class="topbar-slide-arrows">
+          <button type="button" class="top-arrow-btn" id="deck-prev-btn">← Prev</button>
+          <button type="button" class="top-arrow-btn primary" id="deck-next-btn">Next →</button>
+        </div>
+      </div>
+    </div>
   </header>
 
   <main class="container">
@@ -1481,10 +1607,30 @@ HTML_EN = r"""<!DOCTYPE html>
       __ONEPAGER_HTML__
     </section>
 
-    <section id="overview" class="portal-slide" data-slide-index="1">
+    <section id="demo-guide" class="portal-slide" data-slide-index="1">
+      __DEMO_GUIDE_HTML__
+    </section>
+
+    <section id="scenarios" class="portal-slide" data-slide-index="2">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+        <h2 style="margin-bottom:0;">3. Interactive Dual A/B Live Demo — Stage-by-Stage Evaluator (S1 – S5)</h2>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn-outline" data-goto-slide="1" style="font-size:12px;padding:5px 10px;">How to Use Guide (Slide 2)</button>
+          <button type="button" class="btn-outline" data-goto-slide="3" style="font-size:12px;padding:5px 10px;">View Step Token Bars (Slide 4) →</button>
+        </div>
+      </div>
+      <div id="stage-wizard-bar" class="stage-wizard-bar"></div>
+      <div class="tab-bar" id="scenario-tabs" style="display:none;"></div>
+      <div class="scenario-shell" id="scenario-detail"></div>
+    </section>
+
+    <section id="overview" class="portal-slide" data-slide-index="3">
+      <h2>4. Step-by-Step Input Token Comparison &amp; Full Measured Scorecard</h2>
+      <p class="section-desc">Cumulative input token comparison across all five stages (live runs automatically update the bars below), followed by full measured Cloud Trace and Vertex AI scorecard metrics.</p>
+      <div class="prog-tracker-card" id="progressive-tracker"></div>
       <div class="hero-card">
         <span class="eyebrow">Enterprise NL2SQL Reference Blueprint · Google ADK + BigQuery CAA</span>
-        <h2 style="font-size:26px;margin-bottom:12px;">2. Detailed Context, Technical Mechanism &amp; Verified Scorecard</h2>
+        <h3 style="font-size:21px;margin-bottom:10px;">Detailed Problem Context, Architecture Mechanism &amp; Measured KPIs</h3>
         <p class="lead">
           Teams adopt single-table Text-to-SQL PoCs quickly, then stall when they connect a production warehouse with dozens of documented tables and department glossaries. One monolithic BigQuery Conversational Analytics (BQCA) data agent re-reads the entire warehouse schema on every internal LLM call. At the same time, default Google ADK tools send only one stateless message per turn and lose context across sessions. This portal reproduces that enterprise bottleneck on a 32-table documented BigQuery warehouse and compares the default single-agent setup (<strong>As-Is</strong>) against a domain-scoped ADK + BQCA multi-agent architecture (<strong>To-Be</strong>) on live Google Cloud runs, measuring ADK tokens from <span class="mono">Vertex AI usage_metadata</span> and BQCA tokens from Cloud Trace.
         </p>
@@ -1493,7 +1639,7 @@ HTML_EN = r"""<!DOCTYPE html>
           <span class="meta-chip"><strong>Warehouse:</strong> 32 tables (<span class="mono">cymbal_enterprise_dw</span>)</span>
           <span class="meta-chip"><strong>Setup:</strong> 1 data agent vs. Root + 6 domain Sub-Agents + fallback</span>
           <span class="meta-chip"><strong>Measured (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
-          <button type="button" class="btn-jump-wb" data-goto-slide="2" style="cursor:pointer;font-family:inherit;">Open Live Workbench (Slide 3)</button>
+          <button type="button" class="btn-jump-wb" data-goto-slide="2" style="cursor:pointer;font-family:inherit;">Open Live Demo (Slide 3)</button>
         </div>
 
         <div class="kpi-grid" id="hero-kpi-grid"></div>
@@ -1502,20 +1648,8 @@ HTML_EN = r"""<!DOCTYPE html>
       __OVERVIEW_CARDS__
     </section>
 
-    <section id="scenarios" class="portal-slide" data-slide-index="2">
-      <h2>3. Live As-Is vs. To-Be PoC Scenario Verification &amp; Progressive Workbench (S1 – S5)</h2>
-      <p class="section-desc">
-        Pre-verified GCP baseline results load immediately below, while the <strong>Interactive Dual A/B Workbench</strong> lets you enter or customize prompts at every step from <strong>S1 to S5</strong> to run both the <strong>As-Is</strong> pipeline (ADK built-in data agent tools on one monolithic data agent) and the <strong>To-Be</strong> pipeline live in parallel on Google Cloud and compare answers, SQL and measured ADK-tier <span class="mono">Vertex AI usage_metadata</span> tokens.
-      </p>
-
-      <div class="quick-try-banner"><div><strong>Quick Interactive Try:</strong> Select any scenario tab (<span class="mono">S1</span> to <span class="mono">S5</span>), pick a sample question chip inside the dark Workbench box, and click <strong>Run Dual A/B Live on GCP</strong> to compare both designs in real time.</div></div>
-      <div class="prog-tracker-card" id="progressive-tracker"></div>
-      <div class="tab-bar" id="scenario-tabs"></div>
-      <div class="scenario-shell" id="scenario-detail"></div>
-    </section>
-
-    <section id="architecture" class="portal-slide" data-slide-index="3">
-      <h2>4. Multi-Agent System Architecture &amp; Trade-Off Matrix</h2>
+    <section id="architecture" class="portal-slide" data-slide-index="4">
+      <h2>5. Multi-Agent System Architecture &amp; Trade-Off Matrix</h2>
       <p class="section-desc">
         Four architecture diagrams drawn for this repository, and a trade-off comparison of one-shot stateless calls, the server-managed stateful conversation and the ADK-managed design measured here.
       </p>
@@ -1570,7 +1704,7 @@ HTML_EN = r"""<!DOCTYPE html>
               <td><strong>BQCA context per call</strong></td>
               <td>The whole warehouse schema and every glossary</td>
               <td>Same as the bound data agent</td>
-              <td><strong>3 to 13 tables and one domain glossary per data agent; the fallback reads the whole warehouse (measured in Slides 3 and 5)</strong></td>
+              <td><strong>3 to 13 tables and one domain glossary per data agent; the fallback reads the whole warehouse (measured in Slides 3, 4 and 6)</strong></td>
             </tr>
             <tr>
               <td><strong>Cross-session memory</strong></td>
@@ -1583,8 +1717,8 @@ HTML_EN = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="benchmarks" class="portal-slide" data-slide-index="4">
-      <h2>5. Token Development over an 8-Turn Session &amp; Annualized Cost</h2>
+    <section id="benchmarks" class="portal-slide" data-slide-index="5">
+      <h2>6. Token Development over an 8-Turn Session &amp; Annualized Cost</h2>
       <p class="section-desc">Measured in the S4 baseline run. Left: total input tokens per turn, that is ADK prompt tokens from <span class="mono">Vertex AI usage_metadata</span> plus BQCA input tokens from Cloud Trace. Right: ADK prompt tokens per turn. Below: yearly cost at list prices, scaled from the measured average cost per turn.</p>
 
       <div class="two-col" style="margin-bottom: 24px;">
@@ -1638,8 +1772,8 @@ HTML_EN = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="repository" class="portal-slide" data-slide-index="5">
-      <h2>6. Git Repository Implementation Map &amp; PoC Reproduction</h2>
+    <section id="repository" class="portal-slide" data-slide-index="6">
+      <h2>7. Git Repository Implementation Map &amp; PoC Reproduction</h2>
       <div class="stack-list">
         <div class="info-card">
           <h3>Key Implementation Files</h3>
@@ -1697,27 +1831,11 @@ uv run adk web agents --port 8000</pre>
       </div>
     </section>
 
-    <div class="deck-bottom-nav" id="deck-bottom-nav" aria-label="Slide pagination">
-      <button type="button" class="deck-nav-btn" id="deck-prev-btn">Previous</button>
-      <div class="deck-progress-center">
-        <div class="deck-dots" id="deck-dots"></div>
-        <div class="deck-key-hint" id="deck-counter-label">Slide 1 of 6 · Use Left / Right buttons or arrow keys</div>
-      </div>
-      <button type="button" class="deck-nav-btn primary" id="deck-next-btn">Next</button>
-    </div>
-
     <footer class="footer">
       <div>Google Cloud Customer Engineering · ADK + BigQuery CAA State, Routing &amp; 2-Tier Token Optimization Blueprint</div>
       <div>Empirical Telemetry: <span class="mono">Vertex AI usage_metadata</span> + <span class="mono">geminidataanalytics.googleapis.com/v1</span></div>
     </footer>
   </main>
-
-  <button type="button" class="deck-edge-btn prev" id="deck-edge-prev" aria-label="Previous slide" title="Previous slide (Left arrow)">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-  </button>
-  <button type="button" class="deck-edge-btn next" id="deck-edge-next" aria-label="Next slide" title="Next slide (Right arrow)">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-  </button>
 
   <div class="modal-backdrop" id="fig-modal">
     <div class="modal-box">
@@ -1756,30 +1874,39 @@ HTML_KO = r"""<!DOCTYPE html>
 <body class="deck-mode">
 
   <header class="topbar">
-    <div class="topbar-inner">
+    <div class="topbar-row-util">
       <a href="#one-pager" class="brand" data-goto-slide="0">
         <span class="brand-mark"></span>
-        <span>ADK + BigQuery CAA · Enterprise BI</span>
+        <span>Google ADK + BigQuery CAA · Enterprise BI Blueprint</span>
       </a>
-      <nav class="nav-stepper" id="deck-stepper" aria-label="Slide 이동">
-        <button type="button" class="step-pill active" data-goto-slide="0"><span class="step-num">1</span><span>핵심 요약</span></button>
-        <button type="button" class="step-pill" data-goto-slide="1"><span class="step-num">2</span><span>상세·실측</span></button>
-        <button type="button" class="step-pill" data-goto-slide="2"><span class="step-num">3</span><span>실시간 Demo</span></button>
-        <button type="button" class="step-pill" data-goto-slide="3"><span class="step-num">4</span><span>Architecture</span></button>
-        <button type="button" class="step-pill" data-goto-slide="4"><span class="step-num">5</span><span>8-Turn·비용</span></button>
-        <button type="button" class="step-pill" data-goto-slide="5"><span class="step-num">6</span><span>Git·재현</span></button>
-      </nav>
       <div class="topbar-right">
-        <button type="button" class="view-toggle-btn" id="view-mode-toggle" title="좌우 Slide 보기와 한 화면 전체 펼쳐보기를 전환합니다">전체 펼쳐보기</button>
+        <button type="button" class="view-toggle-btn" id="view-mode-toggle" title="Slide 보기와 한 화면 전체 펼쳐보기를 전환합니다">전체 펼쳐보기</button>
         <a href="https://github.com/rhkim77/agentic_bi_showcase" target="_blank" rel="noopener" class="gh-link">GitHub Repo</a>
-        <div class="lang-switch" aria-label="언어 전환">
+        <div class="lang-switch" aria-label="Language Switcher">
           <a href="./index.html">EN</a>
           <a href="./index_ko.html" class="active">한국어</a>
         </div>
         <span class="env-pill" id="live-status-pill">
           <span class="status-dot"></span>
-          <span class="mono" id="live-status-text">GCP 실측 Telemetry 로드됨</span>
+          <span class="mono" id="live-status-text">실측 GCP Telemetry 로드됨</span>
         </span>
+      </div>
+    </div>
+    <div class="topbar-row-slides">
+      <div class="topbar-row-slides-inner">
+        <nav class="slide-tab-strip" id="deck-stepper" aria-label="Slide 선택">
+          <button type="button" class="slide-tab-btn active" data-goto-slide="0"><span class="slide-tab-badge">Slide 1</span><span>시작·목차</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="1"><span class="slide-tab-badge">Slide 2</span><span>Demo Guide</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="2"><span class="slide-tab-badge">Slide 3</span><span>실시간 Demo</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="3"><span class="slide-tab-badge">Slide 4</span><span>단계별 Token·실측</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="4"><span class="slide-tab-badge">Slide 5</span><span>Architecture</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="5"><span class="slide-tab-badge">Slide 6</span><span>8-Turn·비용</span></button>
+          <button type="button" class="slide-tab-btn" data-goto-slide="6"><span class="slide-tab-badge">Slide 7</span><span>Git·재현</span></button>
+        </nav>
+        <div class="topbar-slide-arrows">
+          <button type="button" class="top-arrow-btn" id="deck-prev-btn">← 이전</button>
+          <button type="button" class="top-arrow-btn primary" id="deck-next-btn">다음 →</button>
+        </div>
       </div>
     </div>
   </header>
@@ -1790,10 +1917,30 @@ HTML_KO = r"""<!DOCTYPE html>
       __ONEPAGER_HTML__
     </section>
 
-    <section id="overview" class="portal-slide" data-slide-index="1">
+    <section id="demo-guide" class="portal-slide" data-slide-index="1">
+      __DEMO_GUIDE_HTML__
+    </section>
+
+    <section id="scenarios" class="portal-slide" data-slide-index="2">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+        <h2 style="margin-bottom:0;">3. 실시간 Dual A/B 비교 Demo — Stage별 실행 검증 (S1 – S5)</h2>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn-outline" data-goto-slide="1" style="font-size:12px;padding:5px 10px;">Demo 이용 방법 (Slide 2)</button>
+          <button type="button" class="btn-outline" data-goto-slide="3" style="font-size:12px;padding:5px 10px;">단계별 누적 Token 비교 (Slide 4) →</button>
+        </div>
+      </div>
+      <div id="stage-wizard-bar" class="stage-wizard-bar"></div>
+      <div class="tab-bar" id="scenario-tabs" style="display:none;"></div>
+      <div class="scenario-shell" id="scenario-detail"></div>
+    </section>
+
+    <section id="overview" class="portal-slide" data-slide-index="3">
+      <h2>4. 단계별 누적 Input Token 비교 및 상세 실측 Scorecard</h2>
+      <p class="section-desc">Slide 3에서 실시간으로 실행한 결과는 아래 단계별 비교 막대에 즉시 반영되며, 하단에서 전 구간(S1–S5) Cloud Trace·Vertex AI 실측 상세 지표와 한계 조건을 함께 확인하실 수 있습니다.</p>
+      <div class="prog-tracker-card" id="progressive-tracker"></div>
       <div class="hero-card">
         <span class="eyebrow">엔터프라이즈 NL2SQL 검증 Blueprint · Google ADK + BigQuery CAA</span>
-        <h2 style="font-size:26px;margin-bottom:12px;">2. 상세 배경·기술적 해결 구조 및 실측 Scorecard</h2>
+        <h3 style="font-size:21px;margin-bottom:10px;">상세 배경 맥락, 기술적 해결 구조 및 핵심 KPI 요약</h3>
         <p class="lead">
           소규모 Table 몇 개로 시작하는 Text-to-SQL PoC는 빠르게 동작하지만 설명이 붙은 수십 개 Table과 부서별 Glossary가 모인 운영 Data Warehouse로 넓히는 단계에서 자주 막힙니다. 통합 BigQuery Conversational Analytics(BQCA) Data Agent 하나에 전체 Schema를 연결하면 내부 LLM 호출마다 모든 Table 정의를 다시 읽습니다. 상위 Google ADK 기본 Tool 역시 Stateless Chat API에 현재 질문 하나만 보내 후속 문맥을 놓치고 새 Session을 열면 앞선 분석 결과도 남지 않습니다. 이 Portal은 32개 Table 규모의 BigQuery 환경에서 기본 단일 Data Agent 구성(<strong>As-Is</strong>)과 Domain 분리형 ADK + BQCA Multi-Agent 구조(<strong>To-Be</strong>)를 같은 질문으로 실행해 <span class="mono">Vertex AI usage_metadata</span>와 Cloud Trace 실측치를 비교합니다.
         </p>
@@ -1802,7 +1949,7 @@ HTML_KO = r"""<!DOCTYPE html>
           <span class="meta-chip"><strong>Warehouse:</strong> 설명 포함 32개 Table (<span class="mono">cymbal_enterprise_dw</span>)</span>
           <span class="meta-chip"><strong>비교:</strong> Data Agent 1개 vs. Root + Domain Sub-Agent 6개 + Fallback</span>
           <span class="meta-chip"><strong>측정 (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
-          <button type="button" class="btn-jump-wb" data-goto-slide="2" style="cursor:pointer;font-family:inherit;">실시간 A/B Workbench 열기 (Slide 3)</button>
+          <button type="button" class="btn-jump-wb" data-goto-slide="2" style="cursor:pointer;font-family:inherit;">실시간 Demo 열기 (Slide 3)</button>
         </div>
 
         <div class="kpi-grid" id="hero-kpi-grid"></div>
@@ -1811,20 +1958,8 @@ HTML_KO = r"""<!DOCTYPE html>
       __OVERVIEW_CARDS__
     </section>
 
-    <section id="scenarios" class="portal-slide" data-slide-index="2">
-      <h2>3. As-Is 문제 재현 vs To-Be 해결 직접 대조 시현 및 실시간 단계별 Workbench (S1 – S5)</h2>
-      <p class="section-desc">
-        사전 검증된 기준 실측치(Reference Baseline)가 즉시 표시되며, 각 단계(<strong>S1 → S5</strong>) 입력창에 직접 질문을 수정·입력하여 실행하면 실제 GCP에서 <strong>As-Is</strong>(단일 통합 Data Agent에 ADK 내장 data agent Tool을 그대로 사용)와 <strong>To-Be</strong>가 동시에 실행되며, 답변·SQL과 ADK 계층의 <span class="mono">Vertex AI usage_metadata</span> 실측 Token을 나란히 비교할 수 있습니다.
-      </p>
-
-      <div class="quick-try-banner"><div><strong>빠른 체험 안내:</strong> 아래 단계 Tab(<span class="mono">S1</span>~<span class="mono">S5</span>)을 고른 뒤 어두운 Workbench 상자 안의 예시 질문을 선택하고 <strong>실시간 Dual A/B 실행</strong>을 누르면 기존 방식(As-Is)과 개선 방식(To-Be)이 동시에 동작하며 차이를 바로 보여줍니다.</div></div>
-      <div class="prog-tracker-card" id="progressive-tracker"></div>
-      <div class="tab-bar" id="scenario-tabs"></div>
-      <div class="scenario-shell" id="scenario-detail"></div>
-    </section>
-
-    <section id="architecture" class="portal-slide" data-slide-index="3">
-      <h2>4. Best Practice Architecture 및 다각도 Trade-off 비교</h2>
+    <section id="architecture" class="portal-slide" data-slide-index="4">
+      <h2>5. Best Practice Architecture 및 다각도 Trade-off 비교</h2>
       <p class="section-desc">
         이 Repository용으로 그린 Architecture Diagram 4종과, One-Shot Stateless 호출·Server 관리형 Stateful 대화·여기서 측정한 ADK 관리형 구성의 Trade-off 비교입니다.
       </p>
@@ -1879,7 +2014,7 @@ HTML_KO = r"""<!DOCTYPE html>
               <td><strong>호출당 BQCA Context</strong></td>
               <td>Warehouse 전체 Schema와 모든 용어집</td>
               <td>연결된 Data Agent와 동일</td>
-              <td><strong>Data Agent당 Table 3~13개와 Domain 용어집 하나. Fallback은 Warehouse 전체를 읽음 (Slide 3, 5에서 측정)</strong></td>
+              <td><strong>Data Agent당 Table 3~13개와 Domain 용어집 하나. Fallback은 Warehouse 전체를 읽음 (Slide 3, 4, 6에서 측정)</strong></td>
             </tr>
             <tr>
               <td><strong>Session 간 Memory</strong></td>
@@ -1892,8 +2027,8 @@ HTML_KO = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="benchmarks" class="portal-slide" data-slide-index="4">
-      <h2>5. 8-Turn Session의 Token 추이와 연간 환산 비용</h2>
+    <section id="benchmarks" class="portal-slide" data-slide-index="5">
+      <h2>6. 8-Turn Session의 Token 추이와 연간 환산 비용</h2>
       <p class="section-desc">S4 기준 실행에서 측정한 값입니다. 왼쪽은 Turn별 Input Token 합계로, <span class="mono">Vertex AI usage_metadata</span>의 ADK Prompt Token과 Cloud Trace의 BQCA Input Token을 더한 것입니다. 오른쪽은 Turn별 ADK Prompt Token입니다. 아래는 측정한 Turn당 평균 비용을 연 단위로 단순 환산한 값입니다.</p>
 
       <div class="two-col" style="margin-bottom: 24px;">
@@ -1947,8 +2082,8 @@ HTML_KO = r"""<!DOCTYPE html>
       </div>
     </section>
 
-    <section id="repository" class="portal-slide" data-slide-index="5">
-      <h2>6. Git Repository 핵심 구현 위치 및 PoC 재현 절차</h2>
+    <section id="repository" class="portal-slide" data-slide-index="6">
+      <h2>7. Git Repository 핵심 구현 위치 및 PoC 재현 절차</h2>
       <div class="stack-list">
         <div class="info-card">
           <h3>핵심 구현 File 매핑</h3>
@@ -2006,27 +2141,11 @@ uv run adk web agents --port 8000</pre>
       </div>
     </section>
 
-    <div class="deck-bottom-nav" id="deck-bottom-nav" aria-label="Slide 이동">
-      <button type="button" class="deck-nav-btn" id="deck-prev-btn">이전 Slide</button>
-      <div class="deck-progress-center">
-        <div class="deck-dots" id="deck-dots"></div>
-        <div class="deck-key-hint" id="deck-counter-label">Slide 1 / 6 · 좌우 이동 단추 또는 방향키로 전환</div>
-      </div>
-      <button type="button" class="deck-nav-btn primary" id="deck-next-btn">다음 Slide</button>
-    </div>
-
     <footer class="footer">
       <div>Google Cloud Customer Engineering · ADK + BigQuery CAA State·Routing 및 2-Tier Token 최적화 검증 Blueprint</div>
       <div>실측 Telemetry: <span class="mono">Vertex AI usage_metadata</span> + <span class="mono">geminidataanalytics.googleapis.com/v1</span></div>
     </footer>
   </main>
-
-  <button type="button" class="deck-edge-btn prev" id="deck-edge-prev" aria-label="이전 Slide" title="이전 Slide (왼쪽 방향키)">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-  </button>
-  <button type="button" class="deck-edge-btn next" id="deck-edge-next" aria-label="다음 Slide" title="다음 Slide (오른쪽 방향키)">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-  </button>
 
   <div class="modal-backdrop" id="fig-modal">
     <div class="modal-box">
@@ -2271,10 +2390,50 @@ PORTAL_JS = r"""
           `${S.k4Sub} <strong>${(Number(m5.tobe_latency_ms || 0) / 1000).toFixed(1)} s</strong>.`);
     }
 
-    function renderScenario(idx) {
+    function renderStageWizardBar() {
+      const bar = document.getElementById("stage-wizard-bar");
+      if (!bar) return;
+      const S = UI_STRINGS;
+      const D = S.deck || {};
+      const scenarios = BENCHMARK_DATA.scenarios || [];
+      const tot = scenarios.length;
+      const pills = scenarios.map((sc, i) => {
+        const isAct = i === activeScenarioIdx;
+        const isDone = !!liveRunResults[sc.code];
+        const shortLbl = (S.layerShort && S.layerShort[sc.code]) ? S.layerShort[sc.code] : sc.code;
+        return `<button type="button" class="stage-wiz-pill${isAct ? " active" : ""}" data-stage-idx="${i}">
+          <span><strong>${escapeHtml(sc.code)}</strong> · ${escapeHtml(shortLbl)}</span>
+          ${isDone ? `<span class="stage-done-dot">✓ Live</span>` : ""}
+        </button>`;
+      }).join("");
+
+      bar.innerHTML = `
+        <button type="button" class="top-arrow-btn" id="stage-prev-btn" ${activeScenarioIdx <= 0 ? "disabled" : ""}>${D.prevStageBtn || "← Prev Stage"}</button>
+        <div class="stage-pill-row">${pills}</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;">
+          <button type="button" class="top-arrow-btn primary" id="stage-next-btn" ${activeScenarioIdx >= tot - 1 ? "disabled" : ""}>${D.nextStageBtn || "Next Stage →"}</button>
+          <button type="button" class="btn-outline" id="stage-reset-btn" style="font-size:11.8px;padding:5px 10px;" ${(!liveApiAvailable || workbenchRunning) ? "disabled" : ""}>${D.resetStageBtn || "Reset Session"}</button>
+        </div>
+      `;
+
+      bar.querySelectorAll("[data-stage-idx]").forEach(btn => {
+        btn.addEventListener("click", () => renderScenario(Number(btn.dataset.stageIdx), { animateStage: true }));
+      });
+      const pBtn = document.getElementById("stage-prev-btn");
+      const nBtn = document.getElementById("stage-next-btn");
+      const rBtn = document.getElementById("stage-reset-btn");
+      if (pBtn) pBtn.addEventListener("click", () => { if (activeScenarioIdx > 0) renderScenario(activeScenarioIdx - 1, { animateStage: true }); });
+      if (nBtn) nBtn.addEventListener("click", () => { if (activeScenarioIdx < tot - 1) renderScenario(activeScenarioIdx + 1, { animateStage: true }); });
+      if (rBtn && liveApiAvailable) rBtn.addEventListener("click", resetWorkbenchSession);
+    }
+
+    function renderScenario(idx, opts) {
+      const options = opts || {};
+      const prevIdx = activeScenarioIdx;
       activeScenarioIdx = idx;
       const sc = BENCHMARK_DATA.scenarios[idx];
       const S = UI_STRINGS;
+      const D = S.deck || {};
 
       document.querySelectorAll("#scenario-tabs .tab-btn").forEach((b, i) => {
         b.classList.toggle("active", i === idx);
@@ -2288,27 +2447,23 @@ PORTAL_JS = r"""
         <button type="button" class="preset-chip" data-preset-idx="${pIdx}">${escapeHtml(p.label)}</button>
       `).join("");
 
-      document.getElementById("scenario-detail").innerHTML = `
-        <div class="scenario-top">
+      const detailEl = document.getElementById("scenario-detail");
+      detailEl.classList.remove("stage-anim-next", "stage-anim-prev");
+      if (options.animateStage && idx !== prevIdx) {
+        void detailEl.offsetWidth;
+        detailEl.classList.add(idx > prevIdx ? "stage-anim-next" : "stage-anim-prev");
+      }
+
+      detailEl.innerHTML = `
+        <div class="stage-compact-banner">
           <div>
-            <span class="tag tag-blue">${escapeHtml(sc.code)} · ${formatInlineText(sc.track || S.scenarioBadge)}</span>
-            <h3 style="font-size:19px;margin-bottom:2px;">${formatInlineText(sc.title)}</h3>
-            <div class="route-trace mono">Route: ${formatInlineText(sc.routing_path)}</div>
+            <span class="tag tag-blue" style="margin-right:6px;margin-bottom:0;">Stage ${idx + 1} of ${BENCHMARK_DATA.scenarios.length} · ${escapeHtml(sc.code)}</span>
+            <strong style="font-size:15.5px;color:var(--text);">${formatInlineText(sc.title)}</strong>
           </div>
+          <div class="route-trace mono" style="margin:0;font-size:12px;">Route: ${formatInlineText(sc.routing_path)}</div>
         </div>
 
-        <div class="stack-list">
-          <div class="sub-box asis-border">
-            <div class="sub-box-title">${S.challengeLabel}</div>
-            <div style="font-size:14px;">${formatInlineText(sc.challenge)}</div>
-          </div>
-          <div class="sub-box tobe-border">
-            <div class="sub-box-title">${S.mechanismLabel}</div>
-            <div style="font-size:14px;">${formatInlineText(sc.architecture_mechanism)}</div>
-          </div>
-        </div>
-
-        <div class="workbench-box" id="wb-console-anchor">
+        <div class="workbench-box" id="wb-console-anchor" style="margin-top:0;">
           <div class="wb-header">
             <div>
               <span class="tag tag-blue" style="margin-bottom:4px;">${S.wbBadge} · ${escapeHtml(sc.code)}</span>
@@ -2345,6 +2500,20 @@ PORTAL_JS = r"""
           <div id="wb-sse-stream-container"></div>
           <div id="wb-live-dual-card-container">${savedLive ? buildDualComparisonCardHtml(savedLive) : ""}</div>
         </div>
+
+        <details class="stage-why-details">
+          <summary>${(UI_STRINGS.deck && UI_STRINGS.deck.whyStageSummary) || "View Stage Context: As-Is Problem vs. To-Be Architectural Mechanism"} (${escapeHtml(sc.code)})</summary>
+          <div class="stack-list" style="margin-top:10px;">
+            <div class="sub-box asis-border">
+              <div class="sub-box-title">${S.challengeLabel}</div>
+              <div style="font-size:13.5px;">${formatInlineText(sc.challenge)}</div>
+            </div>
+            <div class="sub-box tobe-border">
+              <div class="sub-box-title">${S.mechanismLabel}</div>
+              <div style="font-size:13.5px;">${formatInlineText(sc.architecture_mechanism)}</div>
+            </div>
+          </div>
+        </details>
 
         <div class="ref-divider">${S.refBaselineHeading} (${escapeHtml(sc.code)})</div>
         <div class="sub-box" style="margin-bottom:14px;font-size:12.8px;">${S.baselineDisclosureHtml}</div>
@@ -2387,9 +2556,8 @@ PORTAL_JS = r"""
       const nextBtn = document.getElementById("wb-next-step-btn");
       if (nextBtn && nextSc) {
         nextBtn.addEventListener("click", () => {
-          renderScenario(idx + 1);
-          const anchor = document.getElementById("progressive-tracker");
-          if (anchor) anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+          renderScenario(idx + 1, { animateStage: true });
+          window.scrollTo({ top: 0, behavior: "smooth" });
         });
       }
     }
@@ -2513,9 +2681,11 @@ PORTAL_JS = r"""
         <div class="prog-bar-rows">${barsHtml}</div>
       `;
 
+      renderStageWizardBar();
       el.querySelectorAll(".prog-step-pill").forEach(pill => {
         pill.addEventListener("click", () => {
-          renderScenario(Number(pill.dataset.stepIdx));
+          renderScenario(Number(pill.dataset.stepIdx), { animateStage: true });
+          if (typeof goToSlide === "function") goToSlide(2);
         });
       });
 
@@ -3176,57 +3346,9 @@ PORTAL_JS = r"""
       document.getElementById("tco-tobe-turn").textContent = `$${Number(avg.tobe_cost_usd).toFixed(4)} / turn · ${fmtTok(avg.tobe_total_input_tokens)} input tok`;
     }
 
-    function initPortal() {
-      const S = UI_STRINGS;
-      document.getElementById("bench-ts").textContent = BENCHMARK_DATA.generated_at_utc;
-      renderHeroKpis();
-
-      const disclosureHtml = `<div class="sub-box" style="margin:14px 0;font-size:12.8px;">${S.baselineDisclosureHtml}</div>`;
-      const heroGrid = document.getElementById("hero-kpi-grid");
-      if (heroGrid) heroGrid.insertAdjacentHTML("afterend", disclosureHtml);
-      const benchDesc = document.querySelector("#benchmarks .section-desc");
-      if (benchDesc) benchDesc.insertAdjacentHTML("afterend", disclosureHtml);
-
-      document.querySelectorAll("#diagram-tabs .tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          document.querySelectorAll("#diagram-tabs .tab-btn").forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-          const f = S.figures[btn.dataset.fig];
-          document.getElementById("fig-img").src = f.src;
-          document.getElementById("fig-title").textContent = f.title;
-          document.getElementById("fig-caption").textContent = f.caption;
-        });
-      });
-
-      const modal = document.getElementById("fig-modal");
-      const openModal = () => {
-        document.getElementById("modal-img").src = document.getElementById("fig-img").src;
-        document.getElementById("modal-title").textContent = document.getElementById("fig-title").textContent;
-        modal.classList.add("open");
-      };
-      document.getElementById("zoom-fig-btn").addEventListener("click", openModal);
-      document.getElementById("fig-img").addEventListener("click", openModal);
-      document.getElementById("close-modal-btn").addEventListener("click", () => modal.classList.remove("open"));
-      modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("open"); });
-      document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.remove("open"); });
-
-      const tabContainer = document.getElementById("scenario-tabs");
-      BENCHMARK_DATA.scenarios.forEach((sc, idx) => {
-        const b = document.createElement("button");
-        b.className = "tab-btn" + (idx === 0 ? " active" : "");
-        b.textContent = S.shortTitles[sc.code] || sc.code;
-        b.addEventListener("click", () => renderScenario(idx));
-        tabContainer.appendChild(b);
-      });
-
-      renderScenario(0);
-      renderTurnScalingSvg();
-      renderAdkMeasuredSvg();
-      updateTcoCalculator();
-
 
     let activeSlideIdx = 0;
-    const SLIDE_HASHES = ["#one-pager", "#overview", "#scenarios", "#architecture", "#benchmarks", "#repository"];
+    const SLIDE_HASHES = ["#one-pager", "#demo-guide", "#scenarios", "#overview", "#architecture", "#benchmarks", "#repository"];
 
     function goToSlide(targetIdx, opts) {
       const options = opts || {};
@@ -3242,12 +3364,13 @@ PORTAL_JS = r"""
         return;
       }
 
-      const dir = clamped >= activeSlideIdx ? "anim-next" : "anim-prev";
+      const prevSlideIdx = activeSlideIdx;
+      const dir = clamped >= prevSlideIdx ? "anim-next" : "anim-prev";
       slides.forEach((sec, i) => {
         sec.classList.remove("active-slide", "anim-next", "anim-prev");
         if (i === clamped) {
           sec.classList.add("active-slide");
-          if (clamped !== activeSlideIdx) sec.classList.add(dir);
+          if (clamped !== prevSlideIdx) sec.classList.add(dir);
         }
       });
       activeSlideIdx = clamped;
@@ -3270,10 +3393,9 @@ PORTAL_JS = r"""
 
     function syncDeckControls() {
       const D = UI_STRINGS.deck || {};
-      const titles = D.slideTitles || [];
       const tot = SLIDE_HASHES.length;
 
-      document.querySelectorAll("#deck-stepper .step-pill").forEach((btn, idx) => {
+      document.querySelectorAll("#deck-stepper .slide-tab-btn").forEach((btn, idx) => {
         const isAct = idx === activeSlideIdx && document.body.classList.contains("deck-mode");
         btn.classList.toggle("active", isAct);
         if (isAct) btn.setAttribute("aria-current", "step");
@@ -3282,48 +3404,12 @@ PORTAL_JS = r"""
 
       const prevBtn = document.getElementById("deck-prev-btn");
       const nextBtn = document.getElementById("deck-next-btn");
-      const edgePrev = document.getElementById("deck-edge-prev");
-      const edgeNext = document.getElementById("deck-edge-next");
-      const counter = document.getElementById("deck-counter-label");
-
-      const atStart = activeSlideIdx <= 0;
-      const atEnd = activeSlideIdx >= tot - 1;
-
-      if (prevBtn) {
-        prevBtn.disabled = atStart;
-        prevBtn.textContent = atStart
-          ? (D.firstLabel || "Start")
-          : `${D.prevPrefix || "← Prev:"} ${titles[activeSlideIdx - 1] || ""}`;
-      }
-      if (nextBtn) {
-        nextBtn.disabled = atEnd;
-        nextBtn.textContent = atEnd
-          ? (D.lastLabel || "End")
-          : `${D.nextPrefix || "Next:"} ${titles[activeSlideIdx + 1] || ""} →`;
-      }
-      if (edgePrev) edgePrev.disabled = atStart;
-      if (edgeNext) edgeNext.disabled = atEnd;
-
-      if (counter) {
-        counter.textContent = (D.counterTpl || "Slide {CUR} of {TOT}")
-          .replace("{CUR}", String(activeSlideIdx + 1))
-          .replace("{TOT}", String(tot));
-      }
-
-      document.querySelectorAll("#deck-dots .deck-dot").forEach((d, idx) => {
-        d.classList.toggle("active", idx === activeSlideIdx);
-      });
+      if (prevBtn) prevBtn.disabled = activeSlideIdx <= 0;
+      if (nextBtn) nextBtn.disabled = activeSlideIdx >= tot - 1;
     }
 
     function initDeckNavigation() {
       const D = UI_STRINGS.deck || {};
-      const titles = D.slideTitles || [];
-      const dotsWrap = document.getElementById("deck-dots");
-      if (dotsWrap) {
-        dotsWrap.innerHTML = SLIDE_HASHES.map((_, i) =>
-          `<button type="button" class="deck-dot${i === 0 ? " active" : ""}" data-goto-slide="${i}" title="${titles[i] || ("Slide " + (i + 1))}" aria-label="${titles[i] || ("Slide " + (i + 1))}"></button>`
-        ).join("");
-      }
 
       document.querySelectorAll("[data-goto-slide]").forEach(el => {
         el.addEventListener("click", e => {
@@ -3333,14 +3419,21 @@ PORTAL_JS = r"""
         });
       });
 
+      document.querySelectorAll("[data-open-stage]").forEach(el => {
+        el.addEventListener("click", e => {
+          e.preventDefault();
+          const stIdx = Number(el.dataset.openStage);
+          if (!isNaN(stIdx) && BENCHMARK_DATA.scenarios[stIdx]) {
+            renderScenario(stIdx, { animateStage: false });
+            goToSlide(2);
+          }
+        });
+      });
+
       const prevBtn = document.getElementById("deck-prev-btn");
       const nextBtn = document.getElementById("deck-next-btn");
-      const edgePrev = document.getElementById("deck-edge-prev");
-      const edgeNext = document.getElementById("deck-edge-next");
       if (prevBtn) prevBtn.addEventListener("click", () => goToSlide(activeSlideIdx - 1));
       if (nextBtn) nextBtn.addEventListener("click", () => goToSlide(activeSlideIdx + 1));
-      if (edgePrev) edgePrev.addEventListener("click", () => goToSlide(activeSlideIdx - 1));
-      if (edgeNext) edgeNext.addEventListener("click", () => goToSlide(activeSlideIdx + 1));
 
       const viewToggle = document.getElementById("view-mode-toggle");
       if (viewToggle) {
@@ -3394,14 +3487,62 @@ PORTAL_JS = r"""
       }
     }
 
+    function initPortal() {
+      const S = UI_STRINGS;
+      document.getElementById("bench-ts").textContent = BENCHMARK_DATA.generated_at_utc;
+      renderHeroKpis();
+
+      const disclosureHtml = `<div class="sub-box" style="margin:14px 0;font-size:12.8px;">${S.baselineDisclosureHtml}</div>`;
+      const heroGrid = document.getElementById("hero-kpi-grid");
+      if (heroGrid) heroGrid.insertAdjacentHTML("afterend", disclosureHtml);
+      const benchDesc = document.querySelector("#benchmarks .section-desc");
+      if (benchDesc) benchDesc.insertAdjacentHTML("afterend", disclosureHtml);
+
+      document.querySelectorAll("#diagram-tabs .tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#diagram-tabs .tab-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          const f = S.figures[btn.dataset.fig];
+          document.getElementById("fig-img").src = f.src;
+          document.getElementById("fig-title").textContent = f.title;
+          document.getElementById("fig-caption").textContent = f.caption;
+        });
+      });
+
+      const modal = document.getElementById("fig-modal");
+      const openModal = () => {
+        document.getElementById("modal-img").src = document.getElementById("fig-img").src;
+        document.getElementById("modal-title").textContent = document.getElementById("fig-title").textContent;
+        modal.classList.add("open");
+      };
+      document.getElementById("zoom-fig-btn").addEventListener("click", openModal);
+      document.getElementById("fig-img").addEventListener("click", openModal);
+      document.getElementById("close-modal-btn").addEventListener("click", () => modal.classList.remove("open"));
+      modal.addEventListener("click", e => { if (e.target === modal) modal.classList.remove("open"); });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") modal.classList.remove("open"); });
+
+      const tabContainer = document.getElementById("scenario-tabs");
+      BENCHMARK_DATA.scenarios.forEach((sc, idx) => {
+        const b = document.createElement("button");
+        b.className = "tab-btn" + (idx === 0 ? " active" : "");
+        b.textContent = S.shortTitles[sc.code] || sc.code;
+        b.addEventListener("click", () => renderScenario(idx));
+        tabContainer.appendChild(b);
+      });
+
+      renderScenario(0);
+      renderTurnScalingSvg();
+      renderAdkMeasuredSvg();
+      updateTcoCalculator();
+
       initDeckNavigation();
 
       document.querySelectorAll("[data-jump-scenario]").forEach(btn => {
         btn.addEventListener("click", () => {
           const idx = Number(btn.dataset.jumpScenario);
           if (!isNaN(idx) && BENCHMARK_DATA.scenarios[idx]) {
-            renderScenario(idx);
-            goToSlide(2, { scrollTargetId: "scenario-tabs" });
+            renderScenario(idx, { animateStage: false });
+            goToSlide(2);
           }
         });
       });
@@ -3425,14 +3566,12 @@ PORTAL_JS = r"""
 
 UI_EN = {
     "deck": {
-        "slideTitles": ["1. Executive Summary", "2. Context & Scorecard", "3. Live A/B Demo (S1-S5)", "4. Architecture", "5. 8-Turn & Cost", "6. Code & Setup"],
-        "prevPrefix": "← Prev:",
-        "nextPrefix": "Next:",
-        "firstLabel": "Start of Deck",
-        "lastLabel": "End of Deck",
-        "counterTpl": "Slide {CUR} of {TOT} · Use Left / Right buttons or keyboard arrows",
         "fullPageBtn": "Full Page View",
         "slideModeBtn": "Slide Deck View",
+        "prevStageBtn": "← Prev Stage",
+        "nextStageBtn": "Next Stage →",
+        "resetStageBtn": "Reset Live Session",
+        "whyStageSummary": "View Stage Context: As-Is Problem vs. To-Be Mechanism",
     },
     "heroKpis": {
         "k1Label": "S1 · BQCA input tokens per turn",
@@ -3600,14 +3739,12 @@ UI_EN = {
 
 UI_KO = {
     "deck": {
-        "slideTitles": ["1. 핵심 요약 (One-Pager)", "2. 상세 배경·실측", "3. 실시간 비교 Demo", "4. Architecture 설계", "5. 8-Turn 추이·비용", "6. Git Repo·재현"],
-        "prevPrefix": "← 이전:",
-        "nextPrefix": "다음:",
-        "firstLabel": "첫 Slide",
-        "lastLabel": "마지막 Slide",
-        "counterTpl": "Slide {CUR} / {TOT} · 좌우 이동 단추 또는 방향키(← / →)로 전환",
         "fullPageBtn": "전체 펼쳐보기",
         "slideModeBtn": "Slide 보기",
+        "prevStageBtn": "← 이전 Stage",
+        "nextStageBtn": "다음 Stage →",
+        "resetStageBtn": "Session 초기화",
+        "whyStageSummary": "이 Stage의 검증 배경 보기: As-Is 문제점 vs To-Be 해결 원리",
     },
     "heroKpis": {
         "k1Label": "S1 · Turn당 BQCA Input Token",
@@ -3874,7 +4011,7 @@ _CHECK_LABELS = {
 
 
 def build_onepager_html(lang: str, data: dict) -> str:
-    """Slide 1 Executive Summary One-Pager in plain business language, backed 100% by measured files."""
+    """Slide 1: Cover Title + Brief Plain-Language Summary + Clickable 7-Slide Table of Contents."""
     ko = lang == "ko"
     sc = {x["code"]: x for x in data["scenarios"]}
     cal = json.loads(CALIBRATION_FILE.read_text(encoding="utf-8"))["per_data_agent"]
@@ -3900,93 +4037,90 @@ def build_onepager_html(lang: str, data: dict) -> str:
     cost_lo, cost_hi = f"{min(s4_cost_vals):.0f}%", f"{max(s4_cost_vals):.0f}%"
     tok_lo, tok_hi = f"{min(s4_tok_vals):.0f}%", f"{max(s4_tok_vals):.0f}%"
 
-    avg = data["s4_average_per_turn"]
     curve = data["s4_turn_curve"]
     asis_first, asis_last = curve[0]["asis_adk_prompt_tokens"], max(r["asis_adk_prompt_tokens"] for r in curve)
     tobe_min, tobe_max = min(r["tobe_adk_prompt_tokens"] for r in curve), max(r["tobe_adk_prompt_tokens"] for r in curve)
     s5 = sc["S5"]["result"]["comparison_summary"]["measured"]
     s5_calls, s5_secs = s5["tobe_bqca_calls"], s5["tobe_latency_ms"] / 1000
+    measured_date = str(data.get("generated_at_utc", ""))[:10]
 
     if ko:
         return f"""<div class="onepager-shell">
         <div class="op-header">
           <div class="op-kicker-row">
-            <span class="op-kicker">Executive Summary · One-Pager</span>
-            <span class="op-audience-note">비전공자·의사결정자용 1장 요약 (실측 기준일: {str(data.get("generated_at_utc", ""))[:10]})</span>
+            <span class="op-kicker">Slide 1 · Overview &amp; Table of Contents</span>
+            <span class="op-audience-note">비전공자·의사결정자용 개요 및 전체 목차 (실측 기준일: {measured_date})</span>
           </div>
-          <h1 class="op-title">기업용 대화형 분석 PoC를 실제 운영으로 넓히는 법: 단일 Agent의 한계와 Domain 분업 구조</h1>
+          <h1 class="op-title">기업용 대화형 분석 PoC 확장 전략: 단일 Agent의 한계와 6-Domain 분업 구조</h1>
           <p class="op-lead">
-            Table 몇 개로 시작한 대화형 분석 PoC는 빠르게 성공하지만, 여러 사업부가 함께 쓰는 실제 전사 Data Warehouse(32개 Table)에 그대로 연결하면 질문할 때마다 방대한 설명서 전체를 처음부터 다시 읽느라 느리고 비싸집니다. 본 설계는 모든 질문을 혼자 처리하는 단일 Data Agent 대신 <strong>안내 창구(Router) + 6개 영역 전담 Data Agent + 통합 Fallback</strong>으로 역할을 나누고 기억 저장소(Memory)를 붙여 운영 비용을 줄이면서도 대화 연속성을 확보한 실증 사례입니다.
+            소수 Table로 시작한 대화형 분석 PoC는 빠르게 성공하지만, 여러 사업부가 함께 쓰는 전사 Data Warehouse(32개 Table)에 그대로 연결하면 질문마다 전체 설명서를 처음부터 다시 읽느라 느리고 비싸집니다. 본 검증 사이트는 만능 단일 Data Agent(<strong>As-Is</strong>) 대신 <strong>안내 창구(Router) + 6개 부서 전담 Data Agent + 통합 Fallback + 요약 Memory</strong> 분업 구조(<strong>To-Be</strong>)를 실제 Google Cloud에서 대조 실증합니다.
           </p>
         </div>
 
-        <div class="op-compare-grid">
-          <div class="op-compare-card before">
-            <div class="op-card-head">
-              <h2 class="op-card-title">기존 방식 (As-Is) · 만능 단일 창구 1개</h2>
-              <span class="tag tag-red" style="margin:0;">왜 PoC 이후 멈추는가</span>
-            </div>
-            <div class="op-flow-diagram" aria-label="기존 방식 흐름">
-              <span class="op-flow-node">사용자 질문</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node bad">단일 통합 Data Agent</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node bad">매번 32개 Table 설명서 전체 재독</span>
-            </div>
-            <ul class="op-points">
-              <li><strong>매 질문마다 백과사전 전체 재독:</strong> 간단한 질문 하나에도 32개 Table 정의와 전 부서 기준을 매번 다시 읽어 기본 입력량(중앙값 <strong>{mono:,} Token</strong>)이 고정 발생합니다.</li>
-              <li><strong>대화가 길어질수록 눈덩이처럼 불어나는 이력:</strong> 이전 답변 원본이 계속 누적되어 8번째 연속 질문에서는 상위 Prompt가 약 6배(<strong>{asis_first:,} → {asis_last:,} Token</strong>)까지 커집니다.</li>
-              <li><strong>대화창을 닫으면 기억 초기화:</strong> 후속 질문의 세부 조건을 놓치기 쉽고, 새 Session을 열면 직전에 찾은 핵심 원인을 전혀 기억하지 못합니다.</li>
+        <div class="op-summary-strip">
+          <div class="op-mini-box before">
+            <div class="op-mini-title"><span>기존 방식 (As-Is) · 단일 통합 Agent</span><span class="tag tag-red" style="margin:0;">병목 원인</span></div>
+            <ul class="op-mini-list">
+              <li>단순 질문에도 32개 Table 정의 전체를 매번 재독 (중앙값 <strong>{mono:,} Token</strong>)</li>
+              <li>연속 대화 시 이전 답변 원본이 누적되어 8회차 상위 Prompt 약 6배 팽창 (<strong>{asis_first:,}→{asis_last:,}</strong>)</li>
+              <li>새 Session을 열면 직전 분석 결과와 선호 지표 기억 상실</li>
             </ul>
           </div>
-
-          <div class="op-compare-card after">
-            <div class="op-card-head">
-              <h2 class="op-card-title">개선 방식 (To-Be) · 안내 창구 + 6개 전담 분업</h2>
-              <span class="tag tag-green" style="margin:0;">어떻게 해결했는가</span>
-            </div>
-            <div class="op-flow-diagram" aria-label="개선 방식 흐름">
-              <span class="op-flow-node">사용자 질문</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node router">안내 Router</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node good">전담 Agent 6종 (3~13개 Table) · 통합 Fallback</span>
-              <span class="op-flow-arrow">+</span>
-              <span class="op-flow-node good">요약 Memory</span>
-            </div>
-            <ul class="op-points">
-              <li><strong>필요한 부서 설명서만 가볍게 열람:</strong> 안내 Router가 고객·상품·물류·매장 등 6개 전담 Sub-Agent(각 3~13개 Table)로 배정하고, 부서 간 합산이 꼭 필요한 질문만 통합 Fallback으로 보냅니다.</li>
-              <li><strong>대화가 길어져도 일정한 크기 유지:</strong> 최근 3회 대화 요약만 선별해 전달하므로 8회 연속 질의 내내 상위 Prompt(<strong>{tobe_min:,}~{tobe_max:,} Token</strong>)가 가볍게 유지됩니다.</li>
-              <li><strong>부서 전환 및 재방문 기억 유지:</strong> 대화 도중 다른 부서 주제로 자연스럽게 넘어가며, 새 Session에서도 추가 Warehouse 조회 없이 이전 핵심 결과를 바로 요약합니다.</li>
+          <div class="op-mini-box after">
+            <div class="op-mini-title"><span>개선 방식 (To-Be) · 안내 Router + 6개 전담 분업</span><span class="tag tag-green" style="margin:0;">해결 원리</span></div>
+            <ul class="op-mini-list">
+              <li>질문 부서에 맞는 전담 Sub-Agent 6종(각 3~13개 Table)만 열람, 교차 합산만 Fallback 전달</li>
+              <li>최근 3회 요약만 전달해 8회 연속 대화 내내 일정한 크기 유지 (<strong>{tobe_min:,}~{tobe_max:,} Token</strong>)</li>
+              <li>부서 간 즉시 전환 및 새 Session에서 추가 조회 없이 이전 핵심 결과 복원</li>
             </ul>
+          </div>
+          <div class="op-mini-box metrics">
+            <div class="op-mini-title"><span>실측 핵심 지표 (3회 반복 검증)</span><span class="tag tag-blue" style="margin:0;">Cloud Trace 실측</span></div>
+            <div class="op-kpi-row">
+              <div class="op-kpi-pill"><div class="num">{cost_lo}~{cost_hi}</div><div class="lbl">8-Turn 평균 비용 절감<br/>(입력 {tok_lo}~{tok_hi} 감소)</div></div>
+              <div class="op-kpi-pill"><div class="num">{g_lo}~{g_hi}</div><div class="lbl">{len(gain)}/6 Domain 입력 감소<br/>({flat_names} 1곳은 동일)</div></div>
+              <div class="op-kpi-pill"><div class="num">{s5_calls}회 호출</div><div class="lbl">새 Session 기억 복원<br/>({s5_secs:.1f}초 내 요약)</div></div>
+            </div>
+            <div style="font-size:11.3px;color:var(--text-secondary);line-height:1.38;">한계 투명 공개: {flat_names} 영역 단건 질의는 절감이 없으며, 3개 영역 동시 병렬 호출은 단일 호출 대비 비용이 높습니다.</div>
           </div>
         </div>
 
-        <div class="op-impact-grid">
-          <div class="op-impact-card">
-            <div class="op-impact-num">{cost_lo}~{cost_hi} 비용 절감</div>
-            <div class="op-impact-label">8회 연속 분석 대화 평균 (3회 반복 실측)</div>
-            <p class="op-impact-desc">전체 입력량 <strong>{tok_lo}~{tok_hi} 감소</strong> (기준 실행 평균 Turn당 <strong>${avg["tobe_cost_usd"]:.4f}</strong> vs <strong>${avg["asis_cost_usd"]:.4f}</strong>). 대화가 이어질수록 절감 효과가 뚜렷합니다.</p>
+        <div>
+          <div class="toc-section-head">
+            <h2 class="toc-section-title">전체 발표 목차 (원하는 Slide를 선택하면 바로 이동합니다)</h2>
+            <span style="font-size:12px;color:var(--text-secondary);">상단 고정 Slide 1 ~ Slide 7 선택 막대에서도 언제든 이동 가능</span>
           </div>
-          <div class="op-impact-card">
-            <div class="op-impact-num">{len(gain)} / 6 영역 {g_lo}~{g_hi} 감소</div>
-            <div class="op-impact-label">부서 전담 Data Agent 단건 입력량 비교</div>
-            <p class="op-impact-desc">Online Shop 3개 영역은 51~55%, Store·Catalog는 33~34% 감소했습니다. <strong>투명한 한계 공개:</strong> {flat_names} 영역 1곳은 감소가 없었고, 3개 영역 동시 병렬 호출은 단일 호출보다 비용이 높습니다.</p>
-          </div>
-          <div class="op-impact-card">
-            <div class="op-impact-num">추가 DB 호출 {s5_calls}회</div>
-            <div class="op-impact-label">새 Session에서 이전 분석 결과 복원 (S5)</div>
-            <p class="op-impact-desc">저장된 선호 지표와 핵심 발견 사항을 Memory에서 <strong>{s5_secs:.1f}초</strong> 만에 불러와 요약해 주며, 기존 단일 방식은 이전 대화를 조회하지 못합니다.</p>
-          </div>
-        </div>
-
-        <div class="op-cta-bar">
-          <p class="op-cta-note">
-            <strong>심사자 빠른 안내:</strong> 핵심 개념과 실제 작동 확인은 <strong>현재 요약(Slide 1)</strong>과 <strong>실시간 비교 체험(Slide 3)</strong> 두 장만으로 2분 안에 보실 수 있습니다. 상세 실측 근거·Architecture Diagram·연간 비용 계산·재현 Code는 Slide 2, 4, 5, 6에 수록되어 있습니다.
-          </p>
-          <div class="op-cta-actions">
-            <button type="button" class="deck-nav-btn" data-goto-slide="1">상세 배경·수치 보기 (Slide 2) →</button>
-            <button type="button" class="deck-nav-btn primary" data-goto-slide="2">실시간 비교 Demo 체험하기 (Slide 3) →</button>
+          <div class="toc-grid">
+            <button type="button" class="toc-card featured" data-goto-slide="1">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 2 · 권장 다음 순서</span><span class="toc-arrow">열기 →</span></div>
+              <div class="toc-card-title">Live Demo Guide (체험 방법 안내)</div>
+              <div class="toc-card-desc">실시간 비교 Demo를 실행하는 3단계 방법과 Stage 1(S1)~Stage 5(S5)별 핵심 관전 포인트를 먼저 안내합니다.</div>
+            </button>
+            <button type="button" class="toc-card featured" data-goto-slide="2">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 3 · 직접 실행</span><span class="toc-arrow">열기 →</span></div>
+              <div class="toc-card-title">실시간 Dual A/B Live Demo (S1–S5)</div>
+              <div class="toc-card-desc">Stage 1부터 Stage 5까지 옆으로 넘기며 실제 Google Cloud에서 As-Is와 To-Be를 동시에 실행해 답변·SQL·Token을 비교합니다.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="3">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 4 · 실측 비교표</span><span class="toc-arrow">열기 →</span></div>
+              <div class="toc-card-title">단계별 누적 Token 비교 및 Scorecard</div>
+              <div class="toc-card-desc">S1~S5 단계별 총 Input Token 비교 막대(실시간 실행 연동)와 전 구간 Cloud Trace·기준 SQL 검증표를 수록했습니다.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="4">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 5 · 구조 설계</span><span class="toc-arrow">열기 →</span></div>
+              <div class="toc-card-title">Multi-Agent System Architecture</div>
+              <div class="toc-card-desc">3계층 전체 구조, 상태 관리 방식, 3갈래 Routing 경로 Diagram 4종과 설계 대안별 Trade-off 비교표입니다.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="5">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 6 · 비용 효과</span><span class="toc-arrow">열기 →</span></div>
+              <div class="toc-card-title">8-Turn Token 추이 및 연간 비용 계산기</div>
+              <div class="toc-card-desc">8회 연속 대화 시 Turn별 Token 증가 추이 곡선과 일일 질문 수에 따른 연간 환산 비용 절감 계산기입니다.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="6">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 7 · 구현·재현</span><span class="toc-arrow">열기 →</span></div>
+              <div class="toc-card-title">Git Repository 구조 및 재현 절차</div>
+              <div class="toc-card-desc">실제 구현된 ADK·FastAPI·Terraform 원천 File 위치와 동일한 환경으로 재현하기 위한 실행 명령어를 안내합니다.</div>
+            </button>
           </div>
         </div>
       </div>"""
@@ -3994,82 +4128,255 @@ def build_onepager_html(lang: str, data: dict) -> str:
     return f"""<div class="onepager-shell">
         <div class="op-header">
           <div class="op-kicker-row">
-            <span class="op-kicker">Executive Summary · One-Pager</span>
-            <span class="op-audience-note">Plain-Language Business Overview · Measured on Google Cloud ({str(data.get("generated_at_utc", ""))[:10]})</span>
+            <span class="op-kicker">Slide 1 · Overview &amp; Table of Contents</span>
+            <span class="op-audience-note">Executive Summary &amp; Navigation Map · Measured on Google Cloud ({measured_date})</span>
           </div>
-          <h1 class="op-title">Scaling Conversational Analytics: Why Single Agents Stall and How Domain Routing Works</h1>
+          <h1 class="op-title">Scaling Enterprise Conversational Analytics: Why Single Agents Stall and How Domain Routing Works</h1>
           <p class="op-lead">
-            Conversational analytics prototypes succeed quickly on a few tables, then turn slow and expensive once connected to a shared enterprise warehouse of dozens of tables. This blueprint replaces one overloaded generalist agent with a <strong>front-desk Router, six department-scoped Domain Data Agents, and a shared Fallback</strong> backed by cross-session memory, cutting multi-turn operating cost while keeping follow-up context intact.
+            Conversational analytics prototypes succeed quickly on a few tables, then turn slow and expensive once connected to a shared 32-table enterprise warehouse. This live showcase compares one overloaded generalist Data Agent (<strong>As-Is</strong>) against a <strong>Front-Desk Router + 6 Department-Scoped Data Agents + Shared Fallback + Saved Memory</strong> architecture (<strong>To-Be</strong>) on Google Cloud.
           </p>
         </div>
 
-        <div class="op-compare-grid">
-          <div class="op-compare-card before">
-            <div class="op-card-head">
-              <h2 class="op-card-title">Before (As-Is) · One Overloaded Generalist</h2>
-              <span class="tag tag-red" style="margin:0;">Why PoCs Stall at Scale</span>
-            </div>
-            <div class="op-flow-diagram" aria-label="Before flow">
-              <span class="op-flow-node">Analyst Question</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node bad">1 Monolithic Agent</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node bad">Re-reads All 32 Tables Every Turn</span>
-            </div>
-            <ul class="op-points">
-              <li><strong>Re-reading the whole encyclopedia on every question:</strong> Even a simple single-department question forces the agent to read all 32 table schemas and every department glossary (<strong>{mono:,}</strong> median input tokens per turn).</li>
-              <li><strong>Snowballing conversation history:</strong> Raw prior answers accumulate on every follow-up, expanding the upstream orchestration prompt nearly 6x across 8 turns (<strong>{asis_first:,} → {asis_last:,}</strong> tokens).</li>
-              <li><strong>Blank slate on every new session:</strong> Follow-up nuances are fragile, and opening a new session erases prior findings and analyst preferences completely.</li>
+        <div class="op-summary-strip">
+          <div class="op-mini-box before">
+            <div class="op-mini-title"><span>Before (As-Is) · 1 Monolithic Agent</span><span class="tag tag-red" style="margin:0;">Why PoCs Stall</span></div>
+            <ul class="op-mini-list">
+              <li>Re-reads all 32 table schemas &amp; glossaries on every question (<strong>{mono:,}</strong> median input tokens)</li>
+              <li>Raw answers accumulate on follow-ups, growing the upstream prompt ~6x across 8 turns (<strong>{asis_first:,}→{asis_last:,}</strong>)</li>
+              <li>Opening a new session erases prior findings and analyst KPI preferences</li>
             </ul>
           </div>
-
-          <div class="op-compare-card after">
-            <div class="op-card-head">
-              <h2 class="op-card-title">After (To-Be) · Front-Desk Router + 6 Specialists</h2>
-              <span class="tag tag-green" style="margin:0;">How This Blueprint Works</span>
-            </div>
-            <div class="op-flow-diagram" aria-label="After flow">
-              <span class="op-flow-node">Analyst Question</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node router">Front-Desk Router</span>
-              <span class="op-flow-arrow">→</span>
-              <span class="op-flow-node good">6 Domain Specialists (3–13 Tables) · Shared Fallback</span>
-              <span class="op-flow-arrow">+</span>
-              <span class="op-flow-node good">Saved Memory</span>
-            </div>
-            <ul class="op-points">
-              <li><strong>Only the relevant department manual is opened:</strong> The Router delegates to 6 focused specialists (Customer, Product, Supply Chain, Store, Catalog, Web; 3–13 tables each), sending cross-department joins to a shared Fallback.</li>
-              <li><strong>Flat, predictable multi-turn size:</strong> Passing only a 3-turn rolling summary keeps the upstream prompt compact across an 8-turn session (<strong>{tobe_min:,}–{tobe_max:,}</strong> tokens).</li>
-              <li><strong>Seamless topic shifts &amp; cross-session recall:</strong> Analysts switch departments mid-conversation and recall saved insights in brand-new sessions without re-querying BigQuery.</li>
+          <div class="op-mini-box after">
+            <div class="op-mini-title"><span>After (To-Be) · Router + 6 Specialists</span><span class="tag tag-green" style="margin:0;">How It Solves It</span></div>
+            <ul class="op-mini-list">
+              <li>Routes to 6 department specialists (3–13 tables each), sending cross-department joins to a shared Fallback</li>
+              <li>Passes a compact 3-turn rolling summary, keeping 8-turn upstream prompts flat (<strong>{tobe_min:,}–{tobe_max:,}</strong> tokens)</li>
+              <li>Switches departments mid-chat and recalls saved insights in new sessions without re-querying BigQuery</li>
             </ul>
+          </div>
+          <div class="op-mini-box metrics">
+            <div class="op-mini-title"><span>Verified GCP Outcomes (3 Repeat Runs)</span><span class="tag tag-blue" style="margin:0;">Cloud Trace</span></div>
+            <div class="op-kpi-row">
+              <div class="op-kpi-pill"><div class="num">{cost_lo}–{cost_hi}</div><div class="lbl">Lower 8-turn avg cost<br/>({tok_lo}–{tok_hi} less input)</div></div>
+              <div class="op-kpi-pill"><div class="num">{g_lo}–{g_hi}</div><div class="lbl">Less input on {len(gain)}/6 domains<br/>({flat_names} stayed flat)</div></div>
+              <div class="op-kpi-pill"><div class="num">{s5_calls} DB Calls</div><div class="lbl">New-session recall<br/>(answered in {s5_secs:.1f}s)</div></div>
+            </div>
+            <div style="font-size:11.3px;color:var(--text-secondary);line-height:1.38;">Openly disclosed limits: the {flat_names} specialist stayed flat, and 3-domain parallel fan-out costs more when As-Is answers in 1 call.</div>
           </div>
         </div>
 
-        <div class="op-impact-grid">
-          <div class="op-impact-card">
-            <div class="op-impact-num">{cost_lo}–{cost_hi} Lower Cost</div>
-            <div class="op-impact-label">Average per turn across 8-turn sessions (3 runs)</div>
-            <p class="op-impact-desc"><strong>{tok_lo}–{tok_hi} fewer</strong> total input tokens across three full 8-question cross-department runs (<strong>${avg["tobe_cost_usd"]:.4f}</strong> vs <strong>${avg["asis_cost_usd"]:.4f}</strong> per turn in the baseline run).</p>
+        <div>
+          <div class="toc-section-head">
+            <h2 class="toc-section-title">Presentation Contents — Click Any Slide to Jump Directly</h2>
+            <span style="font-size:12px;color:var(--text-secondary);">All 7 slides remain pinned in the top selector bar at all times</span>
           </div>
-          <div class="op-impact-card">
-            <div class="op-impact-num">{g_lo}–{g_hi} Less Input</div>
-            <div class="op-impact-label">Measured on {len(gain)} of 6 domain specialists</div>
-            <p class="op-impact-desc">Online shop domains save 51%–55%; Store and Catalog save 33%–34%. <strong>Honest boundary:</strong> the {flat_names} specialist stayed flat, and 3-domain parallel fan-out costs more when As-Is answers in 1 call.</p>
+          <div class="toc-grid">
+            <button type="button" class="toc-card featured" data-goto-slide="1">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 2 · Start Here</span><span class="toc-arrow">Open →</span></div>
+              <div class="toc-card-title">Live Demo Guide (How to Test)</div>
+              <div class="toc-card-desc">A visual 3-step guide explaining how to run custom questions live on Google Cloud and what Stages S1 through S5 verify.</div>
+            </button>
+            <button type="button" class="toc-card featured" data-goto-slide="2">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 3 · Interactive</span><span class="toc-arrow">Open →</span></div>
+              <div class="toc-card-title">Live Dual A/B Demo (Stages S1–S5)</div>
+              <div class="toc-card-desc">Step horizontally from Stage 1 to Stage 5 with the live prompt evaluator right at the top to compare As-Is vs. To-Be in real time.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="3">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 4 · Scorecard</span><span class="toc-arrow">Open →</span></div>
+              <div class="toc-card-title">Step-by-Step Tokens &amp; Full Scorecard</div>
+              <div class="toc-card-desc">Cumulative input token bars across S1–S5 (updated live as you test) plus the complete Cloud Trace &amp; reference SQL scorecard.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="4">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 5 · Blueprint</span><span class="toc-arrow">Open →</span></div>
+              <div class="toc-card-title">Multi-Agent System Architecture</div>
+              <div class="toc-card-desc">Four zoomable architecture, state, and routing diagrams paired with a 3-way engineering trade-off comparison matrix.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="5">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 6 · Economics</span><span class="toc-arrow">Open →</span></div>
+              <div class="toc-card-title">8-Turn Token Curve &amp; Annual Cost</div>
+              <div class="toc-card-desc">Turn-by-turn token trajectories over an 8-question session and an interactive annualized cost calculator at published rates.</div>
+            </button>
+            <button type="button" class="toc-card" data-goto-slide="6">
+              <div class="toc-card-top"><span class="toc-slide-num">Slide 7 · Source Code</span><span class="toc-arrow">Open →</span></div>
+              <div class="toc-card-title">Git Repository &amp; Quickstart</div>
+              <div class="toc-card-desc">Source file map across ADK agents, FastAPI SSE workbench, and Terraform IaC with step-by-step reproduction commands.</div>
+            </button>
           </div>
-          <div class="op-impact-card">
-            <div class="op-impact-num">{s5_calls} Extra DB Queries</div>
-            <div class="op-impact-label">Cross-session recall in a brand-new session (S5)</div>
-            <p class="op-impact-desc">Prior findings and user KPI preferences are recalled directly from saved state and memory in <strong>{s5_secs:.1f}s</strong>, whereas the default single-agent setup has no cross-session memory.</p>
+        </div>
+      </div>"""
+
+
+def build_demo_guide_html(lang: str) -> str:
+    """Slide 2: Visual 3-Step Live Demo Guide + S1-S5 Stage Reference & Direct Launchers."""
+    if lang == "ko":
+        return """<div class="guide-shell">
+        <div class="guide-head">
+          <div>
+            <span class="op-kicker" style="display:inline-block;margin-bottom:6px;">Slide 2 · Live Demo Guide</span>
+            <h2 style="font-size:23px;margin-bottom:6px;">2. 실시간 Dual A/B 비교 Demo 체험 방법 (3단계 안내)</h2>
+            <p style="font-size:14px;color:var(--text-secondary);max-width:880px;line-height:1.5;">
+              바로 다음 화면(<strong>Slide 3</strong>)에서는 사전 녹화본이 아니라 실제 Google Cloud 환경에서 <strong>기존 단일 방식(As-Is)</strong>과 <strong>6-Domain 분업 방식(To-Be)</strong>을 동시에 호출해 비교할 수 있습니다. 비전공 심사자분들도 아래 3단계만 따라 하시면 1분 안에 차이를 직접 확인하실 수 있습니다.
+            </p>
+          </div>
+          <button type="button" class="top-arrow-btn primary" data-open-stage="0" style="font-size:13.5px;padding:10px 18px;">Slide 3 · Stage 1 (S1) 바로 체험하기 →</button>
+        </div>
+
+        <div class="guide-steps-grid">
+          <div class="guide-step-card">
+            <span class="guide-step-num">STEP 1 · Stage 및 질문 선택</span>
+            <div class="guide-step-title">검증할 Stage(S1~S5)와 예시 질문을 고릅니다</div>
+            <p class="guide-step-desc">
+              Slide 3 상단의 가로 Stage 막대에서 <strong>Stage 1(S1) ~ Stage 5(S5)</strong>를 넘기며 선택할 수 있습니다. 각 Stage 바로 아래 실행창에 준비된 <strong>추천 예시 질문 Chip</strong>을 누르면 검증용 질문이 자동 입력되며, 직접 문장을 수정하셔도 됩니다.
+            </p>
+          </div>
+          <div class="guide-step-card">
+            <span class="guide-step-num">STEP 2 · 실시간 병렬 실행</span>
+            <div class="guide-step-title">초록색 실시간 Dual A/B 실행 단추를 누릅니다</div>
+            <p class="guide-step-desc">
+              실행 단추를 누르면 실제 Google Cloud에서 <strong>As-Is(32개 Table 단일 Agent)</strong>와 <strong>To-Be(Router + 6개 전담 Agent + Fallback)</strong>가 동시에 질문을 처리합니다(일반 질의 약 15~30초 소요). 기다리지 않고 즉시 보시려면 실행창 아래의 <strong>사전 검증 기준 결과</strong>를 바로 확인하실 수도 있습니다.
+            </p>
+          </div>
+          <div class="guide-step-card">
+            <span class="guide-step-num">STEP 3 · 경로·답변·Token 비교</span>
+            <div class="guide-step-title">실행 흐름 Diagram과 답변·비용 차이를 대조합니다</div>
+            <p class="guide-step-desc">
+              실행 중 <strong>실시간 실행 흐름 Diagram</strong>에 두 방식의 호출 경로가 점등되며, 완료 즉시 <strong>양쪽 답변·생성 SQL·기준 정답 SQL</strong>과 <strong>실측 Token·비용 차이</strong>가 나란히 표시됩니다. 실행한 결과는 <strong>Slide 4의 단계별 누적 막대</strong>에도 자동 반영됩니다.
+            </p>
           </div>
         </div>
 
-        <div class="op-cta-bar">
-          <p class="op-cta-note">
-            <strong>Reviewer Quick Guide:</strong> For a 2-minute business walkthrough, review this <strong>One-Pager (Slide 1)</strong> and try a preset question in the <strong>Live Side-by-Side Demo (Slide 3)</strong>. Full Cloud Trace spans, architecture diagrams, cost modeling, and code are on Slides 2, 4, 5, and 6.
-          </p>
-          <div class="op-cta-actions">
-            <button type="button" class="deck-nav-btn" data-goto-slide="1">Detailed Scorecard (Slide 2) →</button>
-            <button type="button" class="deck-nav-btn primary" data-goto-slide="2">Try Live A/B Demo (Slide 3) →</button>
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+            <h3 style="font-size:15px;margin:0;">Stage 1 (S1) ~ Stage 5 (S5) 단계별 관전 포인트 (누르면 해당 Stage로 바로 진입합니다)</h3>
+            <span style="font-size:12px;color:var(--text-secondary);">순서대로 넘기거나 관심 있는 Stage만 골라서 실행해도 됩니다</span>
+          </div>
+          <div class="guide-stages-grid">
+            <button type="button" class="guide-stage-card" data-open-stage="0">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 1 · S1</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">단일 부서 질문과 Schema 분리</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">고객 부서 질문 하나에 32개 전체 대신 관련 4개 Table만 열어 입력량을 절반으로 줄이는지 확인합니다.</div>
+              </div>
+              <span class="guide-stage-cta">Stage 1 열기 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="1">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 2 · S2</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">연속 후속 질문 문맥 유지</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">직전 답변에 이어 조건을 좁혀 물을 때 전체 이력 재전송 없이 최근 3-Turn 창만으로 문맥을 잇는지 봅니다.</div>
+              </div>
+              <span class="guide-stage-cta">Stage 2 열기 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="2">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 3 · S3</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">부서 전환 및 다중 부서 질의</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">대화 중 고객에서 물류 부서로 주제를 바꾸거나, 3개 부서 동시 질문·통합 Fallback 경로를 비교합니다.</div>
+              </div>
+              <span class="guide-stage-cta">Stage 3 열기 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="3">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 4 · S4</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">장기 연속 대화 비용 억제</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">질문이 여러 번 이어질 때 As-Is의 눈덩이처럼 커지는 Prompt 대비 To-Be가 일정한 크기를 유지하는지 확인합니다.</div>
+              </div>
+              <span class="guide-stage-cta">Stage 4 열기 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="4">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 5 · S5</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">새 Session 장기 기억 복원</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">새 대화창을 열었을 때 추가 Data Warehouse 조회(0회) 없이 이전 핵심 분석 결과를 기억해 요약하는지 확인합니다.</div>
+              </div>
+              <span class="guide-stage-cta">Stage 5 열기 →</span>
+            </button>
+          </div>
+        </div>
+      </div>"""
+
+    return """<div class="guide-shell">
+        <div class="guide-head">
+          <div>
+            <span class="op-kicker" style="display:inline-block;margin-bottom:6px;">Slide 2 · Live Demo Guide</span>
+            <h2 style="font-size:23px;margin-bottom:6px;">2. How to Use the Live Dual A/B Demo (3-Step Reviewer Walkthrough)</h2>
+            <p style="font-size:14px;color:var(--text-secondary);max-width:880px;line-height:1.5;">
+              On the next slide (<strong>Slide 3</strong>), you can run both architectures—the <strong>single monolithic Data Agent (As-Is)</strong> and the <strong>6-Domain Specialist Router + Fallback (To-Be)</strong>—live in parallel on Google Cloud. Follow the three simple steps below, or click any Stage card to jump right in.
+            </p>
+          </div>
+          <button type="button" class="top-arrow-btn primary" data-open-stage="0" style="font-size:13.5px;padding:10px 18px;">Launch Slide 3 · Stage 1 (S1) Now →</button>
+        </div>
+
+        <div class="guide-steps-grid">
+          <div class="guide-step-card">
+            <span class="guide-step-num">STEP 1 · Pick a Stage &amp; Prompt</span>
+            <div class="guide-step-title">Select Stage 1–5 &amp; a sample question</div>
+            <p class="guide-step-desc">
+              Use the horizontal Stage bar at the top of Slide 3 to step across <strong>Stage 1 (S1) through Stage 5 (S5)</strong>. Click any <strong>preset sample question chip</strong> inside the evaluator box to populate a realistic business question, or type your own prompt.
+            </p>
+          </div>
+          <div class="guide-step-card">
+            <span class="guide-step-num">STEP 2 · Run Live on GCP</span>
+            <div class="guide-step-title">Click “Run Dual A/B Live on GCP”</div>
+            <p class="guide-step-desc">
+              Clicking the green run button executes <strong>As-Is (all 32 tables)</strong> and <strong>To-Be (Router + 6 domain specialists + Fallback)</strong> simultaneously on Vertex AI and BigQuery (~15–30s). If you prefer instant review without waiting, pre-verified GCP baseline results sit directly below the box.
+            </p>
+          </div>
+          <div class="guide-step-card">
+            <span class="guide-step-num">STEP 3 · Compare Flow, SQL &amp; Cost</span>
+            <div class="guide-step-title">Watch the live flow &amp; inspect both answers</div>
+            <p class="guide-step-desc">
+              Watch the <strong>Live Execution Flow diagram</strong> light up each agent hop in real time, then compare both answers against the <strong>BigQuery reference SQL table</strong>, measured ADK prompt tokens, and Cloud Trace BQCA medians. Live runs also update the cumulative bars on <strong>Slide 4</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+            <h3 style="font-size:15px;margin:0;">What Each Stage (S1 – S5) Verifies — Click Any Card to Open That Stage</h3>
+            <span style="font-size:12px;color:var(--text-secondary);">Step sequentially with Prev / Next Stage or jump to any stage directly</span>
+          </div>
+          <div class="guide-stages-grid">
+            <button type="button" class="guide-stage-card" data-open-stage="0">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 1 · S1</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Single-Domain Schema Scoping</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">See how routing a Customer question to a 4-table specialist cuts BQCA input roughly in half vs. reading all 32 tables.</div>
+              </div>
+              <span class="guide-stage-cta">Open Stage 1 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="1">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 2 · S2</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Follow-Up Context Window</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">Ask a follow-up drill-down and see how a 3-turn rolling window preserves context without replaying the entire chat log.</div>
+              </div>
+              <span class="guide-stage-cta">Open Stage 2 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="2">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 3 · S3</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Department Switch &amp; Multi-Domain</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">Switch from Customer to Supply Chain mid-session, or test parallel 3-domain fan-out and cross-channel fallback.</div>
+              </div>
+              <span class="guide-stage-cta">Open Stage 3 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="3">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 4 · S4</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Long Multi-Turn Session Control</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">Run or append multi-turn questions to see To-Be keep prompt size flat while As-Is snowballs across turns.</div>
+              </div>
+              <span class="guide-stage-cta">Open Stage 4 →</span>
+            </button>
+            <button type="button" class="guide-stage-card" data-open-stage="4">
+              <div>
+                <span class="tag tag-blue" style="margin-bottom:6px;">Stage 5 · S5</span>
+                <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px;">New-Session Memory Recall</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.44;">Start a brand-new session and recall saved analyst preferences and prior findings with 0 extra BigQuery calls.</div>
+              </div>
+              <span class="guide-stage-cta">Open Stage 5 →</span>
+            </button>
           </div>
         </div>
       </div>"""
@@ -4256,6 +4563,7 @@ def render_page(template: str, data_obj: dict, ui_obj: dict, lang: str, en_data:
     return (
         template.replace("__SHARED_CSS__", SHARED_CSS)
         .replace("__ONEPAGER_HTML__", build_onepager_html(lang, en_data))
+        .replace("__DEMO_GUIDE_HTML__", build_demo_guide_html(lang))
         .replace("__OVERVIEW_CARDS__", build_overview_html(lang, en_data))
         .replace("__BENCHMARK_JSON_PAYLOAD__", json.dumps(data_obj, ensure_ascii=False))
         .replace("__UI_STRINGS_PAYLOAD__", json.dumps(ui_obj, ensure_ascii=False))
