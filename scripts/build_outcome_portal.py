@@ -1010,7 +1010,7 @@ HTML_EN = r"""<!DOCTYPE html>
 
         <div class="meta-strip" style="align-items:center;">
           <span class="meta-chip"><strong>Warehouse:</strong> 32 tables (<span class="mono">cymbal_enterprise_dw</span>)</span>
-          <span class="meta-chip"><strong>Setup:</strong> Monolithic vs. Root + 3 Sub-Agents</span>
+          <span class="meta-chip"><strong>Setup:</strong> 1 data agent vs. Root + 6 domain Sub-Agents + fallback</span>
           <span class="meta-chip"><strong>Measured (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
           <a href="#scenarios" class="btn-jump-wb">Jump to Live Workbench (S1-S5)</a>
         </div>
@@ -1018,59 +1018,13 @@ HTML_EN = r"""<!DOCTYPE html>
         <div class="kpi-grid" id="hero-kpi-grid"></div>
       </div>
 
-      <div class="story-grid">
-        <div class="story-card pain">
-          <div>
-            <span class="tag tag-red">1. Customer context &amp; pain points</span>
-            <h3>Why single-agent PoCs stall at warehouse scale</h3>
-          </div>
-          <p class="story-intro">Connecting a conversational agent to a multi-department warehouse exposes three bottlenecks across the ADK and BQCA tiers.</p>
-          <ul class="story-list">
-            <li><strong>Schema and history bloat in both tiers:</strong> A BQCA chat turn usually runs two internal LLM calls, each reading the bound schema and glossary (108.5K uncached median input tokens on the 32-table agent). Meanwhile, the default ADK session replays raw tool outputs until the prompt grows from 5.8K to 33.1K tokens over 8 turns.</li>
-            <li><strong>Stateless amnesia vs. single-agent lock-in:</strong> Built-in <span class="mono">ask_data_agent</span> looks up the agent on every call and sends only the current question, dropping follow-up filters unless the root LLM rewrites them. Server-managed <span class="mono">ConversationReference</span> keeps history on the server, yet locks the conversation to one data agent.</li>
-            <li><strong>No continuity across sessions:</strong> Opening a new session clears prior root-cause findings and user KPI preferences, forcing repeated BigQuery queries for questions already answered.</li>
-          </ul>
-        </div>
-
-        <div class="story-card approach">
-          <div>
-            <span class="tag tag-blue">2. Technical approach</span>
-            <h3>Domain-scoped agents with ADK-managed state</h3>
-          </div>
-          <p class="story-intro">Instead of relying on one warehouse-wide agent or server-locked conversations, the To-Be design narrows schema scope per domain and manages context in ADK.</p>
-          <ul class="story-list">
-            <li><strong>Scoped data agents &amp; 3-way routing:</strong> A Root Router delegates to three domain Sub-Agents (CRM, Product, Supply Chain), each bound to 3 to 5 tables and one domain glossary. Sub-Agents hand over directly to peers (<span class="mono">transfer_to_agent</span>), and cross-domain questions run in parallel via <span class="mono">ThreadPoolExecutor</span>.</li>
-            <li><strong>Bounded 3-turn windows in both tiers:</strong> Each stateless <span class="mono">:chat</span> call carries the domain's last 3 turns (<span class="mono">[-6:]</span>). In ADK, static instructions, one tool per Sub-Agent, <span class="mono">before_model_callback</span> 3-turn compaction, slimmed tool outputs, and <span class="mono">skip_summarization</span> cap prompt growth.</li>
-            <li><strong>4-scope state &amp; cross-session memory:</strong> Separating <span class="mono">temp:</span>, session, <span class="mono">user:</span>, and <span class="mono">app:</span> state with <span class="mono">MemoryService</span> lets new sessions answer saved findings without calling BQCA.</li>
-          </ul>
-        </div>
-
-        <div class="story-card outcome">
-          <div>
-            <span class="tag tag-green">3. Verified outcomes &amp; guide</span>
-            <h3>What improved and where to test it live</h3>
-          </div>
-          <p class="story-intro">Each step below pairs pre-recorded GCP baselines with a live Dual A/B Workbench, an ADK event flow diagram, and hand-written reference SQL.</p>
-          <ul class="story-list">
-            <li><strong>Lower input tokens &amp; bounded session cost:</strong> Total input tokens dropped by 51.1% on single-domain queries (S1), 53.5% on follow-ups (S2), 68.4% after a domain switch (S3), and 53.9% on average across an 8-turn session (-29.8% list-price cost, S4).</li>
-            <li><strong>Zero-BQCA recall &amp; reference SQL spot-check:</strong> New-session recall answered in 6.8s with 0 BQCA calls (S5). Across 5 runs per preset query, To-Be matched all reference figures in 5/5 (S1), 5/5 (S3 switch), 4/5 (3-domain), and 4/5 (S4) runs vs. 0, 4, 1, and 4 on As-Is.</li>
-            <li><strong>Stated trade-offs:</strong> 3-domain fan-out token delta depends on how many calls As-Is makes (-47.8% at 3 vs. 3 calls; +49.3% when As-Is used 1 call). On S2 follow-ups, both setups often compute channel revenue across all customers rather than VIPs alone.</li>
-          </ul>
-          <div class="jump-chip-row" aria-label="Jump to scenario">
-            <button type="button" class="jump-chip" data-jump-scenario="0">S1 · Scoped Routing</button>
-            <button type="button" class="jump-chip" data-jump-scenario="1">S2 · 3-Turn Window</button>
-            <button type="button" class="jump-chip" data-jump-scenario="2">S3 · Switch &amp; Fan-Out</button>
-            <button type="button" class="jump-chip" data-jump-scenario="3">S4 · 8-Turn Cap</button>
-            <button type="button" class="jump-chip" data-jump-scenario="4">S5 · Memory Recall</button>
-          </div>
-        </div>
-      </div>
+      __OVERVIEW_CARDS__
     </section>
 
     <section id="architecture">
       <h2>2. Best-Practice Multi-Agent Architecture &amp; Trade-Off Matrix</h2>
       <p class="section-desc">
-        Inspect the four official Google Cloud vector architecture views and the unbiased trade-off evaluation across One-Shot Stateless, Server-Managed Stateful, and Proposed ADK-Managed Hybrid architectures.
+        Four architecture diagrams drawn for this repository, and a trade-off comparison of one-shot stateless calls, the server-managed stateful conversation and the ADK-managed design measured here.
       </p>
 
       <div class="tab-bar" id="diagram-tabs">
@@ -1085,7 +1039,7 @@ HTML_EN = r"""<!DOCTYPE html>
           <div>
             <h3 id="fig-title" style="margin-bottom:4px;">Fig 1. End-to-End 3-Tier Enterprise System Architecture</h3>
             <p id="fig-caption" style="font-size:13.5px;color:var(--text-secondary);">
-              Tier 1 (ADK Root Orchestrator &amp; 4-Scope State/Memory) → Tier 2 (3 Domain-Scoped Stateless BigQuery CAA Agents) → Tier 3 (32-Table BigQuery Warehouse &amp; Scoped Glossary).
+              Tier 1 (ADK Root Orchestrator &amp; 4-Scope State/Memory) → Tier 2 (6 Domain-Scoped Data Agents + Warehouse-wide Fallback) → Tier 3 (32-Table BigQuery Warehouse &amp; Scoped Glossary).
             </p>
           </div>
           <button class="btn-outline" id="zoom-fig-btn">Expand Full Resolution</button>
@@ -1105,7 +1059,7 @@ HTML_EN = r"""<!DOCTYPE html>
               <td><strong>Routing</strong></td>
               <td>One data agent answers every question</td>
               <td>One data agent per conversation, fixed at creation</td>
-              <td><strong>Root Router hands over to one of three Sub-Agents; Sub-Agents hand over to each other; cross-domain questions fan out in parallel</strong></td>
+              <td><strong>Root Router hands over to one of six domain Sub-Agents; Sub-Agents hand over to each other; separate questions on several domains fan out in parallel; one result that needs several domains goes to the warehouse-wide fallback</strong></td>
             </tr>
             <tr class="highlight-row">
               <td><strong>Multi-turn context</strong></td>
@@ -1123,7 +1077,7 @@ HTML_EN = r"""<!DOCTYPE html>
               <td><strong>BQCA context per call</strong></td>
               <td>The whole warehouse schema and every glossary</td>
               <td>Same as the bound data agent</td>
-              <td><strong>3 to 5 tables and one domain glossary per data agent (measured in Sections 3 and 4)</strong></td>
+              <td><strong>3 to 13 tables and one domain glossary per data agent; the fallback reads the whole warehouse (measured in Sections 3 and 4)</strong></td>
             </tr>
             <tr>
               <td><strong>Cross-session memory</strong></td>
@@ -1219,10 +1173,12 @@ HTML_EN = r"""<!DOCTYPE html>
 │   └── reference_answers.py                     # Hand-written reference SQL for preset questions
 ├── scripts/
 │   ├── provision_enterprise_warehouse.py        # 32-table documented warehouse + monolithic As-Is agent
-│   ├── provision_cymbal_caa_agents.py           # 3 Domain-Scoped BigQuery CAA Data Agents
+│   ├── provision_cymbal_caa_agents.py           # 6 domain-scoped BigQuery CAA data agents
 │   ├── 04_run_scenario_benchmarks.py            # Live S1-S5 Dual A/B + Cloud Trace span matching
 │   ├── 05_measure_bqca_tokens_from_trace.py     # Cloud Trace medians per Data Agent
 │   ├── 06_build_reference_answers.py            # Reference SQL snapshot for baseline cards
+│   ├── 07_answer_check.py                       # N runs per preset question vs the reference rows
+│   ├── grant_runtime_access.py                  # Per data agent and per dataset access for the service account
 │   └── build_outcome_portal.py                  # Compiles EN (index.html) &amp; KO (index_ko.html) portals
 ├── benchmarks/scenario_benchmark_results.json   # Measured S1-S5 SQL, answers &amp; 2-tier token telemetry
 └── docs/
@@ -1339,7 +1295,7 @@ HTML_KO = r"""<!DOCTYPE html>
 
         <div class="meta-strip" style="align-items:center;">
           <span class="meta-chip"><strong>Warehouse:</strong> 설명 포함 32개 Table (<span class="mono">cymbal_enterprise_dw</span>)</span>
-          <span class="meta-chip"><strong>비교:</strong> 통합 1개 vs. Root + Sub-Agent 3개</span>
+          <span class="meta-chip"><strong>비교:</strong> Data Agent 1개 vs. Root + Domain Sub-Agent 6개 + Fallback</span>
           <span class="meta-chip"><strong>측정 (UTC):</strong> <span class="mono" id="bench-ts"></span></span>
           <a href="#scenarios" class="btn-jump-wb">실시간 A/B Workbench 바로가기</a>
         </div>
@@ -1347,59 +1303,13 @@ HTML_KO = r"""<!DOCTYPE html>
         <div class="kpi-grid" id="hero-kpi-grid"></div>
       </div>
 
-      <div class="story-grid">
-        <div class="story-card pain">
-          <div>
-            <span class="tag tag-red">1. 고객 현장 상황과 Pain Point</span>
-            <h3>단일 Data Agent PoC가 운영 단계에서 막히는 이유</h3>
-          </div>
-          <p class="story-intro">여러 사업부가 함께 쓰는 운영 Data Warehouse에 대화형 Agent를 연결하면 두 계층에서 세 가지 병목이 나타납니다.</p>
-          <ul class="story-list">
-            <li><strong>두 계층의 Schema 및 이력 누적:</strong> BQCA Chat Turn은 보통 내부 LLM 호출 2회로 돌며 호출마다 연결된 Schema와 Glossary를 읽습니다(32개 Table 통합 Data Agent 비캐시 중앙값 108.5K tok). 상위 ADK 기본 Session도 원본 Tool 응답을 그대로 재전송해 8 Turn 만에 Prompt가 5.8K에서 33.1K tok까지 불어납니다.</li>
-            <li><strong>후속 문맥 유실과 단일 Agent 종속:</strong> ADK 내장 <span class="mono">ask_data_agent</span>는 매번 Data Agent 정보를 조회하고 현재 질문 하나만 보내므로 Root LLM이 조건을 다시 써 주지 않으면 후속 문맥이 끊깁니다. 반대로 서버 관리형 <span class="mono">ConversationReference</span>는 이력을 유지하지만 Data Agent 하나에 대화가 고정됩니다.</li>
-            <li><strong>Session 종료 시 분석 맥락 초기화:</strong> 새 Session을 열면 직전 분석에서 확인한 원인이나 사용자 선호 KPI가 사라져 이미 답을 얻은 질문에도 BigQuery를 다시 조회합니다.</li>
-          </ul>
-        </div>
-
-        <div class="story-card approach">
-          <div>
-            <span class="tag tag-blue">2. 기술적 해결 구조</span>
-            <h3>Domain 분리와 ADK 주도 State·Memory 설계</h3>
-          </div>
-          <p class="story-intro">통합 Data Agent나 서버 고정형 대화에 의존하지 않고 Schema 범위를 Domain별로 나눈 뒤 대화 문맥을 ADK 계층에서 직접 관리합니다.</p>
-          <ul class="story-list">
-            <li><strong>Domain별 Data Agent 분리와 3-Way Routing:</strong> Root Router가 CRM·상품·물류 Sub-Agent 3개로 질문을 분배하고 각 Data Agent에는 핵심 Table 3~5개와 전용 Glossary만 연결합니다. 단일 Domain 전환은 Sub-Agent끼리 직접 넘기고(<span class="mono">transfer_to_agent</span>) 복합 질문은 <span class="mono">ThreadPoolExecutor</span>로 병렬 호출합니다.</li>
-            <li><strong>두 계층의 3-Turn 슬라이딩 압축:</strong> Stateless <span class="mono">:chat</span> 호출마다 해당 Domain의 최근 3 Turn(<span class="mono">[-6:]</span>)만 함께 보냅니다. ADK 계층은 고정 Instruction, Sub-Agent당 Tool 1개, <span class="mono">before_model_callback</span> 3-Turn 이력 절삭, 축약된 Tool 응답, 단일 Domain 요약 생략(<span class="mono">skip_summarization</span>)으로 크기를 제한합니다.</li>
-            <li><strong>4-Scope State 분리와 장기 Memory 복원:</strong> <span class="mono">temp:</span>·Session·<span class="mono">user:</span>·<span class="mono">app:</span> 범위를 분리하고 <span class="mono">MemoryService</span>와 연동해 새 Session에서도 저장된 분석 결과를 BQCA 호출 없이 복원합니다.</li>
-          </ul>
-        </div>
-
-        <div class="story-card outcome">
-          <div>
-            <span class="tag tag-green">3. 실측 개선 결과 및 검증 Guide</span>
-            <h3>달라진 실측 지표와 단계별 검증 위치</h3>
-          </div>
-          <p class="story-intro">아래 다섯 단계(S1~S5)에서는 사전 실측 기준치와 함께 실시간 Dual A/B Workbench, ADK 실행 흐름 Diagram, 기준 SQL 결과를 직접 대조할 수 있습니다.</p>
-          <ul class="story-list">
-            <li><strong>Input Token 절감 및 장기 Session 비용 억제:</strong> 단일 Domain 질문 -51.1%(S1), 후속 질문 -53.5%(S2), Domain 전환 -68.4%(S3), 8-Turn 연속 대화 평균 -53.9%(공시 단가 비용 -29.8%, S4)를 기록했습니다.</li>
-            <li><strong>무호출 기억 복원 및 기준 SQL 대조:</strong> 신규 Session 기억 질문은 BQCA 호출 0회로 6.8초에 응답했습니다(S5). Preset 질문별 5회 반복 대조에서는 To-Be가 S1(5/5), S3 전환(5/5), 3-Domain(4/5), S4(4/5)에서 기준 수치를 모두 포함했습니다(As-Is는 0, 4, 1, 4회).</li>
-            <li><strong>투명하게 공개하는 한계:</strong> 3-Domain 동시 질문의 Token 증감은 As-Is 호출 횟수에 좌우됩니다(3회 대 3회 시 -47.8%, As-Is 1회 호출 시 +49.3%). S2 후속 질문은 두 구성 모두 채널 매출을 VIP 한정이 아닌 전체 고객 기준으로 계산하는 경향이 있습니다.</li>
-          </ul>
-          <div class="jump-chip-row" aria-label="Scenario 바로가기">
-            <button type="button" class="jump-chip" data-jump-scenario="0">S1 · Schema 분리</button>
-            <button type="button" class="jump-chip" data-jump-scenario="1">S2 · 3-Turn 문맥</button>
-            <button type="button" class="jump-chip" data-jump-scenario="2">S3 · 전환·병렬 호출</button>
-            <button type="button" class="jump-chip" data-jump-scenario="3">S4 · 8-Turn 압축</button>
-            <button type="button" class="jump-chip" data-jump-scenario="4">S5 · Memory 복원</button>
-          </div>
-        </div>
-      </div>
+      __OVERVIEW_CARDS__
     </section>
 
     <section id="architecture">
       <h2>2. Best Practice Architecture 및 다각도 Trade-off 비교</h2>
       <p class="section-desc">
-        공식 Google Cloud Vector Diagram 4종과 함께, One-Shot Stateless·서버 관리형 Stateful·제안 Hybrid 구조 간의 객관적인 기술 지표를 비교합니다.
+        이 Repository용으로 그린 Architecture Diagram 4종과, One-Shot Stateless 호출·Server 관리형 Stateful 대화·여기서 측정한 ADK 관리형 구성의 Trade-off 비교입니다.
       </p>
 
       <div class="tab-bar" id="diagram-tabs">
@@ -1414,7 +1324,7 @@ HTML_KO = r"""<!DOCTYPE html>
           <div>
             <h3 id="fig-title" style="margin-bottom:4px;">Fig 1. End-to-End 3-Tier Enterprise System Architecture</h3>
             <p id="fig-caption" style="font-size:13.5px;color:var(--text-secondary);">
-              Tier 1 (ADK Root Orchestrator 및 4-Scope State/Memory) → Tier 2 (3개 Domain-Scoped Stateless BigQuery CAA) → Tier 3 (32-Table BigQuery Warehouse 및 Domain 용어집).
+              Tier 1 (ADK Root Orchestrator 및 4-Scope State/Memory) → Tier 2 (Domain별 Data Agent 6개 + Warehouse 전체 Fallback) → Tier 3 (32-Table BigQuery Warehouse 및 Domain 용어집).
             </p>
           </div>
           <button class="btn-outline" id="zoom-fig-btn">원본 해상도로 확대 보기</button>
@@ -1434,12 +1344,12 @@ HTML_KO = r"""<!DOCTYPE html>
               <td><strong>Routing</strong></td>
               <td>Data Agent 하나가 모든 질문에 답함</td>
               <td>대화 생성 시 정한 Data Agent 하나에 고정</td>
-              <td><strong>Root Router가 Sub-Agent 3개 중 하나로 넘기고, Sub-Agent끼리 직접 전환하며, 여러 Domain 질문은 병렬로 호출</strong></td>
+              <td><strong>Root Router가 Domain Sub-Agent 6개 중 하나로 넘기고 Sub-Agent끼리 직접 전환. 여러 Domain의 별개 질문은 병렬 호출, 한 결과에 여러 Domain이 필요하면 Warehouse 전체 Fallback으로 전달</strong></td>
             </tr>
             <tr class="highlight-row">
               <td><strong>Multi-Turn 문맥</strong></td>
               <td><span class="mono">ask_data_agent</span>는 현재 질문만 전송하므로 Root LLM이 이전 문맥을 다시 써 줘야 함</td>
-              <td>해당 대화의 이력을 서버가 보관</td>
+              <td>해당 대화의 이력을 Server가 보관</td>
               <td><strong>Stateless 호출마다 해당 Domain의 최근 3 Turn을 함께 전송</strong></td>
             </tr>
             <tr>
@@ -1452,7 +1362,7 @@ HTML_KO = r"""<!DOCTYPE html>
               <td><strong>호출당 BQCA Context</strong></td>
               <td>Warehouse 전체 Schema와 모든 용어집</td>
               <td>연결된 Data Agent와 동일</td>
-              <td><strong>Data Agent당 Table 3~5개와 Domain 용어집 하나 (Section 3, 4에서 측정)</strong></td>
+              <td><strong>Data Agent당 Table 3~13개와 Domain 용어집 하나. Fallback은 Warehouse 전체를 읽음 (Section 3, 4에서 측정)</strong></td>
             </tr>
             <tr>
               <td><strong>Session 간 Memory</strong></td>
@@ -1548,10 +1458,12 @@ HTML_KO = r"""<!DOCTYPE html>
 │   └── reference_answers.py                     # Preset 질문용 기준 SQL 정의
 ├── scripts/
 │   ├── provision_enterprise_warehouse.py        # 32-Table Warehouse + 통합 As-Is Data Agent 생성
-│   ├── provision_cymbal_caa_agents.py           # 3종 Domain-Scoped BigQuery CAA Data Agent 생성
+│   ├── provision_cymbal_caa_agents.py           # Domain별 BigQuery CAA Data Agent 6개 생성
 │   ├── 04_run_scenario_benchmarks.py            # S1-S5 Dual A/B 실행 + Cloud Trace Span 매칭
 │   ├── 05_measure_bqca_tokens_from_trace.py     # Data Agent별 Cloud Trace 중앙값 집계
 │   ├── 06_build_reference_answers.py            # 기준치 카드용 기준 SQL Snapshot 생성
+│   ├── 07_answer_check.py                       # Preset 질문을 N회 실행해 기준 행과 대조
+│   ├── grant_runtime_access.py                  # Service Account에 Data Agent·Dataset 단위 권한 부여
 │   └── build_outcome_portal.py                  # 영문(index.html) 및 한국어(index_ko.html) Portal 생성
 ├── benchmarks/scenario_benchmark_results.json   # S1-S5 실측 SQL, 답변 및 2-Tier Token Telemetry 원본
 └── docs/
@@ -1620,29 +1532,33 @@ uv run adk web agents --port 8000</pre>
 # Ties ADK agent and tool names (as they appear in run events) to element ids of
 # docs/diagrams/fig5_live_execution_flow.svg. build_page() checks every id against the SVG.
 FLOW_SVG_PATH = REPO_ROOT / "docs" / "diagrams" / "fig5_live_execution_flow.svg"
+# (diagram node, ADK agent name, data tool, data agent node) for every To-Be sub-agent, in diagram order.
+_TOBE_SUBS = [
+    ("sub-customer", "customer_marketing_subagent", "ask_customer_marketing_caa", "ca-customer"),
+    ("sub-product", "product_profitability_subagent", "ask_product_profitability_caa", "ca-product"),
+    ("sub-supply", "supply_chain_logistics_subagent", "ask_supply_chain_logistics_caa", "ca-supply"),
+    ("sub-store", "store_channel_subagent", "ask_store_channel_caa", "ca-store"),
+    ("sub-catalog", "catalog_channel_subagent", "ask_catalog_channel_caa", "ca-catalog"),
+    ("sub-web", "web_channel_subagent", "ask_web_channel_caa", "ca-web"),
+    ("sub-fallback", "enterprise_warehouse_subagent", "ask_enterprise_warehouse_caa", "ca-mono"),
+]
+
 FLOW_MAP = {
     "tobe": {
         "user": "user",
         "entry": "root",
         "entryEdge": "user--root",
-        "agents": {
-            "cymbal_enterprise_root_router": "root",
-            "customer_marketing_subagent": "sub-customer",
-            "product_profitability_subagent": "sub-product",
-            "supply_chain_logistics_subagent": "sub-supply",
-        },
+        "agents": {"cymbal_enterprise_root_router": "root", **{agent: node for node, agent, _, _ in _TOBE_SUBS}},
         "transfers": {
-            "root|sub-customer": ["root--sub-customer"],
-            "root|sub-product": ["root--sub-product"],
-            "root|sub-supply": ["root--sub-supply"],
-            "sub-customer|sub-product": ["peer-cp"],
-            "sub-product|sub-supply": ["peer-ps"],
-            "sub-customer|sub-supply": ["peer-cp", "peer-ps"],
+            **{f"root|{node}": [f"root--{node}"] for node, _, _, _ in _TOBE_SUBS},
+            # A hand-over between two sub-agents lights the peer bus segments between their rows.
+            **{
+                f"{_TOBE_SUBS[i][0]}|{_TOBE_SUBS[j][0]}": [f"peer-{k}" for k in range(i, j)]
+                for i in range(len(_TOBE_SUBS)) for j in range(i + 1, len(_TOBE_SUBS))
+            },
         },
         "tools": {
-            "ask_customer_marketing_caa": {"nodes": ["ca-customer", "bq"], "edges": ["sub-customer--ca-customer", "ca-customer--bq"]},
-            "ask_product_profitability_caa": {"nodes": ["ca-product", "bq"], "edges": ["sub-product--ca-product", "ca-product--bq"]},
-            "ask_supply_chain_logistics_caa": {"nodes": ["ca-supply", "bq"], "edges": ["sub-supply--ca-supply", "ca-supply--bq"]},
+            **{tool: {"nodes": [ca, "bq"], "edges": [f"{node}--{ca}", f"{ca}--bq"]} for node, _, tool, ca in _TOBE_SUBS},
             "load_memory": {"nodes": ["mem"], "edges": ["root--mem"]},
             "save_user_preference_and_memory": {"nodes": ["mem"], "edges": ["root--mem"]},
             "inspect_session_and_memory_status": {"nodes": ["mem"], "edges": ["root--mem"]},
@@ -1910,7 +1826,9 @@ PORTAL_JS = r"""
         <div class="ref-divider">${S.refBaselineHeading} (${escapeHtml(sc.code)})</div>
         <div class="sub-box" style="margin-bottom:14px;font-size:12.8px;">${S.baselineDisclosureHtml}</div>
         ${sc.result ? buildDualComparisonCardHtml(sc.result, true) : ""}
+        ${sc.store_channel ? `<div class="ref-divider">${S.storeHeading}</div>${buildDualComparisonCardHtml(sc.store_channel, true)}` : ""}
         ${sc.fanout ? `<div class="ref-divider">${S.fanoutHeading}</div>${buildDualComparisonCardHtml(sc.fanout, true)}` : ""}
+        ${sc.cross_channel ? `<div class="ref-divider">${S.crossHeading}</div>${buildDualComparisonCardHtml(sc.cross_channel, true)}` : ""}
       `;
 
       renderProgressiveTracker();
@@ -2288,6 +2206,7 @@ PORTAL_JS = r"""
               </div>
               ${sideErrors(asis)}
               ${asis.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(asis.generated_sql)}</pre>` : ""}
+              ${asis.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(asis.markdown_table)}</div>` : ""}
               <div class="answer-box" style="border-left-color:var(--red);">${formatAgentAnswer(asis.answer)}</div>
             </div>
 
@@ -2826,7 +2745,7 @@ UI_EN = {
         "fig1": {
             "src": "./diagrams/fig1_3tier_system_architecture.svg",
             "title": "Fig 1. End-to-End 3-Tier Enterprise System Architecture",
-            "caption": "Tier 1 (ADK Root Orchestrator & 4-Scope State/Memory) → Tier 2 (3 Domain-Scoped Stateless BigQuery CAA Agents) → Tier 3 (32-Table BigQuery Warehouse & Scoped Glossary).",
+            "caption": "Tier 1 (ADK Root Orchestrator & 4-Scope State/Memory) → Tier 2 (6 Domain-Scoped Data Agents + Warehouse-wide Fallback) → Tier 3 (32-Table BigQuery Warehouse & Scoped Glossary).",
         },
         "fig2": {
             "src": "./diagrams/fig2_state_architectures_comparison.svg",
@@ -2880,9 +2799,9 @@ UI_EN = {
     },
     "wbBadge": "Interactive Full Live Dual A/B Workbench",
     "wbTitle": "Test Custom Evaluator Prompt Live on GCP",
-    "wbSubtitle": "Runs your prompt on both pipelines at once on Google Cloud. As-Is is a plain ADK agent using the built-in data agent tools on one data agent bound to all 32 tables. To-Be is the Root Router with three domain Sub-Agents, each with a data agent bound to 3 to 5 tables.",
+    "wbSubtitle": "Runs your prompt on both pipelines at once on Google Cloud. As-Is is a plain ADK agent using the built-in data agent tools on one data agent bound to all 32 tables. To-Be is the Root Router with six domain Sub-Agents, each with a data agent bound to 3 to 13 tables, and a fallback Sub-Agent on the warehouse-wide data agent.",
     "wbSchemaSummary": "View Available Dataset Schema & Business KPIs",
-    "wbSchemaBodyHtml": "<strong>Dataset:</strong> <span class='mono'>cymbal_enterprise_dw</span>, 32 tables with table and column descriptions: thelook e-commerce (<span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>) and TPC-DS retail (<span class='mono'>store_sales, web_sales, catalog_sales, returns, inventory, item, customer, promotion</span> and more).<br/><strong>Scenario data:</strong> VIP customer (<span class='mono'>&gt;= $500</span> or <span class='mono'>&gt;= 5 orders</span>), channels (<span class='mono'>Search, Organic, Email, Display</span>), brands (<span class='mono'>Nordic Luxe, TheLook Atelier</span>), distribution centers (<span class='mono'>Memphis TN, Chicago IL</span>). The To-Be data agents cover the thelook tables.",
+    "wbSchemaBodyHtml": "<strong>Dataset:</strong> <span class='mono'>cymbal_enterprise_dw</span>, 32 tables with table and column descriptions: thelook e-commerce (<span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>) and TPC-DS retail (<span class='mono'>store_sales, web_sales, catalog_sales, returns, inventory, item, customer, promotion</span> and more).<br/><strong>Scenario data:</strong> VIP customer (<span class='mono'>&gt;= $500</span> or <span class='mono'>&gt;= 5 orders</span>), channels (<span class='mono'>Search, Organic, Email, Display</span>), brands (<span class='mono'>Nordic Luxe, TheLook Atelier</span>), distribution centers (<span class='mono'>Memphis TN, Chicago IL</span>). The online shop tables (thelook) hold the seeded scenario data; the retail channel tables (TPC-DS: store, catalog, web) hold fixed data from 1998 to 2003. The To-Be domain data agents cover 31 tables and the fallback reaches all 32.",
     "wbPresetLabel": "Quick Evaluator Prompt Variations (Click to Load or Type Any Question Below):",
     "wbPlaceholder": "Enter any analytical question to execute live against both As-Is and To-Be pipelines...",
     "wbBtnRunDual": "Run Full Live Dual A/B on GCP ({CODE}: As-Is vs To-Be)",
@@ -2922,6 +2841,8 @@ UI_EN = {
     "wbTraceNoteMeasured": "BQCA writes its internal LLM calls to Cloud Trace. These figures sum the token usage of the chat calls made in this run. Cost uses list prices.",
     "baselineCardBadge": "Measured baseline run",
     "fanoutHeading": "Measured baseline: one question across three domains",
+    "storeHeading": "Measured baseline: single-domain question on the retail store channel",
+    "crossHeading": "Measured baseline: one result across three retail channels (warehouse-wide fallback)",
     "trackerAdkOnly": "ADK only",
     "trackerAvgTag": "8-turn average",
     "chartNoData": "Not enough measured turns to draw this chart.",
@@ -2944,6 +2865,7 @@ UI_EN = {
             {"label": "Default: 30-Day VIP Revenue & AOV by Channel", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
             {"label": "Product Margin: Outerwear Return Rate & Profit by Brand", "prompt": "For Women's Outerwear & Coats (order_id >= 9900000), compare gross margin %, return and cancellation rate %, and realized gross profit by brand."},
             {"label": "Supply Chain: Delivery Lead Time & Unsold Inventory by DC", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) across distribution centers for recent orders (order_id >= 9900000)."},
+            {"label": "Retail Store Channel: Net Sales & Net Profit by Year", "prompt": "For the retail store channel, show net sales and net profit by year."},
         ],
         "S2": [
             {"label": "Default Follow-Up: Join 14-Day Cart Abandonment to Turn 1", "prompt": "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source."},
@@ -2954,11 +2876,14 @@ UI_EN = {
             {"label": "3-Domain Parallel Root-Cause Fan-Out (Outerwear Profit Drop)", "prompt": "Why is Women's Outerwear & Coats realized profit dropping despite strong VIP sales? Run a parallel cross-domain analysis across: (1) last 30-day VIP orders & gross demand where order_id >= 9900000, (2) Women's 'Outerwear & Coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent Women's Outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000)."},
             {"label": "Peer Switch (0 Root Bounce): Pivot Directly to Supply Chain DC", "prompt": "Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers."},
             {"label": "2-Domain Parallel Check: Brand Returns vs DC Lead Time", "prompt": "Run a parallel cross-domain check comparing Women's Outerwear return rate % by brand (order_id >= 9900000) alongside average delivery lead time by distribution center (order_id >= 9900000)."},
+            {"label": "Three Retail Channels in One Result (Warehouse-wide Fallback)", "prompt": "Compare net profit by year across the retail store, catalog and web channels side by side in one table."},
+            {"label": "Switch to Retail Web Channel: Sales, Profit & Returns by Web Site", "prompt": "For the retail web channel, show net sales, net profit and return amount by web site name."},
         ],
         "S4": [
             {"label": "Turn 5 Custom Query: DC Delivery Delay & Unsold Holding Cost", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center for Women's Outerwear (order_id >= 9900000)."},
             {"label": "Turn 5 Custom Query: VIP Revenue & Order Count by Channel", "prompt": "Show VIP customer count and total gross revenue by traffic_source over the last 30 days."},
             {"label": "Turn 5 Custom Query: Brand Return Rate vs Realized Profit", "prompt": "Compare return and cancellation rate % and realized gross profit ($) between Nordic Luxe and TheLook Atelier (order_id >= 9900000)."},
+            {"label": "Turn 5 Custom Query: Catalog Net Profit by Call Center & Ship Mode", "prompt": "For the retail catalog channel, show net profit by call center name and ship mode type."},
         ],
         "S5": [
             {"label": "Default Session-B Recall: Summarize Root Cause (0 BQCA Scan)", "prompt": "Without running any BigQuery SQL, inspect my rehydrated profile and long-term memory, summarize the pinned Nordic Luxe and Memphis TN DC #1 root-cause anomaly, and give 2 concrete remediation steps."},
@@ -2985,7 +2910,7 @@ UI_KO = {
         "fig1": {
             "src": "./diagrams/fig1_3tier_system_architecture.svg",
             "title": "Fig 1. End-to-End 3-Tier Enterprise System Architecture",
-            "caption": "Tier 1 (ADK Root Orchestrator 및 4-Scope State/Memory) → Tier 2 (3개 Domain-Scoped Stateless BigQuery CAA) → Tier 3 (32-Table BigQuery Warehouse 및 Domain 용어집).",
+            "caption": "Tier 1 (ADK Root Orchestrator 및 4-Scope State/Memory) → Tier 2 (Domain별 Data Agent 6개 + Warehouse 전체 Fallback) → Tier 3 (32-Table BigQuery Warehouse 및 Domain 용어집).",
         },
         "fig2": {
             "src": "./diagrams/fig2_state_architectures_comparison.svg",
@@ -3039,9 +2964,9 @@ UI_KO = {
     },
     "wbBadge": "심사자 직접 입력 · Full Live Dual A/B Workbench",
     "wbTitle": "커스텀 Prompt 실시간 GCP 병렬 비교 실행",
-    "wbSubtitle": "입력한 질문을 두 구성에서 동시에 실행합니다. As-Is는 32개 Table 전체가 연결된 Data Agent 하나에 ADK 내장 data agent Tool을 그대로 쓰는 Agent입니다. To-Be는 Root Router와 Domain별 Sub-Agent 3개이고, 각 Sub-Agent의 Data Agent에는 Table 3~5개가 연결됩니다.",
-    "wbSchemaSummary": "질문 가능한 Dataset Table 및 핵심 KPI 가이드 펼치기",
-    "wbSchemaBodyHtml": "<strong>대상 Dataset:</strong> <span class='mono'>cymbal_enterprise_dw</span>, Table과 Column 설명이 붙은 32개 Table입니다. thelook e-commerce(<span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)와 TPC-DS 소매 Table(<span class='mono'>store_sales, web_sales, catalog_sales, returns, inventory, item, customer, promotion</span> 등)로 구성됩니다.<br/><strong>Scenario 데이터:</strong> VIP 고객(<span class='mono'>$500 이상</span> 또는 <span class='mono'>5회 이상 주문</span>), 유입 채널(<span class='mono'>Search, Organic, Email, Display</span>), Brand(<span class='mono'>Nordic Luxe, TheLook Atelier</span>), 물류센터(<span class='mono'>Memphis TN, Chicago IL</span>). To-Be Data Agent는 thelook Table을 다룹니다.",
+    "wbSubtitle": "입력한 질문을 두 구성에서 동시에 실행합니다. As-Is는 32개 Table 전체가 연결된 Data Agent 하나에 ADK 내장 data agent Tool을 그대로 쓰는 Agent입니다. To-Be는 Root Router와 Domain별 Sub-Agent 6개이고 각 Data Agent에는 Table 3~13개가 연결됩니다. 여러 Domain을 한 결과로 묶는 질문은 Warehouse 전체 Data Agent를 쓰는 Fallback Sub-Agent가 처리합니다.",
+    "wbSchemaSummary": "질문 가능한 Dataset Table 및 핵심 KPI Guide 펼치기",
+    "wbSchemaBodyHtml": "<strong>대상 Dataset:</strong> <span class='mono'>cymbal_enterprise_dw</span>, Table과 Column 설명이 붙은 32개 Table입니다. thelook e-commerce(<span class='mono'>users, events, orders, order_items, products, inventory_items, distribution_centers</span>)와 TPC-DS Retail Table(<span class='mono'>store_sales, web_sales, catalog_sales, returns, inventory, item, customer, promotion</span> 등)로 구성됩니다.<br/><strong>Scenario Data:</strong> VIP 고객(<span class='mono'>$500 이상</span> 또는 <span class='mono'>5회 이상 주문</span>), 유입 경로(<span class='mono'>Search, Organic, Email, Display</span>), Brand(<span class='mono'>Nordic Luxe, TheLook Atelier</span>), 물류센터(<span class='mono'>Memphis TN, Chicago IL</span>). Online Shop Table(thelook)에는 Scenario용 Seed Data가 있고, Retail Channel Table(TPC-DS: Store, Catalog, Web)에는 1998~2003년 고정 Data가 있습니다. To-Be Domain Data Agent는 31개 Table을 다루고 Fallback은 32개 전부에 닿습니다.",
     "wbPresetLabel": "단계별 추천 실험 Prompt (클릭하여 불러오거나 아래 입력창에 자유롭게 수정·입력하세요):",
     "wbPlaceholder": "검증하고 싶은 분석 질문을 영문 또는 한국어로 자유롭게 입력하세요...",
     "wbBtnRunDual": "GCP 실시간 Dual A/B 병렬 실행 ({CODE}: As-Is vs To-Be 동시 비교)",
@@ -3065,7 +2990,7 @@ UI_KO = {
     "flowLegendActive": "현재 실행 중",
     "flowLegendDone": "이번 Turn에서 사용됨",
     "flowLegendIdle": "사용 안 됨",
-    "flowNote": "각 단계는 최소 0.35초 동안 표시되므로 화면이 실제 실행보다 조금 늦을 수 있습니다. BQCA Chat 호출 내부 단계(SQL 생성, BigQuery 실행)는 Stream되지 않으므로 호출이 끝날 때까지 Data Agent와 BigQuery가 켜진 상태로 유지됩니다. As-Is 가운데 열의 list_accessible_data_agents와 get_data_agent_info는 DataAgentToolset이 함께 등록하는 내장 조회용 Tool이며, 일반 데이터 질문에서는 대상 Data Agent 경로가 지정되어 있어 ask_data_agent만 호출되어 점등됩니다(내부에서는 매번 메타데이터 조회가 함께 실행됨). Session State와 Callback은 Event를 내지 않으므로 표시하지 않습니다. 다시 보기는 기록된 순서를 따르며 실제 소요 시간은 반영하지 않습니다.",
+    "flowNote": "각 단계는 최소 0.35초 동안 표시되므로 화면이 실제 실행보다 조금 늦을 수 있습니다. BQCA Chat 호출 내부 단계(SQL 생성, BigQuery 실행)는 Stream되지 않으므로 호출이 끝날 때까지 Data Agent와 BigQuery가 켜진 상태로 유지됩니다. As-Is 가운데 열의 list_accessible_data_agents와 get_data_agent_info는 DataAgentToolset이 함께 등록하는 내장 조회용 Tool이며, 일반 Data 질문에서는 대상 Data Agent 경로가 지정되어 있어 ask_data_agent만 호출되어 점등됩니다(내부에서는 매번 Metadata 조회가 함께 실행됨). Session State와 Callback은 Event를 내지 않으므로 표시하지 않습니다. 다시 보기는 기록된 순서를 따르며 실제 소요 시간은 반영하지 않습니다.",
     "flowStepStart": "Prompt 수신:",
     "flowNotOnDiagram": "(Diagram에 없는 항목)",
     "flowReturned": "결과 반환",
@@ -3081,6 +3006,8 @@ UI_KO = {
     "wbTraceNoteMeasured": "BQCA는 내부 LLM 호출을 Cloud Trace에 기록합니다. 이 실행에서 발생한 Chat 호출의 Token 사용량을 합산했고, 비용은 공시 단가 기준입니다.",
     "baselineCardBadge": "실측 기준 실행",
     "fanoutHeading": "실측 기준치: 세 Domain에 걸친 질문",
+    "storeHeading": "실측 기준치: Retail Store Channel 단일 Domain 질문",
+    "crossHeading": "실측 기준치: 세 Retail Channel을 한 결과로 묶는 질문 (Warehouse 전체 Fallback)",
     "trackerAdkOnly": "ADK만",
     "trackerAvgTag": "8-Turn 평균",
     "chartNoData": "Chart를 그릴 만큼 측정된 Turn이 없습니다.",
@@ -3089,8 +3016,8 @@ UI_KO = {
     "wbMetricLatency": "Latency 실측 (To-Be vs As-Is)",
     "wbMetricLlmCalls": "ADK LLM 호출 수 실측 (To-Be vs As-Is)",
     "wbBarTitle": "이번 실행의 ADK 계층 Prompt Token (Vertex AI usage_metadata)",
-    "wbTraceTitle": "BQCA 계층: Cloud Trace 비캐시 Turn 중앙값이며 이번 실행의 측정값이 아님",
-    "wbTraceNote": "Chat API는 Token 사용량을 반환하지 않습니다. 호출된 Data Agent별로 Cloud Trace에서 비캐시 Chat Turn(cache_read = 0)의 중앙값을 사용해 동일 조건에서 비교합니다. 반면 기준치 행은 사전 실행 한 번의 실제 Span을 그대로 합산한 값(캐시 재조회 포함 가능)이라 차이가 날 수 있습니다. 비용은 공시 단가 기준입니다. 측정 시각(UTC):",
+    "wbTraceTitle": "BQCA 계층: Cloud Trace Uncached Turn 중앙값이며 이번 실행의 측정값이 아님",
+    "wbTraceNote": "Chat API는 Token 사용량을 반환하지 않습니다. 호출된 Data Agent별로 Cloud Trace에서 Uncached Chat Turn(cache_read = 0)의 중앙값을 사용해 동일 조건에서 비교합니다. 반면 기준치 행은 사전 실행 한 번의 실제 Span을 그대로 합산한 값(Cache 재조회 포함 가능)이라 차이가 날 수 있습니다. 비용은 공시 단가 기준입니다. 측정 시각(UTC):",
     "wbTraceUnavailable": "호출된 Data Agent 중 Cloud Trace 측정값이 없는 것이 있어 BQCA 계층 Token은 표시하지 않습니다.",
     "wbPrereqNote": "이 Session에 선행 Turn이 없어 Turn 1을 먼저 실행했습니다:",
     "wbErrorLabel": "오류",
@@ -3100,24 +3027,28 @@ UI_KO = {
     "wbS4Hint": "S4 첫 실행은 입력한 질문 앞에 실제 Turn 3개를 두 구성 모두에서 먼저 실행하므로 1~2분이 걸립니다.",
     "wbPresets": {
         "S1": [
-            {"label": "기본 검증: 최근 30일 유입 채널별 VIP 고객수·매출·AOV", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
+            {"label": "기본 검증: 최근 30일 유입 경로별 VIP 고객수·매출·AOV", "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days."},
             {"label": "상품 Margin 변형: 여성 아우터 Brand별 반품률 및 실현 이익 비교", "prompt": "For Women's Outerwear & Coats (order_id >= 9900000), compare gross margin %, return and cancellation rate %, and realized gross profit by brand."},
             {"label": "물류 DC 변형: 물류센터별 평균 배송 소요일 및 미판매 재고 원가", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) across distribution centers for recent orders (order_id >= 9900000)."},
+            {"label": "Retail Store Channel: 연도별 Net Sales와 Net Profit", "prompt": "For the retail store channel, show net sales and net profit by year."},
         ],
         "S2": [
-            {"label": "기본 후속 질문: 직전 결과 채널 유지 + 14일 장바구니 이탈률 결합", "prompt": "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source."},
-            {"label": "후속 변형 2: 직전 조회 채널 중 AOV 상위 3개 채널 추출", "prompt": "From those exact acquisition channels in our previous query, rank the top 3 channels by average order value (AOV) and show their VIP share."},
-            {"label": "후속 변형 3: 동일 유입 채널 기준 90일 휴면 고객 수 추가 결합", "prompt": "Using the same traffic_source breakdown from our previous result, add the count of dormant customers with zero orders in the last 90 days."},
+            {"label": "기본 후속 질문: 직전 결과 유입 경로 유지 + 14일 장바구니 이탈률 결합", "prompt": "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source."},
+            {"label": "후속 변형 2: 직전 조회 유입 경로 중 AOV 상위 3개 추출", "prompt": "From those exact acquisition channels in our previous query, rank the top 3 channels by average order value (AOV) and show their VIP share."},
+            {"label": "후속 변형 3: 동일 유입 경로 기준 90일 휴면 고객 수 추가 결합", "prompt": "Using the same traffic_source breakdown from our previous result, add the count of dormant customers with zero orders in the last 90 days."},
         ],
         "S3": [
             {"label": "3-Domain 병렬 원인 규명: VIP 호조 속 아우터 수익 급감 원인", "prompt": "Why is Women's Outerwear & Coats realized profit dropping despite strong VIP sales? Run a parallel cross-domain analysis across: (1) last 30-day VIP orders & gross demand where order_id >= 9900000, (2) Women's 'Outerwear & Coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent Women's Outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000)."},
             {"label": "Peer 직접 전환(Root 생략): 마케팅에서 물류 DC 배송 지연으로 즉시 전환", "prompt": "Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers."},
             {"label": "2-Domain 병렬 비교: Brand별 반품률 vs 물류센터별 배송 소요일", "prompt": "Run a parallel cross-domain check comparing Women's Outerwear return rate % by brand (order_id >= 9900000) alongside average delivery lead time by distribution center (order_id >= 9900000)."},
+            {"label": "세 Retail Channel을 한 결과로 비교 (Warehouse 전체 Fallback)", "prompt": "Compare net profit by year across the retail store, catalog and web channels side by side in one table."},
+            {"label": "Retail Web Channel로 전환: Web Site별 매출·이익·반품", "prompt": "For the retail web channel, show net sales, net profit and return amount by web site name."},
         ],
         "S4": [
             {"label": "Turn 5 커스텀 검증: 물류센터별 평균 배송 소요일 및 미판매 재고 비용", "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center for Women's Outerwear (order_id >= 9900000)."},
-            {"label": "Turn 5 커스텀 검증: 최근 30일 채널별 VIP 고객 수 및 총매출", "prompt": "Show VIP customer count and total gross revenue by traffic_source over the last 30 days."},
+            {"label": "Turn 5 커스텀 검증: 최근 30일 유입 경로별 VIP 고객 수 및 총매출", "prompt": "Show VIP customer count and total gross revenue by traffic_source over the last 30 days."},
             {"label": "Turn 5 커스텀 검증: Nordic Luxe vs TheLook Atelier 반품률·실현이익", "prompt": "Compare return and cancellation rate % and realized gross profit ($) between Nordic Luxe and TheLook Atelier (order_id >= 9900000)."},
+            {"label": "Turn 5 커스텀 검증: Catalog Channel Call Center·Ship Mode별 Net Profit", "prompt": "For the retail catalog channel, show net profit by call center name and ship mode type."},
         ],
         "S5": [
             {"label": "기본 신규 Session-B 복원: BigQuery 재실행 없이 핵심 원인 및 대책 요약", "prompt": "Without running any BigQuery SQL, inspect my rehydrated profile and long-term memory, summarize the pinned Nordic Luxe and Memphis TN DC #1 root-cause anomaly, and give 2 concrete remediation steps."},
@@ -3133,19 +3064,19 @@ KO_SCENARIO_OVERRIDES = {
         "track": "Routing과 Schema 분리",
         "title": "통합 Data Agent 하나 vs Router와 Domain별 Data Agent",
         "challenge": "As-Is Agent는 모든 질문을 Warehouse 전체(설명이 붙은 32개 Table)와 모든 Domain 용어집이 연결된 Data Agent 하나로 보냅니다. BQCA는 내부 LLM 호출마다 그 Schema를 다시 읽습니다.",
-        "architecture_mechanism": "Root Router가 질문을 Sub-Agent 3개 중 하나로 넘깁니다. 각 Sub-Agent는 Table 3~5개와 자기 Domain 용어집만 연결된 Data Agent를 호출하므로, BQCA가 호출마다 읽는 Context가 작습니다.",
+        "architecture_mechanism": "Root Router가 질문을 Domain Sub-Agent 6개 중 하나로 넘깁니다. 각 Sub-Agent는 Table 3~13개와 자기 Domain 용어집만 연결된 Data Agent를 호출하므로 BQCA가 호출마다 읽는 Context가 작습니다. 한 Query로 Join해야 하는 Table은 같은 Data Agent에 둡니다.",
     },
     "S2": {
         "track": "Stateless Chat API에서의 Multi-Turn 문맥",
         "title": "후속 질문: 호출당 Message 1개 vs 3-Turn Message Window",
         "challenge": "ADK 내장 ask_data_agent Tool은 현재 질문만 BQCA에 보냅니다. 이전 결과를 가리키는 후속 질문에서는 Root LLM이 문맥을 직접 다시 써 주지 않으면 Data Agent가 이전 내용을 알 수 없습니다.",
-        "architecture_mechanism": "Sub-Agent가 Domain별로 최근 3개 문답을 ADK Session State에 보관하고 새 질문과 함께 보냅니다. 서버 측 대화 없이도 BQCA가 이전 Turn을 봅니다.",
+        "architecture_mechanism": "Sub-Agent가 Domain별로 최근 3개 문답을 ADK Session State에 보관하고 새 질문과 함께 보냅니다. Server 측 대화 없이도 BQCA가 이전 Turn을 봅니다.",
     },
     "S3": {
         "track": "Domain 전환과 병렬 Fan-out",
         "title": "Session 도중 Domain 전환, 그리고 세 Domain 동시 질문",
         "challenge": "Data Agent가 하나면 Domain 전환도 같은 큰 Context에 던지는 또 하나의 질문일 뿐이고, 여러 Domain에 걸친 질문은 긴 호출 하나로 처리됩니다.",
-        "architecture_mechanism": "Sub-Agent가 다른 Domain의 Sub-Agent로 직접 넘길 수 있습니다. 여러 Domain에 걸친 질문은 Root Router가 Domain별 Data Agent를 동시에 호출한 뒤 하나로 정리합니다.",
+        "architecture_mechanism": "Sub-Agent가 다른 Domain의 Sub-Agent로 직접 넘길 수 있습니다. 여러 Domain에 대한 별개 질문은 Root Router가 Domain별 Data Agent를 동시에 호출한 뒤 하나로 정리합니다. 한 결과에 여러 Domain의 Table이 필요한 질문은 Warehouse 전체 Data Agent를 쓰는 Fallback Sub-Agent로 보내며, 이때 BQCA Input은 As-Is와 비슷합니다.",
     },
     "S4": {
         "track": "긴 Session의 Token 증가",
@@ -3177,26 +3108,237 @@ def build_disclosure_html(lang: str, data: dict) -> str:
     day = str(data.get("generated_at_utc", ""))[:10]
     env = data.get("environment", {})
     adk = env.get("adk_version", "")
+    n_runs = _repeat_runs()["runs_measured"]
     if lang == "ko":
         return (
             f"<strong>수치 산출 방법.</strong> 두 구성 모두 {day}에 Google Cloud에서 실제로 실행했습니다(<span class='mono'>google-adk {adk}</span>). "
             "ADK 계층 Token은 Vertex AI usage_metadata, BQCA 계층 Token은 각 실행에서 발생한 Chat 호출의 Cloud Trace Span에서 읽었고, 가정으로 계산한 값은 없습니다. "
             "Warehouse는 기업 규모 Schema를 재현한 합성 구성입니다. thelook 7개와 TPC-DS 25개, 모두 32개 Table에 규칙으로 생성한 Table·Column 설명을 붙였습니다. "
-            "As-Is는 32개 Table 전체와 모든 Domain 용어집을 Data Agent 하나에 연결하고, To-Be는 Domain별 Data Agent에 Table 3~5개를 연결합니다. "
+            "As-Is는 32개 Table 전체와 모든 Domain 용어집을 Data Agent 하나에 연결하고, To-Be는 Domain별 Data Agent 6개에 Table 3~13개씩 연결하고, 한 결과에 여러 Domain이 필요한 질문은 Warehouse 전체 Data Agent로 보냅니다. 개별 행의 Token 차이에는 BQCA Cache 상태가 섞이므로 비용과 함께 봐 주세요. "
+            f"같은 Code로 이날 Scenario를 {n_runs}회 측정했습니다. Card에는 그중 Gemini 호출 대기가 분 단위로 길어진 구간이 없는 1회를 측정 후에 골라 표시했고, 개별 행의 Token 차이는 실행 간 20~30%p 달랐습니다(전체 실행: \u003cspan class='mono'\u003ebenchmarks/repeat_runs.json\u003c/span\u003e). "
             "실시간 Workbench 실행에서는 ADK 계층을 직접 측정하고, Chat API가 Token 사용량을 반환하지 않으므로 BQCA 계층은 Data Agent별 Cloud Trace 중앙값을 표시합니다."
         )
     return (
         f"<strong>How these numbers were produced.</strong> Both pipelines ran on Google Cloud on {day} (<span class='mono'>google-adk {adk}</span>). "
         "ADK-tier tokens come from Vertex AI usage_metadata. BQCA-tier tokens come from the Cloud Trace spans of the chat calls made in each run. Nothing is modeled. "
         "The warehouse is a synthetic reproduction of an enterprise-scale schema: 32 tables (thelook 7 and TPC-DS 25) with table and column descriptions generated by rule. "
-        "As-Is binds all 32 tables and every domain glossary to one data agent. To-Be binds 3 to 5 tables to each domain data agent. "
+        "As-Is binds all 32 tables and every domain glossary to one data agent. To-Be binds 3 to 13 tables to each of six domain data agents and sends questions that need several domains in one result to the warehouse-wide data agent. Token deltas of single rows mix cached and uncached BQCA turns, so read them with the cost. "
+        f"The scenarios were measured {n_runs} times that day with the same code. The cards show one run, picked afterwards because it had no wait of several minutes on a Gemini call; single-row token deltas differed by 20 to 30 points between the runs (all runs: \u003cspan class='mono'\u003ebenchmarks/repeat_runs.json\u003c/span\u003e). "
         "Live workbench runs measure the ADK tier directly and show the Cloud Trace median per data agent for the BQCA tier, because the chat API returns no token usage."
     )
 
 
-def render_page(template: str, data_obj: dict, ui_obj: dict) -> str:
+CALIBRATION_FILE = REPO_ROOT / "benchmarks" / "bqca_trace_token_calibration.json"
+ANSWER_CHECK_FILE = REPO_ROOT / "benchmarks" / "answer_check_results.json"
+REPEAT_RUNS_FILE = REPO_ROOT / "benchmarks" / "repeat_runs.json"
+
+
+def _repeat_runs() -> dict:
+    """The three runs measured with the same code; the benchmark file holds the one marked `_shown`."""
+    return json.loads(REPEAT_RUNS_FILE.read_text(encoding="utf-8"))
+
+
+def _repeat_range(label: str, ko: bool) -> str:
+    """Token and cost delta ranges of one row over all measured runs, e.g. `-51.8% to -28.9% / -59.8% to -36.8%`."""
+    rows = [r["rows"][label] for r in _repeat_runs()["runs"]]
+    sep = "~" if ko else " to "
+    span = lambda k: f"{min(x[k] for x in rows):+.1f}%{sep}{max(x[k] for x in rows):+.1f}%"
+    return f"{span('total_input_delta_pct')} / {span('cost_delta_pct')}"
+_SHOP_AGENTS = ("cymbal_customer_marketing_ca", "cymbal_product_profitability_ca", "cymbal_supply_chain_ca")
+_RETAIL_AGENTS = ("cymbal_store_channel_ca", "cymbal_catalog_channel_ca", "cymbal_web_channel_ca")
+_MONO_AGENT = "cymbal_enterprise_monolithic_ca"
+_CHECK_LABELS = {
+    "s1_vip_by_source": ("online shop S1", "Online Shop S1"),
+    "s1_store_by_year": ("retail store S1", "Retail Store S1"),
+    "s2_follow_up_cart": ("follow-up S2", "후속 질문 S2"),
+    "s3_switch_supply_chain": ("domain switch S3", "Domain 전환 S3"),
+    "s3_three_domains": ("three domains S3", "3-Domain S3"),
+    "s3_cross_channel_fallback": ("cross-channel S3", "Channel 비교 S3"),
+    "s4_dc_outerwear": ("S4 preset", "S4 Preset"),
+}
+
+
+def build_overview_html(lang: str, data: dict) -> str:
+    """The three overview cards. Every figure is read from the benchmark, calibration and answer-check files."""
+    ko = lang == "ko"
+    sc = {x["code"]: x for x in data["scenarios"]}
+    cal = json.loads(CALIBRATION_FILE.read_text(encoding="utf-8"))["per_data_agent"]
+    med = lambda a: int(cal[a]["median_input_tokens_per_turn"])
+    thin = [a for a in (*_SHOP_AGENTS, *_RETAIL_AGENTS, _MONO_AGENT) if cal[a].get("median_basis") != "uncached_turns"]
+    if thin:
+        raise SystemExit(f"[ERROR] No uncached Cloud Trace turn sampled for {thin}; run more questions, then scripts/05 again.")
+    shop, retail, mono = [med(a) for a in _SHOP_AGENTS], [med(a) for a in _RETAIL_AGENTS], med(_MONO_AGENT)
+    # Agents whose uncached median is at least 5% below the warehouse-wide agent, and those that are not.
+    names = {"cymbal_customer_marketing_ca": "Customer", "cymbal_product_profitability_ca": "Product", "cymbal_supply_chain_ca": "Supply Chain",
+             "cymbal_store_channel_ca": "Store", "cymbal_catalog_channel_ca": "Catalog", "cymbal_web_channel_ca": "Web"}
+    red = {a: (1 - med(a) / mono) * 100 for a in names}
+    gain = [a for a in names if red[a] >= 5]
+    flat = [a for a in names if red[a] < 5]
+    g_lo, g_hi = f"{min(red[a] for a in gain):.0f}%", f"{max(red[a] for a in gain):.0f}%"
+    per_agent = ", ".join(f"{names[a]} {med(a):,}" for a in names)
+    flat_names = ", ".join(names[a] for a in flat)
+    if ko:
+        head_tail = f", {flat_names} Domain은 감소 없음" if flat else ""
+        flat_note = " ".join(
+            f"{names[a]} Data Agent는 표본 {cal[a]['chat_turns_sampled']}개 Turn 모두 {int(cal[a]['min_input_tokens_per_turn']):,} tok 이상으로 Warehouse 전체 Data Agent와 같은 수준이었습니다(중앙값 {med(a):,}). "
+            "연결한 Schema와 Instruction 크기는 Catalog Data Agent와 비슷하며, 원인은 확인하지 못했습니다."
+            for a in flat)
+    else:
+        head_tail = f", none on the {flat_names} domain" if flat else ""
+        flat_note = " ".join(
+            f"The {names[a]} data agent stayed level with the warehouse-wide data agent: all {cal[a]['chat_turns_sampled']} sampled turns were at {int(cal[a]['min_input_tokens_per_turn']):,} tokens or more (median {med(a):,}). "
+            "Its bound schema and instruction are about the same size as the Catalog data agent's, and the cause is not identified."
+            for a in flat)
+    less = lambda v: f"{(1 - v / mono) * 100:.0f}%"
+    pct = lambda v: "n/a" if v is None else f"{v:+.1f}%"
+
+    def deltas(payload: dict) -> tuple[str, str]:
+        t = payload["comparison_summary"]["trace_estimate"] or {}
+        return pct(t.get("total_input_delta_pct")), pct(t.get("cost_delta_pct"))
+
+    s1_tok, s1_cost = deltas(sc["S1"]["result"])
+    rr = _repeat_runs()
+    shown = [r for r in rr["runs"] if r["run"].endswith("_shown")][0]
+    if shown["generated_at_utc"] != data["generated_at_utc"]:
+        raise SystemExit("[ERROR] benchmarks/repeat_runs.json does not describe the current benchmark file; refresh it.")
+    n_runs = rr["runs_measured"]
+    rng = lambda label: _repeat_range(label, ko)
+    st_tok, st_cost = deltas(sc["S1"]["store_channel"])
+    cx_tok, cx_cost = deltas(sc["S3"]["cross_channel"])
+    fan = sc["S3"]["fanout"]
+    fan_tok, fan_cost = deltas(fan)
+    fan_m = fan["comparison_summary"]["measured"]
+    avg = data["s4_average_per_turn"]
+    avg_tok = pct((avg["tobe_total_input_tokens"] / avg["asis_total_input_tokens"] - 1) * 100)
+    avg_cost = pct((avg["tobe_cost_usd"] / avg["asis_cost_usd"] - 1) * 100)
+    curve = data["s4_turn_curve"]
+    asis_first, asis_last = curve[0]["asis_adk_prompt_tokens"], max(r["asis_adk_prompt_tokens"] for r in curve)
+    s5 = sc["S5"]["result"]["comparison_summary"]["measured"]
+    s5_calls, s5_secs = s5["tobe_bqca_calls"], s5["tobe_latency_ms"] / 1000
+
+    check_html = ""
+    if ANSWER_CHECK_FILE.is_file():
+        chk = json.loads(ANSWER_CHECK_FILE.read_text(encoding="utf-8"))
+        parts = [
+            f"{_CHECK_LABELS[q['key']][1 if ko else 0]} {q['tobe_all_found']} vs {q['asis_all_found']}"
+            for q in chk["questions"] if q["key"] in _CHECK_LABELS and q["runs"]
+        ]
+        n = chk["runs_per_question"]
+        er = (chk.get("earlier_run") or {}).get("runs_without_any_reference_figure")
+        if er and ko:
+            earlier = (f" 같은 날 먼저 실행한 1차 대조에서는 기준 수치가 하나도 나오지 않은 실행이 To-Be {er['tobe']}회, As-Is {er['asis']}회 있었습니다. "
+                       "1차 실행은 출력을 남기지 않아 원인을 확인하지 못했고, 횟수는 <span class=\"mono\">benchmarks/answer_check_results.json</span>에 함께 기록했습니다.")
+        elif er:
+            earlier = (f" A first run the same day had {er['tobe']} To-Be and {er['asis']} As-Is runs in which no reference figure was found. "
+                       "It kept no outputs, so the cause is unknown; its counts are in <span class=\"mono\">benchmarks/answer_check_results.json</span>.")
+        else:
+            earlier = ""
+        if ko:
+            check_html = (f"<li><strong>답변 대조 (질문당 {n}회, To-Be vs As-Is):</strong> 기준 값의 모든 수치가 결과에 있던 횟수는 "
+                          + ", ".join(parts) + "입니다. 표본이 작아 실행마다 달라지며, 정확도 평가가 아닙니다." + earlier + "</li>")
+        else:
+            check_html = (f"<li><strong>Answer check ({n} runs per question, To-Be vs As-Is):</strong> runs in which every reference figure appeared in the result: "
+                          + ", ".join(parts) + ". The sample is small and varies between runs; this is not an accuracy evaluation." + earlier + "</li>")
+
+    chips = "".join(
+        f'<button type="button" class="jump-chip" data-jump-scenario="{i}">{label}</button>'
+        for i, label in enumerate(
+            ["S1 · Schema 분리", "S2 · 후속 문맥", "S3 · 전환·병렬·Fallback", "S4 · 8-Turn", "S5 · Memory 복원"] if ko
+            else ["S1 · Scoped Routing", "S2 · Follow-Up", "S3 · Switch, Fan-Out, Fallback", "S4 · 8 Turns", "S5 · Memory Recall"]
+        )
+    )
+    mono_ = '<span class="mono">'
+    if ko:
+        return f"""<div class="story-grid">
+        <div class="story-card pain">
+          <div>
+            <span class="tag tag-red">1. 현장 상황과 Pain Point</span>
+            <h3>단일 Data Agent 구성이 Warehouse 규모에서 겪는 문제</h3>
+          </div>
+          <p class="story-intro">여러 사업부가 함께 쓰는 Data Warehouse에 대화형 Agent를 연결하면 두 계층에서 다음 세 가지가 나타납니다.</p>
+          <ul class="story-list">
+            <li><strong>호출마다 다시 읽는 Schema와 쌓이는 이력:</strong> BQCA Chat Turn은 보통 내부 LLM 호출 2회로 처리되고 호출마다 연결된 Schema와 Glossary를 읽습니다. 32개 Table을 연결한 Data Agent의 Uncached Turn 중앙값은 {mono:,} tok입니다. ADK 기본 Session은 Tool 원본 응답을 계속 재전송해 8 Turn 동안 Prompt가 {asis_first:,}에서 {asis_last:,} tok으로 늘었습니다.</li>
+            <li><strong>호출당 Message 1개, 또는 대화당 Data Agent 1개:</strong> ADK 내장 {mono_}ask_data_agent</span>는 현재 질문 하나만 보내므로 이전 조건은 Root LLM이 질문에 다시 써 넣어야 합니다. Server 관리형 {mono_}ConversationReference</span>는 이력을 보관하지만 대화가 Data Agent 하나에 묶입니다.</li>
+            <li><strong>Session 사이에 이어지는 것이 없음:</strong> 새 Session에서는 앞선 분석 결과와 사용자 선호를 참조할 수 없습니다.</li>
+          </ul>
+        </div>
+
+        <div class="story-card approach">
+          <div>
+            <span class="tag tag-blue">2. 기술적 해결 구조</span>
+            <h3>Domain별 Data Agent와 ADK가 관리하는 State</h3>
+          </div>
+          <p class="story-intro">Schema 범위를 Domain별로 나누고 대화 문맥은 ADK 계층에서 관리합니다. 나눌 수 없는 질문은 Warehouse 전체 Data Agent로 보냅니다.</p>
+          <ul class="story-list">
+            <li><strong>Domain Data Agent 6개와 Fallback:</strong> Root Router가 Online Shop 3개(Customer, Product, Supply Chain)와 Retail Channel 3개(Store, Catalog, Web) Sub-Agent로 질문을 넘깁니다. 각 Data Agent에는 Table 3~13개와 전용 Glossary만 연결합니다. 한 Query로 Join해야 하는 Table은 같은 Data Agent에 둡니다. 한 결과에 여러 Domain이 필요하거나 맞는 Domain이 없으면 Warehouse 전체 Data Agent를 쓰는 Fallback Sub-Agent가 처리합니다.</li>
+            <li><strong>두 계층의 크기 제한:</strong> Stateless {mono_}:chat</span> 호출에는 해당 Domain의 최근 3 Turn({mono_}[-6:]</span>)만 함께 보냅니다. ADK 계층은 고정 Instruction, Sub-Agent당 Tool 1개, 최근 사용자 질문 3개까지의 이력, 축약한 Tool 결과, 단일 Domain 요약 생략({mono_}skip_summarization</span>)을 씁니다.</li>
+            <li><strong>State 범위와 Memory:</strong> {mono_}temp:</span>, Session, {mono_}user:</span>, {mono_}app:</span> 범위를 나누고 {mono_}MemoryService</span>와 연결해 새 Session에서 저장된 내용을 BQCA 호출 없이 읽습니다.</li>
+          </ul>
+        </div>
+
+        <div class="story-card outcome">
+          <div>
+            <span class="tag tag-green">3. 측정 결과와 확인 위치</span>
+            <h3>Domain 6개 중 {len(gain)}개에서 BQCA Input 약 {g_lo}~{g_hi} 감소{head_tail}</h3>
+          </div>
+          <p class="story-intro">아래 단계(S1~S5)에서 사전 측정값, 실시간 Dual A/B 실행, 실행 흐름 Diagram, 기준 SQL 결과를 함께 볼 수 있습니다.</p>
+          <ul class="story-list">
+            <li><strong>Domain별 Turn당 BQCA Input (Cloud Trace Uncached 중앙값):</strong> {per_agent} tok, Warehouse 전체 Data Agent {mono:,} tok입니다. {len(gain)}개 Data Agent는 Warehouse 전체보다 {g_lo}~{g_hi} 적습니다. Store와 Catalog는 Fact에 공용 Dimension이 따라와 Online Shop Domain보다 차이가 작습니다. {flat_note}</li>
+            <li><strong>측정 행 (Input Token / 공시 단가 비용):</strong> Online Shop 질문(S1) {s1_tok} / {s1_cost}, Retail Store 질문(S1) {st_tok} / {st_cost}, 8-Turn Session 평균(S4) {avg_tok} / {avg_cost}. {n_runs}회 측정 중 1회의 값이며, {n_runs}회 전체 범위는 차례로 {rng("s1_online_shop")}, {rng("s1_retail_store")}, {rng("s4_average_8_turns")}입니다. 신규 Session 기억 질문(S5)은 BQCA 호출 {s5_calls}회, {s5_secs:.1f}초였습니다. 개별 행의 Token 차이에는 BQCA Cache 상태가 섞이므로 비용과 함께 봐 주세요.</li>
+            <li><strong>차이가 없거나 실행에 따라 달라지는 경우:</strong> 세 Retail Channel을 한 결과로 묶는 질문은 Fallback이 Warehouse 전체 Data Agent를 호출합니다({cx_tok} / {cx_cost}, {n_runs}회 범위 {rng("s3_cross_channel")}). 세 Domain에 대한 별개 질문은 To-Be가 Domain마다 한 번씩 호출하므로 As-Is의 호출 수에 따라 결과가 달라집니다(이번 측정 {fan_tok} / {fan_cost}, {n_runs}회 범위 {rng("s3_fanout")}, 호출 {fan_m['tobe_bqca_calls']}회 대 {fan_m['asis_bqca_calls']}회).</li>
+            {check_html}
+          </ul>
+          <div class="jump-chip-row" aria-label="Scenario 바로가기">{chips}</div>
+        </div>
+      </div>"""
+    return f"""<div class="story-grid">
+        <div class="story-card pain">
+          <div>
+            <span class="tag tag-red">1. Customer context &amp; pain points</span>
+            <h3>What a single data agent runs into at warehouse scale</h3>
+          </div>
+          <p class="story-intro">Connecting a conversational agent to a warehouse shared by several departments shows three things across the ADK and BQCA tiers.</p>
+          <ul class="story-list">
+            <li><strong>Schema read on every call, history that keeps growing:</strong> a BQCA chat turn usually runs two internal LLM calls, and each reads the schema and glossary bound to the data agent. The data agent bound to all 32 tables has an uncached median of {mono:,} input tokens per turn. The default ADK session replays raw tool responses, so its prompt grew from {asis_first:,} to {asis_last:,} tokens over 8 turns.</li>
+            <li><strong>One message per call, or one data agent per conversation:</strong> the built-in {mono_}ask_data_agent</span> sends only the current question, so the root LLM has to write earlier conditions back into it. The server-managed {mono_}ConversationReference</span> keeps history but ties the conversation to one data agent.</li>
+            <li><strong>Nothing carries over between sessions:</strong> a new session cannot refer to earlier findings or user preferences.</li>
+          </ul>
+        </div>
+
+        <div class="story-card approach">
+          <div>
+            <span class="tag tag-blue">2. Technical approach</span>
+            <h3>Domain data agents with state managed in ADK</h3>
+          </div>
+          <p class="story-intro">The schema is split by domain and the conversation context is kept in the ADK tier. Questions that cannot be split go to the warehouse-wide data agent.</p>
+          <ul class="story-list">
+            <li><strong>Six domain data agents and a fallback:</strong> the Root Router hands a question to one of three online shop Sub-Agents (Customer, Product, Supply Chain) or three retail channel Sub-Agents (Store, Catalog, Web). Each data agent is bound to 3 to 13 tables and its own glossary. Tables that have to be joined in one query stay in the same data agent. When one result needs several domains, or no domain fits, a fallback Sub-Agent calls the warehouse-wide data agent.</li>
+            <li><strong>Bounded size in both tiers:</strong> a stateless {mono_}:chat</span> call carries the domain's last 3 turns ({mono_}[-6:]</span>). The ADK tier uses static instructions, one tool per Sub-Agent, a history of the last 3 user prompts, reduced tool results and no summarization call on single-domain turns ({mono_}skip_summarization</span>).</li>
+            <li><strong>State scopes and memory:</strong> {mono_}temp:</span>, session, {mono_}user:</span> and {mono_}app:</span> state with a {mono_}MemoryService</span> let a new session read saved content without a BQCA call.</li>
+          </ul>
+        </div>
+
+        <div class="story-card outcome">
+          <div>
+            <span class="tag tag-green">3. Measured outcomes &amp; guide</span>
+            <h3>About {g_lo} to {g_hi} less BQCA input on {len(gain)} of 6 domains{head_tail}</h3>
+          </div>
+          <p class="story-intro">Each step below (S1 to S5) pairs the measured baseline with a live Dual A/B run, an execution flow diagram and reference SQL results.</p>
+          <ul class="story-list">
+            <li><strong>BQCA input per turn by domain (uncached Cloud Trace medians):</strong> {per_agent} tokens, warehouse-wide data agent {mono:,}. {len(gain)} data agents are {g_lo} to {g_hi} below the warehouse-wide one. Store and Catalog save less than the online shop domains because each sales fact brings shared dimension tables with it. {flat_note}</li>
+            <li><strong>Measured rows (input tokens / cost at list prices):</strong> online shop question (S1) {s1_tok} / {s1_cost}, retail store question (S1) {st_tok} / {st_cost}, 8-turn session average (S4) {avg_tok} / {avg_cost}. These are one of {n_runs} runs; over all {n_runs} the ranges were {rng("s1_online_shop")}, {rng("s1_retail_store")} and {rng("s4_average_8_turns")}. New-session recall (S5) made {s5_calls} BQCA calls and took {s5_secs:.1f}s. Token deltas of single rows mix cached and uncached BQCA turns, so read them with the cost.</li>
+            <li><strong>No gain, or dependent on the run:</strong> one result across the three retail channels goes through the fallback to the warehouse-wide data agent ({cx_tok} / {cx_cost}; {n_runs} runs: {rng("s3_cross_channel")}). For separate questions on three domains To-Be makes one call per domain, so the result depends on how many calls As-Is makes ({fan_tok} / {fan_cost} in this run, {rng("s3_fanout")} over {n_runs} runs, {fan_m['tobe_bqca_calls']} vs {fan_m['asis_bqca_calls']} calls).</li>
+            {check_html}
+          </ul>
+          <div class="jump-chip-row" aria-label="Jump to scenario">{chips}</div>
+        </div>
+      </div>"""
+
+
+def render_page(template: str, data_obj: dict, ui_obj: dict, lang: str, en_data: dict) -> str:
     return (
         template.replace("__SHARED_CSS__", SHARED_CSS)
+        .replace("__OVERVIEW_CARDS__", build_overview_html(lang, en_data))
         .replace("__BENCHMARK_JSON_PAYLOAD__", json.dumps(data_obj, ensure_ascii=False))
         .replace("__UI_STRINGS_PAYLOAD__", json.dumps(ui_obj, ensure_ascii=False))
         .replace("__FLOW_MAP_PAYLOAD__", json.dumps(FLOW_MAP))
@@ -3213,8 +3355,8 @@ def main() -> None:
     UI_EN["baselineDisclosureHtml"] = build_disclosure_html("en", en_data)
     UI_KO["baselineDisclosureHtml"] = build_disclosure_html("ko", en_data)
 
-    html_en = render_page(HTML_EN, en_data, UI_EN)
-    html_ko = render_page(HTML_KO, ko_data, UI_KO)
+    html_en = render_page(HTML_EN, en_data, UI_EN, "en", en_data)
+    html_ko = render_page(HTML_KO, ko_data, UI_KO, "ko", en_data)
 
     OUT_HTML_EN.write_text(html_en, encoding="utf-8")
     OUT_HTML_KO.write_text(html_ko, encoding="utf-8")

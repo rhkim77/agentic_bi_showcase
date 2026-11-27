@@ -1,15 +1,17 @@
-"""Cymbal Global Commerce — 3-Domain Multi-Agent Architecture with Live 2-Tier Token Telemetry.
+"""Cymbal Global Commerce — Multi-Domain Multi-Agent Architecture with Live 2-Tier Token Telemetry.
 
 Implements:
-  1. Google ADK (`LlmAgent`) Root Router + 3 Domain-Scoped Sub-Agents (`Path A` Root Delegation, `Path B` Peer Handoff, `Path C` Parallel Fan-out)
+  1. Google ADK (`LlmAgent`) Root Router + 6 Domain-Scoped Sub-Agents and a warehouse-wide fallback Sub-Agent
+     (`Path A` Root Delegation, `Path B` Peer Handoff, `Path C` Parallel Fan-out)
   2. 4-Scope `Session.state` (`temp:*` turn-evicted rows, `session [-6:]` window, `user:*` profile/KPIs, `app:*` counters)
   3. Upstream ADK `before_model_callback` 3-Turn History Compaction + `after_model_callback` `Vertex AI usage_metadata` Telemetry
-  4. Long-Term `MemoryService` (`load_memory`, persistent JSON store) for Cross-Session Recall without BQCA calls
+  4. Long-Term `MemoryService` (`inspect_session_and_memory_status`, persistent JSON store) for Cross-Session Recall without BQCA calls
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import ContextVar
 from datetime import datetime, timezone
@@ -39,6 +41,9 @@ DATASET_ID = os.environ.get("BQ_DATASET_ID", "cymbal_enterprise_dw") or "cymbal_
 CUSTOMER_CA_ID = os.environ.get("CYMBAL_CUSTOMER_CA_ID", "cymbal_customer_marketing_ca")
 PRODUCT_CA_ID = os.environ.get("CYMBAL_PRODUCT_CA_ID", "cymbal_product_profitability_ca")
 SUPPLY_CA_ID = os.environ.get("CYMBAL_SUPPLY_CA_ID", "cymbal_supply_chain_ca")
+STORE_CA_ID = os.environ.get("CYMBAL_STORE_CA_ID", "cymbal_store_channel_ca")
+CATALOG_CA_ID = os.environ.get("CYMBAL_CATALOG_CA_ID", "cymbal_catalog_channel_ca")
+WEB_CA_ID = os.environ.get("CYMBAL_WEB_CA_ID", "cymbal_web_channel_ca")
 BASELINE_CA_ID = os.environ.get("CYMBAL_BASELINE_CA_ID", "cymbal_enterprise_monolithic_ca")
 
 CUSTOMER_CA_RESOURCE = f"projects/{PROJECT_ID}/locations/global/dataAgents/{CUSTOMER_CA_ID}"
@@ -180,6 +185,51 @@ DOMAIN_CATALOG_METADATA: list[dict[str, Any]] = [
             },
         ],
     },
+    {
+        "domain_id": "store_channel",
+        "domain_label": "Store Channel Sales & Returns",
+        "sub_agent_name": "store_channel_subagent",
+        "caa_agent_id": STORE_CA_ID,
+        "caa_resource": f"projects/{PROJECT_ID}/locations/global/dataAgents/{STORE_CA_ID}",
+        "scoped_tables": [
+            "store_sales", "store_returns", "store", "date_dim", "time_dim", "item", "customer", "customer_address",
+            "customer_demographics", "household_demographics", "income_band", "promotion", "reason",
+        ],
+        "glossary_terms": [
+            {"term": "Store Net Sales / Net Profit", "formula": "SUM(ss_ext_sales_price) / SUM(ss_net_profit)"},
+            {"term": "Store Return Amount Rate (%)", "formula": "SUM(sr_return_amt) * 100 / SUM(ss_ext_sales_price), aggregated separately"},
+        ],
+    },
+    {
+        "domain_id": "catalog_channel",
+        "domain_label": "Catalog Channel Sales, Returns & Inventory",
+        "sub_agent_name": "catalog_channel_subagent",
+        "caa_agent_id": CATALOG_CA_ID,
+        "caa_resource": f"projects/{PROJECT_ID}/locations/global/dataAgents/{CATALOG_CA_ID}",
+        "scoped_tables": [
+            "catalog_sales", "catalog_returns", "catalog_page", "call_center", "inventory", "warehouse", "ship_mode",
+            "date_dim", "item", "customer", "promotion",
+        ],
+        "glossary_terms": [
+            {"term": "Catalog Net Sales / Net Profit", "formula": "SUM(cs_ext_sales_price) / SUM(cs_net_profit)"},
+            {"term": "Warehouse Inventory On Hand", "formula": "inventory.inv_quantity_on_hand per weekly snapshot"},
+        ],
+    },
+    {
+        "domain_id": "web_channel",
+        "domain_label": "Web Channel Sales & Returns",
+        "sub_agent_name": "web_channel_subagent",
+        "caa_agent_id": WEB_CA_ID,
+        "caa_resource": f"projects/{PROJECT_ID}/locations/global/dataAgents/{WEB_CA_ID}",
+        "scoped_tables": [
+            "web_sales", "web_returns", "web_site", "web_page", "ship_mode", "warehouse", "time_dim", "date_dim", "item",
+            "customer", "promotion",
+        ],
+        "glossary_terms": [
+            {"term": "Web Net Sales / Net Profit", "formula": "SUM(ws_ext_sales_price) / SUM(ws_net_profit)"},
+            {"term": "Web Return Amount Rate (%)", "formula": "SUM(wr_return_amt) * 100 / SUM(ws_ext_sales_price), aggregated separately"},
+        ],
+    },
 ]
 
 _DEFAULT_USER_PROFILE = {
@@ -283,6 +333,11 @@ async def _sync_store_into_adk_memory_service(
     if inv_ctx is None or getattr(inv_ctx, "memory_service", None) is None:
         return
 
+    def _stable_id(text: str) -> str:
+        # InMemoryMemoryService skips events whose id it already holds. A new Event gets a random id,
+        # so without a content-derived id every sync would add the same entries again.
+        return "ltm-" + hashlib.sha1(text.encode("utf-8")).hexdigest()[:24]
+
     rehydrated_events: list[Event] = []
     for sess_data in store.get("sessions", {}).values():
         for q_item in sess_data.get("domain_query_history", []):
@@ -292,6 +347,7 @@ async def _sync_store_into_adk_memory_service(
             )
             rehydrated_events.append(
                 Event(
+                    id=_stable_id(summary_txt),
                     author=q_item.get("caa_agent_id", "domain_caa_subagent"),
                     content=types.Content(
                         role="model",
@@ -304,6 +360,7 @@ async def _sync_store_into_adk_memory_service(
         if text:
             rehydrated_events.append(
                 Event(
+                    id=_stable_id(text),
                     author="long_term_memory_bank",
                     content=types.Content(
                         role="model",
@@ -332,18 +389,48 @@ def _is_pure_user_text_turn(content: types.Content) -> bool:
     return has_text and not has_fn_resp
 
 
+def _content_text(content: types.Content) -> str:
+    return "\n".join(p.text for p in (content.parts or []) if getattr(p, "text", None)).strip()
+
+
+def _user_prompt_texts(callback_context: CallbackContext) -> set[str]:
+    """Texts the user actually typed in this session (events authored by `user`)."""
+    texts: set[str] = set()
+    try:
+        events = callback_context.session.events
+    except Exception:  # pylint: disable=broad-except
+        return texts
+    for ev in events:
+        if getattr(ev, "author", "") == "user" and ev.content and ev.content.parts:
+            t = _content_text(ev.content)
+            if t:
+                texts.add(t)
+    return texts
+
+
 def _compact_adk_llm_request_window(
     callback_context: CallbackContext,
     llm_request: LlmRequest,
 ) -> LlmResponse | None:
     """Upstream ADK Token Diet: bounds `llm_request.contents` to the last `MAX_ADK_UPSTREAM_USER_TURNS`
-    pure-text user turns so `function_call`/`function_response` history never grows O(N) across long sessions.
+    user prompts so `function_call`/`function_response` history never grows O(N) across long sessions.
+
+    ADK hands another agent's tool calls to the current agent as user-role text ("For context: ...").
+    Those are not user turns, so a turn boundary is a user-role text that the user really typed.
     """
     contents = getattr(llm_request, "contents", None)
     if not contents or not isinstance(contents, list):
         return None
 
-    user_turn_indices = [idx for idx, c in enumerate(contents) if _is_pure_user_text_turn(c)]
+    typed = _user_prompt_texts(callback_context)
+
+    def is_user_prompt(c: types.Content) -> bool:
+        if not _is_pure_user_text_turn(c):
+            return False
+        text = _content_text(c)
+        return (text in typed) if typed else not text.startswith("For context:")
+
+    user_turn_indices = [idx for idx, c in enumerate(contents) if is_user_prompt(c)]
     if len(user_turn_indices) > MAX_ADK_UPSTREAM_USER_TURNS:
         cut_idx = user_turn_indices[-MAX_ADK_UPSTREAM_USER_TURNS]
         dropped_count = cut_idx
@@ -622,6 +709,7 @@ def _query_domain_caa_agent_impl(
     max_table_rows: int = 20,
 ) -> dict[str, Any]:
     t0 = time.monotonic()
+    started_at_utc = datetime.now(timezone.utc).isoformat()
     data_agent_name = f"projects/{PROJECT_ID}/locations/global/dataAgents/{agent_id}"
     session = AuthorizedSession(_get_cloud_platform_adc())
     url = f"https://geminidataanalytics.googleapis.com/v1/projects/{PROJECT_ID}/locations/global:chat"
@@ -750,6 +838,7 @@ def _query_domain_caa_agent_impl(
         "ca_final_answer": ca_final_answer,
         "stripped_thought_chars": raw_thoughts_chars,
         "latency_ms": latency_ms,
+        "started_at_utc": started_at_utc,
     }
     if include_raw_thoughts_for_baseline:
         # Simulates ADK default `ask_data_agent` returning full THOUGHT logs + up to 50 raw JSON rows to the parent LLM
@@ -911,6 +1000,26 @@ async def ask_supply_chain_logistics_caa(query: str, tool_context: ToolContext |
     return await _ask_domain(SUPPLY_CA_ID, "supply_chain", "Supply Chain, Inventory & Fulfillment", query, tool_context)
 
 
+async def ask_store_channel_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+    """Queries the Store Channel data agent (store_sales, store_returns, store and their dimensions; 1998-2003)."""
+    return await _ask_domain(STORE_CA_ID, "store_channel", "Store Channel Sales & Returns", query, tool_context)
+
+
+async def ask_catalog_channel_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+    """Queries the Catalog Channel data agent (catalog_sales, catalog_returns, call_center, inventory, warehouse; 1998-2003)."""
+    return await _ask_domain(CATALOG_CA_ID, "catalog_channel", "Catalog Channel Sales, Returns & Inventory", query, tool_context)
+
+
+async def ask_web_channel_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+    """Queries the Web Channel data agent (web_sales, web_returns, web_site, web_page; 1998-2003)."""
+    return await _ask_domain(WEB_CA_ID, "web_channel", "Web Channel Sales & Returns", query, tool_context)
+
+
+async def ask_enterprise_warehouse_caa(query: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
+    """Queries the warehouse-wide data agent (all 32 tables). Costs about twice the input of a domain data agent."""
+    return await _ask_domain(BASELINE_CA_ID, "enterprise_warehouse", "Enterprise Warehouse (all tables)", query, tool_context)
+
+
 async def run_cross_domain_caa_analysis(
     customer_marketing_query: str = "",
     product_profitability_query: str = "",
@@ -1015,18 +1124,38 @@ def run_cross_domain_caa_analysis_sync(
 # Agent instructions are fully static. Session state, the user profile and memory are NOT templated
 # into the system instruction: a prefix that changes every turn cannot be served from the prompt cache
 # and is re-sent on every LLM call. Profile and memory are read on demand through tools on the root.
+_DOMAIN_GUIDE = (
+    "`customer_marketing_subagent` (online shop customers: VIP, traffic source, AOV, cart abandonment), "
+    "`product_profitability_subagent` (online shop products: margin, profit, returns by product or brand), "
+    "`supply_chain_logistics_subagent` (online shop distribution centers, delivery lead time, inventory items), "
+    "`store_channel_subagent` (retail store channel 1998-2003: store sales and returns, stores, promotions, return reasons, "
+    "shopper education and income band), "
+    "`catalog_channel_subagent` (retail catalog channel 1998-2003: catalog sales and returns, call centers, ship modes, "
+    "catalog pages, warehouse inventory on hand), "
+    "`web_channel_subagent` (retail web channel 1998-2003: web sales and returns, web sites, web pages)"
+)
+
+_FALLBACK_RULE = (
+    "Only if a single result table has to join tables of several domains (for example comparing the store, catalog and web "
+    "channels side by side), or no domain fits, use `enterprise_warehouse_subagent`: it queries all 32 tables in one call"
+)
+
+_FANOUT_CASE = (
+    "the message lists separate questions (for example numbered parts) that belong to two or three different online shop "
+    "domains (customers, products, supply chain)"
+)
+
 _SUB_AGENT_RULES = (
     "Rules:\n"
     "1. Call your data tool with a standalone English question that restates any filters, cohorts or columns "
     "the user refers to from earlier turns. Keep every condition of the user's question as written: product "
     "department, category and brand names, date ranges, and ID filters such as `order_id >= 9900000`. "
     "Do not drop, shorten or generalize them. The tool result is shown to the user as the answer.\n"
-    "2. If the question belongs to one other domain, call `transfer_to_agent` for that sub-agent instead of calling your tool: "
-    "`customer_marketing_subagent` (customers, VIP, traffic source, AOV, cart abandonment), "
-    "`product_profitability_subagent` (margin, profit, returns by product or brand), "
-    "`supply_chain_logistics_subagent` (distribution centers, delivery lead time, inventory).\n"
-    "3. If the question spans several domains, or asks to save a preference or recall earlier sessions, "
-    "call `transfer_to_agent` for `cymbal_enterprise_root_router`."
+    "2. If the whole question belongs to one other domain, call `transfer_to_agent` for that sub-agent instead of calling your tool: "
+    + _DOMAIN_GUIDE + ".\n"
+    "3. If " + _FANOUT_CASE + ", or the user asks to save a preference or recall earlier sessions, call `transfer_to_agent` for "
+    "`cymbal_enterprise_root_router`. It answers each part with its own scoped data agent in parallel.\n"
+    "4. " + _FALLBACK_RULE + ". Call `transfer_to_agent` for it."
 )
 
 _AGENT_CALLBACKS = dict(
@@ -1063,25 +1192,75 @@ supply_chain_logistics_subagent = LlmAgent(
     **_AGENT_CALLBACKS,
 )
 
+store_channel_subagent = LlmAgent(
+    model="gemini-2.5-flash",
+    name="store_channel_subagent",
+    description="Retail store channel (1998-2003): store sales and returns, stores, promotions, return reasons, shopper demographics.",
+    instruction="You are the Store Channel sub-agent.\n" + _SUB_AGENT_RULES,
+    tools=[ask_store_channel_caa],
+    **_AGENT_CALLBACKS,
+)
+
+catalog_channel_subagent = LlmAgent(
+    model="gemini-2.5-flash",
+    name="catalog_channel_subagent",
+    description="Retail catalog channel (1998-2003): catalog sales and returns, call centers, ship modes, warehouse inventory on hand.",
+    instruction="You are the Catalog Channel sub-agent.\n" + _SUB_AGENT_RULES,
+    tools=[ask_catalog_channel_caa],
+    **_AGENT_CALLBACKS,
+)
+
+web_channel_subagent = LlmAgent(
+    model="gemini-2.5-flash",
+    name="web_channel_subagent",
+    description="Retail web channel (1998-2003): web sales and returns by web site and web page.",
+    instruction="You are the Web Channel sub-agent.\n" + _SUB_AGENT_RULES,
+    tools=[ask_web_channel_caa],
+    **_AGENT_CALLBACKS,
+)
+
+enterprise_warehouse_subagent = LlmAgent(
+    model="gemini-2.5-flash",
+    name="enterprise_warehouse_subagent",
+    description="Fallback on the warehouse-wide data agent (all 32 tables): questions that combine several domains in one result or fit no domain.",
+    instruction=(
+        "You are the warehouse-wide fallback sub-agent. Your data tool queries all 32 tables in one call.\n"
+        "Rules:\n"
+        "1. Call your data tool with a standalone English question that keeps every condition of the user's question as written. "
+        "The tool result is shown to the user as the answer.\n"
+        "2. If the question fits exactly one domain, call `transfer_to_agent` for that sub-agent instead, because it costs less: "
+        + _DOMAIN_GUIDE + ".\n"
+        "3. If " + _FANOUT_CASE + ", or the user asks to save a preference or recall earlier sessions, "
+        "call `transfer_to_agent` for `cymbal_enterprise_root_router`."
+    ),
+    tools=[ask_enterprise_warehouse_caa],
+    **_AGENT_CALLBACKS,
+)
+
 root_agent = LlmAgent(
     model="gemini-2.5-flash",
     name="cymbal_enterprise_root_router",
-    description="Root router for three domain-scoped BigQuery CAA sub-agents, with session state and cross-session memory.",
+    description="Root router for six domain-scoped BigQuery CAA sub-agents and a warehouse-wide fallback, with session state and cross-session memory.",
     instruction=(
         "You are the Enterprise Agentic BI root orchestrator.\n"
-        "1. Question spanning 2 or more domains: call `run_cross_domain_caa_analysis` with one targeted sub-question per domain, then give a short synthesis. "
-        "Copy into each sub-question every condition the user gave for that part: product department, category and brand names, date ranges, "
-        "and ID filters such as `order_id >= 9900000`. Do not drop, shorten or generalize them.\n"
-        "2. Saving a profile or preference, or recalling earlier sessions, the profile or pinned insights: call "
+        "1. Saving a profile or preference, or recalling earlier sessions, the profile or pinned insights: call "
         "`save_user_preference_and_memory` or `inspect_session_and_memory_status` and answer from the result. Do not run SQL for recall.\n"
-        "3. Single-domain question: delegate with `transfer_to_agent` to `customer_marketing_subagent` (customers, VIP, traffic source, AOV, "
-        "cart abandonment), `product_profitability_subagent` (margin, profit, returns by product or brand), or "
-        "`supply_chain_logistics_subagent` (distribution centers, delivery lead time, inventory)."
+        "2. Question that fits one domain: delegate with `transfer_to_agent` to that sub-agent: " + _DOMAIN_GUIDE + ".\n"
+        "3. Only if " + _FANOUT_CASE + ": call `run_cross_domain_caa_analysis` with one targeted sub-question per part, "
+        "then give a short synthesis. Copy into each sub-question every condition the user gave for that part: product department, "
+        "category and brand names, date ranges, and ID filters such as `order_id >= 9900000`. Do not drop, shorten or generalize them. "
+        "Never use this tool for a question that one domain can answer: VIP counts, revenue or AOV by traffic source is a customer "
+        "question only.\n"
+        "4. " + _FALLBACK_RULE + ". Delegate with `transfer_to_agent`."
     ),
     sub_agents=[
         customer_marketing_subagent,
         product_profitability_subagent,
         supply_chain_logistics_subagent,
+        store_channel_subagent,
+        catalog_channel_subagent,
+        web_channel_subagent,
+        enterprise_warehouse_subagent,
     ],
     tools=[
         load_memory,

@@ -1,0 +1,1509 @@
+{
+  "generated_at_utc": "2026-11-27T03:08:53Z",
+  "runs_per_question": 5,
+  "method": "A side counts as a full match when every numeric cell of the reference rows appears in its result table or answer text.",
+  "questions": [
+    {
+      "key": "s1_vip_by_source",
+      "scenario": "S1",
+      "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days.",
+      "runs": 5,
+      "tobe_all_found": 5,
+      "asis_all_found": 3,
+      "tobe_cells": [
+        "15/15",
+        "15/15",
+        "15/15",
+        "15/15",
+        "15/15"
+      ],
+      "asis_cells": [
+        "15/15",
+        "15/15",
+        "15/15",
+        "5/15",
+        "5/15"
+      ],
+      "tobe_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "asis_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "key": "s2_follow_up_cart",
+      "scenario": "S2",
+      "prompt": "Keep those exact columns from the previous result and join our 14-day cart session count and cart abandonment rate (%) for each traffic_source.",
+      "runs": 5,
+      "tobe_all_found": 0,
+      "asis_all_found": 0,
+      "tobe_cells": [
+        "15/25",
+        "15/25",
+        "15/25",
+        "15/25",
+        "12/25"
+      ],
+      "asis_cells": [
+        "10/25",
+        "10/25",
+        "15/25",
+        "10/25",
+        "15/25"
+      ],
+      "tobe_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "asis_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "key": "s3_switch_supply_chain",
+      "scenario": "S3",
+      "prompt": "Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers.",
+      "runs": 5,
+      "tobe_all_found": 5,
+      "asis_all_found": 5,
+      "tobe_cells": [
+        "20/20",
+        "20/20",
+        "20/20",
+        "20/20",
+        "20/20"
+      ],
+      "asis_cells": [
+        "20/20",
+        "20/20",
+        "20/20",
+        "20/20",
+        "20/20"
+      ],
+      "tobe_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "asis_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "key": "s3_three_domains",
+      "scenario": "S3",
+      "prompt": "Why is Women's Outerwear & Coats realized profit dropping despite strong VIP sales? Run a parallel cross-domain analysis across: (1) last 30-day VIP orders & gross demand where order_id >= 9900000, (2) Women's 'Outerwear & Coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent Women's Outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000).",
+      "runs": 5,
+      "tobe_all_found": 0,
+      "asis_all_found": 1,
+      "tobe_cells": [
+        "12/13",
+        "12/13",
+        "10/13",
+        "12/13",
+        "10/13"
+      ],
+      "asis_cells": [
+        "12/13",
+        "12/13",
+        "12/13",
+        "13/13",
+        "12/13"
+      ],
+      "tobe_bqca_calls": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "asis_bqca_calls": [
+        1,
+        1,
+        1,
+        3,
+        1
+      ]
+    },
+    {
+      "key": "s3_cross_channel_fallback",
+      "scenario": "S3",
+      "prompt": "Compare net profit by year across the retail store, catalog and web channels side by side in one table.",
+      "runs": 5,
+      "tobe_all_found": 5,
+      "asis_all_found": 5,
+      "tobe_cells": [
+        "24/24",
+        "24/24",
+        "24/24",
+        "24/24",
+        "24/24"
+      ],
+      "asis_cells": [
+        "24/24",
+        "24/24",
+        "24/24",
+        "24/24",
+        "24/24"
+      ],
+      "tobe_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "asis_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "key": "s4_dc_outerwear",
+      "scenario": "S4",
+      "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center for Women's Outerwear (order_id >= 9900000).",
+      "runs": 5,
+      "tobe_all_found": 5,
+      "asis_all_found": 5,
+      "tobe_cells": [
+        "4/4",
+        "4/4",
+        "4/4",
+        "4/4",
+        "4/4"
+      ],
+      "asis_cells": [
+        "4/4",
+        "4/4",
+        "4/4",
+        "4/4",
+        "4/4"
+      ],
+      "tobe_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "asis_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "key": "s1_store_by_year",
+      "scenario": "S1",
+      "prompt": "For the retail store channel, show net sales and net profit by year.",
+      "runs": 5,
+      "tobe_all_found": 5,
+      "asis_all_found": 5,
+      "tobe_cells": [
+        "18/18",
+        "18/18",
+        "18/18",
+        "18/18",
+        "18/18"
+      ],
+      "asis_cells": [
+        "18/18",
+        "18/18",
+        "18/18",
+        "18/18",
+        "18/18"
+      ],
+      "tobe_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "asis_bqca_calls": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "errors": [],
+  "runs": [
+    {
+      "key": "s1_vip_by_source",
+      "run": 1,
+      "reference_executed_at_utc": "2026-11-27T03:04:14Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 320,
+        "answer_chars": 870,
+        "numbers_in_output": 32
+      },
+      "asis": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 291,
+        "answer_chars": 1059,
+        "numbers_in_output": 43
+      }
+    },
+    {
+      "key": "s2_follow_up_cart",
+      "run": 1,
+      "reference_executed_at_utc": "2026-11-27T03:04:49Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 562,
+        "answer_chars": 1241,
+        "numbers_in_output": 60
+      },
+      "asis": {
+        "reference_cells_found": 10,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 423,
+        "answer_chars": 1464,
+        "numbers_in_output": 63
+      }
+    },
+    {
+      "key": "s3_switch_supply_chain",
+      "run": 1,
+      "reference_executed_at_utc": "2026-11-27T03:05:23Z",
+      "tobe": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 551,
+        "answer_chars": 1184,
+        "numbers_in_output": 43
+      },
+      "asis": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 567,
+        "answer_chars": 1437,
+        "numbers_in_output": 65
+      }
+    },
+    {
+      "key": "s3_three_domains",
+      "run": 1,
+      "reference_executed_at_utc": "2026-11-27T03:05:48Z",
+      "tobe": {
+        "reference_cells_found": 12,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca",
+          "cymbal_product_profitability_ca",
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 1106,
+        "answer_chars": 2149,
+        "numbers_in_output": 52
+      },
+      "asis": {
+        "reference_cells_found": 12,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 494,
+        "answer_chars": 2015,
+        "numbers_in_output": 61
+      }
+    },
+    {
+      "key": "s3_cross_channel_fallback",
+      "run": 1,
+      "reference_executed_at_utc": "2026-11-27T03:06:33Z",
+      "tobe": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 548,
+        "answer_chars": 729,
+        "numbers_in_output": 40
+      },
+      "asis": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 531,
+        "answer_chars": 1522,
+        "numbers_in_output": 73
+      }
+    },
+    {
+      "key": "s4_dc_outerwear",
+      "run": 1,
+      "reference_executed_at_utc": "2026-11-27T03:06:49Z",
+      "tobe": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 645,
+        "answer_chars": 1055,
+        "numbers_in_output": 33
+      },
+      "asis": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 552,
+        "answer_chars": 2513,
+        "numbers_in_output": 51
+      }
+    },
+    {
+      "key": "s1_store_by_year",
+      "run": 1,
+      "reference_executed_at_utc": "2026-11-27T03:08:05Z",
+      "tobe": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_store_channel_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 317,
+        "answer_chars": 797,
+        "numbers_in_output": 36
+      },
+      "asis": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 294,
+        "answer_chars": 917,
+        "numbers_in_output": 51
+      }
+    },
+    {
+      "key": "s1_vip_by_source",
+      "run": 2,
+      "reference_executed_at_utc": "2026-11-27T03:04:14Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 292,
+        "answer_chars": 744,
+        "numbers_in_output": 28
+      },
+      "asis": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 291,
+        "answer_chars": 906,
+        "numbers_in_output": 36
+      }
+    },
+    {
+      "key": "s2_follow_up_cart",
+      "run": 2,
+      "reference_executed_at_utc": "2026-11-27T03:04:31Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 553,
+        "answer_chars": 841,
+        "numbers_in_output": 52
+      },
+      "asis": {
+        "reference_cells_found": 10,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 419,
+        "answer_chars": 1483,
+        "numbers_in_output": 71
+      }
+    },
+    {
+      "key": "s3_switch_supply_chain",
+      "run": 2,
+      "reference_executed_at_utc": "2026-11-27T03:05:00Z",
+      "tobe": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 585,
+        "answer_chars": 836,
+        "numbers_in_output": 38
+      },
+      "asis": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 567,
+        "answer_chars": 1568,
+        "numbers_in_output": 63
+      }
+    },
+    {
+      "key": "s3_three_domains",
+      "run": 2,
+      "reference_executed_at_utc": "2026-11-27T03:05:26Z",
+      "tobe": {
+        "reference_cells_found": 12,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca",
+          "cymbal_product_profitability_ca",
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 974,
+        "answer_chars": 2434,
+        "numbers_in_output": 49
+      },
+      "asis": {
+        "reference_cells_found": 12,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 508,
+        "answer_chars": 2547,
+        "numbers_in_output": 67
+      }
+    },
+    {
+      "key": "s3_cross_channel_fallback",
+      "run": 2,
+      "reference_executed_at_utc": "2026-11-27T03:06:06Z",
+      "tobe": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 548,
+        "answer_chars": 729,
+        "numbers_in_output": 44
+      },
+      "asis": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 531,
+        "answer_chars": 1292,
+        "numbers_in_output": 66
+      }
+    },
+    {
+      "key": "s4_dc_outerwear",
+      "run": 2,
+      "reference_executed_at_utc": "2026-11-27T03:06:26Z",
+      "tobe": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 671,
+        "answer_chars": 1083,
+        "numbers_in_output": 36
+      },
+      "asis": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 552,
+        "answer_chars": 2075,
+        "numbers_in_output": 40
+      }
+    },
+    {
+      "key": "s1_store_by_year",
+      "run": 2,
+      "reference_executed_at_utc": "2026-11-27T03:07:46Z",
+      "tobe": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_store_channel_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 317,
+        "answer_chars": 729,
+        "numbers_in_output": 37
+      },
+      "asis": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 300,
+        "answer_chars": 1113,
+        "numbers_in_output": 49
+      }
+    },
+    {
+      "key": "s1_vip_by_source",
+      "run": 3,
+      "reference_executed_at_utc": "2026-11-27T03:04:14Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 308,
+        "answer_chars": 930,
+        "numbers_in_output": 32
+      },
+      "asis": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 291,
+        "answer_chars": 1522,
+        "numbers_in_output": 43
+      }
+    },
+    {
+      "key": "s2_follow_up_cart",
+      "run": 3,
+      "reference_executed_at_utc": "2026-11-27T03:04:31Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 558,
+        "answer_chars": 1098,
+        "numbers_in_output": 58
+      },
+      "asis": {
+        "reference_cells_found": 15,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 529,
+        "answer_chars": 2229,
+        "numbers_in_output": 90
+      }
+    },
+    {
+      "key": "s3_switch_supply_chain",
+      "run": 3,
+      "reference_executed_at_utc": "2026-11-27T03:04:58Z",
+      "tobe": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 585,
+        "answer_chars": 1013,
+        "numbers_in_output": 38
+      },
+      "asis": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 567,
+        "answer_chars": 2765,
+        "numbers_in_output": 72
+      }
+    },
+    {
+      "key": "s3_three_domains",
+      "run": 3,
+      "reference_executed_at_utc": "2026-11-27T03:05:17Z",
+      "tobe": {
+        "reference_cells_found": 10,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca",
+          "cymbal_product_profitability_ca",
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 1030,
+        "answer_chars": 2080,
+        "numbers_in_output": 62
+      },
+      "asis": {
+        "reference_cells_found": 12,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 827,
+        "answer_chars": 1658,
+        "numbers_in_output": 70
+      }
+    },
+    {
+      "key": "s3_cross_channel_fallback",
+      "run": 3,
+      "reference_executed_at_utc": "2026-11-27T03:05:46Z",
+      "tobe": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 548,
+        "answer_chars": 749,
+        "numbers_in_output": 40
+      },
+      "asis": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 531,
+        "answer_chars": 1485,
+        "numbers_in_output": 76
+      }
+    },
+    {
+      "key": "s4_dc_outerwear",
+      "run": 3,
+      "reference_executed_at_utc": "2026-11-27T03:06:12Z",
+      "tobe": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 574,
+        "answer_chars": 1240,
+        "numbers_in_output": 34
+      },
+      "asis": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 552,
+        "answer_chars": 918,
+        "numbers_in_output": 33
+      }
+    },
+    {
+      "key": "s1_store_by_year",
+      "run": 3,
+      "reference_executed_at_utc": "2026-11-27T03:07:52Z",
+      "tobe": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_store_channel_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 311,
+        "answer_chars": 812,
+        "numbers_in_output": 32
+      },
+      "asis": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 300,
+        "answer_chars": 2162,
+        "numbers_in_output": 74
+      }
+    },
+    {
+      "key": "s1_vip_by_source",
+      "run": 4,
+      "reference_executed_at_utc": "2026-11-27T03:04:15Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 304,
+        "answer_chars": 702,
+        "numbers_in_output": 25
+      },
+      "asis": {
+        "reference_cells_found": 5,
+        "reference_cells": 15,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 289,
+        "answer_chars": 1963,
+        "numbers_in_output": 46
+      }
+    },
+    {
+      "key": "s2_follow_up_cart",
+      "run": 4,
+      "reference_executed_at_utc": "2026-11-27T03:04:42Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 558,
+        "answer_chars": 729,
+        "numbers_in_output": 53
+      },
+      "asis": {
+        "reference_cells_found": 10,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 423,
+        "answer_chars": 1222,
+        "numbers_in_output": 51
+      }
+    },
+    {
+      "key": "s3_switch_supply_chain",
+      "run": 4,
+      "reference_executed_at_utc": "2026-11-27T03:05:04Z",
+      "tobe": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 585,
+        "answer_chars": 973,
+        "numbers_in_output": 43
+      },
+      "asis": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 571,
+        "answer_chars": 4780,
+        "numbers_in_output": 103
+      }
+    },
+    {
+      "key": "s3_three_domains",
+      "run": 4,
+      "reference_executed_at_utc": "2026-11-27T03:05:24Z",
+      "tobe": {
+        "reference_cells_found": 12,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca",
+          "cymbal_product_profitability_ca",
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 1011,
+        "answer_chars": 2165,
+        "numbers_in_output": 53
+      },
+      "asis": {
+        "reference_cells_found": 13,
+        "reference_cells": 13,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca",
+          "cymbal_enterprise_monolithic_ca",
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 941,
+        "answer_chars": 2330,
+        "numbers_in_output": 48
+      }
+    },
+    {
+      "key": "s3_cross_channel_fallback",
+      "run": 4,
+      "reference_executed_at_utc": "2026-11-27T03:06:47Z",
+      "tobe": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 548,
+        "answer_chars": 647,
+        "numbers_in_output": 39
+      },
+      "asis": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 531,
+        "answer_chars": 1272,
+        "numbers_in_output": 73
+      }
+    },
+    {
+      "key": "s4_dc_outerwear",
+      "run": 4,
+      "reference_executed_at_utc": "2026-11-27T03:07:09Z",
+      "tobe": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 643,
+        "answer_chars": 977,
+        "numbers_in_output": 38
+      },
+      "asis": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 552,
+        "answer_chars": 691,
+        "numbers_in_output": 29
+      }
+    },
+    {
+      "key": "s1_store_by_year",
+      "run": 4,
+      "reference_executed_at_utc": "2026-11-27T03:08:29Z",
+      "tobe": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_store_channel_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 311,
+        "answer_chars": 764,
+        "numbers_in_output": 36
+      },
+      "asis": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 294,
+        "answer_chars": 1177,
+        "numbers_in_output": 51
+      }
+    },
+    {
+      "key": "s1_vip_by_source",
+      "run": 5,
+      "reference_executed_at_utc": "2026-11-27T03:04:14Z",
+      "tobe": {
+        "reference_cells_found": 15,
+        "reference_cells": 15,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 320,
+        "answer_chars": 661,
+        "numbers_in_output": 25
+      },
+      "asis": {
+        "reference_cells_found": 5,
+        "reference_cells": 15,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 301,
+        "answer_chars": 1032,
+        "numbers_in_output": 32
+      }
+    },
+    {
+      "key": "s2_follow_up_cart",
+      "run": 5,
+      "reference_executed_at_utc": "2026-11-27T03:04:46Z",
+      "tobe": {
+        "reference_cells_found": 12,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 543,
+        "answer_chars": 886,
+        "numbers_in_output": 54
+      },
+      "asis": {
+        "reference_cells_found": 15,
+        "reference_cells": 25,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 508,
+        "answer_chars": 1341,
+        "numbers_in_output": 64
+      }
+    },
+    {
+      "key": "s3_switch_supply_chain",
+      "run": 5,
+      "reference_executed_at_utc": "2026-11-27T03:05:14Z",
+      "tobe": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 585,
+        "answer_chars": 904,
+        "numbers_in_output": 40
+      },
+      "asis": {
+        "reference_cells_found": 20,
+        "reference_cells": 20,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 567,
+        "answer_chars": 2751,
+        "numbers_in_output": 71
+      }
+    },
+    {
+      "key": "s3_three_domains",
+      "run": 5,
+      "reference_executed_at_utc": "2026-11-27T03:05:39Z",
+      "tobe": {
+        "reference_cells_found": 10,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_customer_marketing_ca",
+          "cymbal_product_profitability_ca",
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 1057,
+        "answer_chars": 2423,
+        "numbers_in_output": 62
+      },
+      "asis": {
+        "reference_cells_found": 12,
+        "reference_cells": 13,
+        "all_found": false,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 143,
+        "answer_chars": 2167,
+        "numbers_in_output": 37
+      }
+    },
+    {
+      "key": "s3_cross_channel_fallback",
+      "run": 5,
+      "reference_executed_at_utc": "2026-11-27T03:06:14Z",
+      "tobe": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 548,
+        "answer_chars": 921,
+        "numbers_in_output": 45
+      },
+      "asis": {
+        "reference_cells_found": 24,
+        "reference_cells": 24,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 531,
+        "answer_chars": 1777,
+        "numbers_in_output": 72
+      }
+    },
+    {
+      "key": "s4_dc_outerwear",
+      "run": 5,
+      "reference_executed_at_utc": "2026-11-27T03:06:34Z",
+      "tobe": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_supply_chain_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 550,
+        "answer_chars": 1066,
+        "numbers_in_output": 40
+      },
+      "asis": {
+        "reference_cells_found": 4,
+        "reference_cells": 4,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 552,
+        "answer_chars": 1548,
+        "numbers_in_output": 39
+      }
+    },
+    {
+      "key": "s1_store_by_year",
+      "run": 5,
+      "reference_executed_at_utc": "2026-11-27T03:08:02Z",
+      "tobe": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_store_channel_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 317,
+        "answer_chars": 653,
+        "numbers_in_output": 32
+      },
+      "asis": {
+        "reference_cells_found": 18,
+        "reference_cells": 18,
+        "all_found": true,
+        "bqca_agents": [
+          "cymbal_enterprise_monolithic_ca"
+        ],
+        "errors": [],
+        "status": "OK",
+        "table_chars": 294,
+        "answer_chars": 978,
+        "numbers_in_output": 33
+      }
+    }
+  ],
+  "earlier_run": {
+    "generated_at_utc": "2026-11-27T02:54:10Z",
+    "note": "First run of this check on the same service revision, about 15 minutes earlier, with the same 5 parallel sessions. In several runs none of the reference figures was found in the output (see runs_without_any_reference_figure). That run did not record the outputs, so the cause is unknown; the run above records output size and errors per run and had no such case. The first run also skipped reference cells printed in exponent notation, so its cell totals are lower for two questions.",
+    "runs_without_any_reference_figure": {
+      "tobe": 10,
+      "asis": 8
+    },
+    "questions": [
+      {
+        "key": "s1_vip_by_source",
+        "runs": 5,
+        "tobe_all_found": 5,
+        "asis_all_found": 0,
+        "tobe_cells": [
+          "15/15",
+          "15/15",
+          "15/15",
+          "15/15",
+          "15/15"
+        ],
+        "asis_cells": [
+          "5/15",
+          "5/15",
+          "5/15",
+          "5/15",
+          "5/15"
+        ]
+      },
+      {
+        "key": "s2_follow_up_cart",
+        "runs": 5,
+        "tobe_all_found": 0,
+        "asis_all_found": 0,
+        "tobe_cells": [
+          "15/25",
+          "15/25",
+          "15/25",
+          "15/25",
+          "12/25"
+        ],
+        "asis_cells": [
+          "15/25",
+          "15/25",
+          "10/25",
+          "10/25",
+          "15/25"
+        ]
+      },
+      {
+        "key": "s3_switch_supply_chain",
+        "runs": 5,
+        "tobe_all_found": 4,
+        "asis_all_found": 5,
+        "tobe_cells": [
+          "20/20",
+          "20/20",
+          "20/20",
+          "20/20",
+          "0/20"
+        ],
+        "asis_cells": [
+          "20/20",
+          "20/20",
+          "20/20",
+          "20/20",
+          "20/20"
+        ]
+      },
+      {
+        "key": "s3_three_domains",
+        "runs": 5,
+        "tobe_all_found": 0,
+        "asis_all_found": 0,
+        "tobe_cells": [
+          "0/13",
+          "0/13",
+          "0/13",
+          "0/13",
+          "0/13"
+        ],
+        "asis_cells": [
+          "12/13",
+          "0/13",
+          "0/13",
+          "0/13",
+          "0/13"
+        ]
+      },
+      {
+        "key": "s3_cross_channel_fallback",
+        "runs": 5,
+        "tobe_all_found": 1,
+        "asis_all_found": 1,
+        "tobe_cells": [
+          "9/9",
+          "0/9",
+          "0/9",
+          "0/9",
+          "0/9"
+        ],
+        "asis_cells": [
+          "9/9",
+          "0/9",
+          "0/9",
+          "0/9",
+          "0/9"
+        ]
+      },
+      {
+        "key": "s4_dc_outerwear",
+        "runs": 5,
+        "tobe_all_found": 5,
+        "asis_all_found": 5,
+        "tobe_cells": [
+          "4/4",
+          "4/4",
+          "4/4",
+          "4/4",
+          "4/4"
+        ],
+        "asis_cells": [
+          "4/4",
+          "4/4",
+          "4/4",
+          "4/4",
+          "4/4"
+        ]
+      },
+      {
+        "key": "s1_store_by_year",
+        "runs": 5,
+        "tobe_all_found": 5,
+        "asis_all_found": 5,
+        "tobe_cells": [
+          "7/7",
+          "7/7",
+          "7/7",
+          "7/7",
+          "7/7"
+        ],
+        "asis_cells": [
+          "7/7",
+          "7/7",
+          "7/7",
+          "7/7",
+          "7/7"
+        ]
+      }
+    ]
+  }
+}

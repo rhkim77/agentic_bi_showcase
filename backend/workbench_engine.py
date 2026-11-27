@@ -2,7 +2,7 @@
 
 For each evaluator prompt this runs two pipelines against live Google Cloud at the same time:
 
-  * To-Be:  `root_agent` (Root Router + 3 domain Sub-Agents, sliding window, compaction, memory).
+  * To-Be:  `root_agent` (Root Router + 6 domain Sub-Agents + fallback Sub-Agent, sliding window, compaction, memory).
   * As-Is:  a plain `LlmAgent` using ADK's built-in data agent tools
             (`list_accessible_data_agents`, `get_data_agent_info`, `ask_data_agent`) against the
             single monolithic data agent. The tools are the real ADK implementations; only the
@@ -288,10 +288,22 @@ def _walk_dicts(obj: Any):
             yield from _walk_dicts(v)
 
 
+def _rows_to_markdown(headers: list[Any], rows: list[Any], max_rows: int = 20) -> str:
+    if not headers or not rows:
+        return ""
+    lines = ["| " + " | ".join(str(h) for h in headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
+    lines += ["| " + " | ".join(str(c) for c in (r if isinstance(r, list) else [r])) + " |" for r in rows[:max_rows]]
+    return "\n".join(lines)
+
+
 def _parse_ask_data_agent_response(response: Any) -> dict[str, Any]:
     sql = ""
+    table = ""
     finals: list[str] = []
     for d in _walk_dicts(response):
+        retrieved = d.get("Data Retrieved")
+        if isinstance(retrieved, dict) and isinstance(retrieved.get("rows"), list):
+            table = _rows_to_markdown(retrieved.get("headers") or [], retrieved["rows"])
         for k, v in d.items():
             if isinstance(v, str) and "sql" in k.lower() and "select" in v.lower():
                 sql = v.strip()
@@ -302,6 +314,7 @@ def _parse_ask_data_agent_response(response: Any) -> dict[str, Any]:
         "status": status or "UNKNOWN",
         "error_details": response.get("error_details", "") if isinstance(response, dict) else "",
         "generated_sql": sql,
+        "markdown_table": table,
         "final_text": "\n\n".join(f for f in finals if f),
         "response_chars": len(json.dumps(response, ensure_ascii=False, default=str)),
     }
@@ -374,6 +387,7 @@ def _tobe_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
             "bqca_messages_sent": [c.get("multiturn_context_messages_sent") for c in ok],
             "bqca_questions": [str(c.get("query", ""))[:600] for c in ok],
             "bqca_call_latency_ms": [c.get("latency_ms") for c in ok],
+            "bqca_call_started_utc": [c.get("started_at_utc") for c in calls],
             "tool_calls": [e["name"] for e in turn["tool_events"] if e["kind"] == "call"],
             "errors": errors,
         },
@@ -395,7 +409,8 @@ def _asis_side(turn: dict[str, Any], label: str) -> dict[str, Any]:
             "ended_at_utc": turn["ended_at_utc"],
             "answer": turn["answer"],
             "generated_sql": "\n\n".join(f"-- [ask_data_agent call {i + 1}]\n{s}" for i, s in enumerate(sqls)) if len(sqls) > 1 else (sqls[0] if sqls else ""),
-            "markdown_table": "",
+            # The rows BQCA returned to the tool (first 20), so both sides can be compared on the same kind of output.
+            "markdown_table": "\n\n".join(r["markdown_table"] for r in ask_resps if r["markdown_table"]),
             "adk_usage": turn["usage"],
             # ask_data_agent always sends exactly one userMessage per call.
             "bqca_messages_sent": [1 for _ in ask_calls],
@@ -660,6 +675,7 @@ async def stream_dual_ab_scenario(
                         "tobe_latency_ms": tb["latency_ms"],
                         "asis_bqca_agents": ai["bqca_agents"],
                         "tobe_bqca_agents": tb["bqca_agents"],
+                        "tobe_bqca_call_started_utc": tb.get("bqca_call_started_utc"),
                         "asis_adk_cached_tokens": ai["adk_usage"]["cached_tokens"],
                         "tobe_adk_cached_tokens": tb["adk_usage"]["cached_tokens"],
                         "asis_adk_output_tokens": ai["adk_usage"]["output_and_thoughts_tokens"],

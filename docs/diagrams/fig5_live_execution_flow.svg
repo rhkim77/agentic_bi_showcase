@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 724" width="1400" height="724" font-family="Roboto, Arial, 'Liberation Sans', sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 920" width="1400" height="920" font-family="Roboto, Arial, 'Liberation Sans', sans-serif">
   <defs>
     <filter id="card-shadow" x="-4%" y="-4%" width="108%" height="110%">
       <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#202124" flood-opacity="0.06"/>
@@ -95,45 +95,57 @@
     <symbol id="icon-mdi-forum" viewBox="0 0 24 24"><path fill="#1A73E8" d="M15 4v7H5.17L4 12.17V4h11m1-2H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1V3c0-.55-.45-1-1-1zm5 4h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1z"/></symbol>
     <symbol id="icon-mdi-laptop" viewBox="0 0 24 24"><path fill="#1A73E8" d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></symbol>
   </defs>
-  <rect x="0" y="0" width="1400" height="724" fill="#FFFFFF"/>
-  <rect x="20" y="16" width="1360" height="430" rx="12" ry="12" fill="#F6FBF7" stroke="#34A853" stroke-width="2"/>
+  <rect x="0" y="0" width="1400" height="920" fill="#FFFFFF"/>
+  <rect x="20" y="16" width="1360" height="620" rx="12" ry="12" fill="#F6FBF7" stroke="#34A853" stroke-width="2"/>
   <line x1="40" y1="62" x2="1360" y2="62" stroke="#DADCE0" stroke-width="1"/>
-  <text x="40" y="46" font-size="15.5" font-weight="700" fill="#137333">To-Be — Root Router + Domain Sub-Agents + Domain-Scoped Data Agents</text>
+  <text x="40" y="46" font-size="15.5" font-weight="700" fill="#137333">To-Be — Root Router + 6 Domain Sub-Agents + Warehouse-wide Fallback</text>
   <rect x="1114" y="27" width="246" height="24" rx="12" ry="12" fill="#E6F4EA"/>
   <text x="1237.0" y="43" text-anchor="middle" font-size="11.5" font-weight="700" fill="#137333">Lit from the ADK events of the live run</text>
-  <rect x="20" y="464" width="1360" height="244" rx="12" ry="12" fill="#F8F9FA" stroke="#80868B" stroke-width="2"/>
-  <line x1="40" y1="510" x2="1360" y2="510" stroke="#DADCE0" stroke-width="1"/>
-  <text x="40" y="494" font-size="15.5" font-weight="700" fill="#202124">As-Is — One ADK Agent with 3 Built-in DataAgentToolset Functions on One Monolithic Data Agent</text>
-  <rect x="1114" y="475" width="246" height="24" rx="12" ry="12" fill="#E8EAED"/>
-  <text x="1237.0" y="491" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3C4043">Lit from the ADK events of the live run</text>
+  <rect x="20" y="654" width="1360" height="244" rx="12" ry="12" fill="#F8F9FA" stroke="#80868B" stroke-width="2"/>
+  <line x1="40" y1="700" x2="1360" y2="700" stroke="#DADCE0" stroke-width="1"/>
+  <text x="40" y="684" font-size="15.5" font-weight="700" fill="#202124">As-Is — One ADK Agent with 3 Built-in DataAgentToolset Functions on One Monolithic Data Agent</text>
+  <rect x="1114" y="665" width="246" height="24" rx="12" ry="12" fill="#E8EAED"/>
+  <text x="1237.0" y="681" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3C4043">Lit from the ADK events of the live run</text>
   <g id="lf-edges">
   <g id="lf-tobe-e-user--root" class="lf-edge">
-    <polyline class="lf-line" points="200,240 257,240" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="264,240 255.0,245.0 255.0,235.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="200,344 257,344" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="264,344 255.0,349.0 255.0,339.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-tobe-e-root--sub-customer" class="lf-edge">
-    <polyline class="lf-line" points="484,240 518,240 518,104 545,104" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polyline class="lf-line" points="484,344 518,344 518,104 545,104" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
     <polygon class="lf-head" points="552,104 543.0,109.0 543.0,99.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-tobe-e-root--sub-product" class="lf-edge">
-    <polyline class="lf-line" points="484,240 518,240 518,172 545,172" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="552,172 543.0,177.0 543.0,167.0" fill="#BDC1C6"/>
-  </g>
-  <g id="lf-tobe-e-root--fan" class="lf-edge">
-    <polyline class="lf-line" points="484,240 518,240 518,308 545,308" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="552,308 543.0,313.0 543.0,303.0" fill="#BDC1C6"/>
-  </g>
-  <g id="lf-tobe-e-root--mem" class="lf-edge">
-    <polyline class="lf-line" points="484,240 518,240 518,376 545,376" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="552,376 543.0,381.0 543.0,371.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="484,344 518,344 518,164 545,164" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,164 543.0,169.0 543.0,159.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-tobe-e-root--sub-supply" class="lf-edge">
-    <polyline class="lf-line" points="484,240 545,240" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="552,240 543.0,245.0 543.0,235.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="484,344 518,344 518,224 545,224" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,224 543.0,229.0 543.0,219.0" fill="#BDC1C6"/>
   </g>
-  <g id="lf-tobe-e-fan--ca-customer" class="lf-edge">
-    <polyline class="lf-line" points="812,308 852,308 852,104 885,104" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="892,104 883.0,109.0 883.0,99.0" fill="#BDC1C6"/>
+  <g id="lf-tobe-e-root--sub-store" class="lf-edge">
+    <polyline class="lf-line" points="484,344 545,344" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,344 543.0,349.0 543.0,339.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-root--sub-catalog" class="lf-edge">
+    <polyline class="lf-line" points="484,344 518,344 518,404 545,404" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,404 543.0,409.0 543.0,399.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-root--sub-web" class="lf-edge">
+    <polyline class="lf-line" points="484,344 518,344 518,464 545,464" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,464 543.0,469.0 543.0,459.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-root--sub-fallback" class="lf-edge">
+    <polyline class="lf-line" points="484,344 518,344 518,524 545,524" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,524 543.0,529.0 543.0,519.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-root--fan" class="lf-edge">
+    <polyline class="lf-line" points="484,344 518,344 518,284 545,284" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,284 543.0,289.0 543.0,279.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-root--mem" class="lf-edge">
+    <polyline class="lf-line" points="484,344 518,344 518,584 545,584" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,584 543.0,589.0 543.0,579.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-tobe-e-sub-customer--ca-customer" class="lf-edge">
     <polyline class="lf-line" points="812,104 885,104" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
@@ -143,75 +155,123 @@
     <polyline class="lf-line" points="1162,104 1209,104" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
     <polygon class="lf-head" points="1216,104 1207.0,109.0 1207.0,99.0" fill="#BDC1C6"/>
   </g>
-  <g id="lf-tobe-e-fan--ca-product" class="lf-edge">
-    <polyline class="lf-line" points="812,308 852,308 852,172 885,172" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="892,172 883.0,177.0 883.0,167.0" fill="#BDC1C6"/>
-  </g>
   <g id="lf-tobe-e-sub-product--ca-product" class="lf-edge">
-    <polyline class="lf-line" points="812,172 885,172" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="892,172 883.0,177.0 883.0,167.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="812,164 885,164" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,164 883.0,169.0 883.0,159.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-tobe-e-ca-product--bq" class="lf-edge">
-    <polyline class="lf-line" points="1162,172 1209,172" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="1216,172 1207.0,177.0 1207.0,167.0" fill="#BDC1C6"/>
-  </g>
-  <g id="lf-tobe-e-fan--ca-supply" class="lf-edge">
-    <polyline class="lf-line" points="812,308 852,308 852,240 885,240" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="892,240 883.0,245.0 883.0,235.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="1162,164 1209,164" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="1216,164 1207.0,169.0 1207.0,159.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-tobe-e-sub-supply--ca-supply" class="lf-edge">
-    <polyline class="lf-line" points="812,240 885,240" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="892,240 883.0,245.0 883.0,235.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="812,224 885,224" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,224 883.0,229.0 883.0,219.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-tobe-e-ca-supply--bq" class="lf-edge">
-    <polyline class="lf-line" points="1162,240 1209,240" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="1216,240 1207.0,245.0 1207.0,235.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="1162,224 1209,224" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="1216,224 1207.0,229.0 1207.0,219.0" fill="#BDC1C6"/>
   </g>
-  <g id="lf-tobe-e-peer-cp" class="lf-edge">
-    <polyline class="lf-line" points="682,130 682,146" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+  <g id="lf-tobe-e-sub-store--ca-store" class="lf-edge">
+    <polyline class="lf-line" points="812,344 885,344" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,344 883.0,349.0 883.0,339.0" fill="#BDC1C6"/>
   </g>
-  <g id="lf-tobe-e-peer-ps" class="lf-edge">
-    <polyline class="lf-line" points="682,198 682,214" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+  <g id="lf-tobe-e-ca-store--bq" class="lf-edge">
+    <polyline class="lf-line" points="1162,344 1209,344" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="1216,344 1207.0,349.0 1207.0,339.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-sub-catalog--ca-catalog" class="lf-edge">
+    <polyline class="lf-line" points="812,404 885,404" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,404 883.0,409.0 883.0,399.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-ca-catalog--bq" class="lf-edge">
+    <polyline class="lf-line" points="1162,404 1209,404" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="1216,404 1207.0,409.0 1207.0,399.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-sub-web--ca-web" class="lf-edge">
+    <polyline class="lf-line" points="812,464 885,464" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,464 883.0,469.0 883.0,459.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-ca-web--bq" class="lf-edge">
+    <polyline class="lf-line" points="1162,464 1209,464" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="1216,464 1207.0,469.0 1207.0,459.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-sub-fallback--ca-mono" class="lf-edge">
+    <polyline class="lf-line" points="812,524 885,524" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,524 883.0,529.0 883.0,519.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-ca-mono--bq" class="lf-edge">
+    <polyline class="lf-line" points="1162,524 1209,524" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="1216,524 1207.0,529.0 1207.0,519.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-fan--ca-customer" class="lf-edge">
+    <polyline class="lf-line" points="812,284 852,284 852,104 885,104" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,104 883.0,109.0 883.0,99.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-fan--ca-product" class="lf-edge">
+    <polyline class="lf-line" points="812,284 852,284 852,164 885,164" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,164 883.0,169.0 883.0,159.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-fan--ca-supply" class="lf-edge">
+    <polyline class="lf-line" points="812,284 852,284 852,224 885,224" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,224 883.0,229.0 883.0,219.0" fill="#BDC1C6"/>
+  </g>
+  <g id="lf-tobe-e-peer-0" class="lf-edge">
+    <polyline class="lf-line" points="682,130 682,138" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <g id="lf-tobe-e-peer-1" class="lf-edge">
+    <polyline class="lf-line" points="682,190 682,198" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <g id="lf-tobe-e-peer-2" class="lf-edge">
+    <polyline class="lf-line" points="682,250 682,318" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <g id="lf-tobe-e-peer-3" class="lf-edge">
+    <polyline class="lf-line" points="682,370 682,378" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <g id="lf-tobe-e-peer-4" class="lf-edge">
+    <polyline class="lf-line" points="682,430 682,438" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <g id="lf-tobe-e-peer-5" class="lf-edge">
+    <polyline class="lf-line" points="682,490 682,498" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
   </g>
   <g id="lf-asis-e-user--agent" class="lf-edge">
-    <polyline class="lf-line" points="200,606 257,606" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="264,606 255.0,611.0 255.0,601.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="200,796 257,796" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="264,796 255.0,801.0 255.0,791.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-asis-e-agent--tool-list" class="lf-edge">
-    <polyline class="lf-line" points="484,606 518,606 518,550 545,550" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="552,550 543.0,555.0 543.0,545.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="484,796 518,796 518,740 545,740" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,740 543.0,745.0 543.0,735.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-asis-e-agent--tool-info" class="lf-edge">
-    <polyline class="lf-line" points="484,606 545,606" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="552,606 543.0,611.0 543.0,601.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="484,796 545,796" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,796 543.0,801.0 543.0,791.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-asis-e-agent--tool-ask" class="lf-edge">
-    <polyline class="lf-line" points="484,606 518,606 518,662 545,662" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="552,662 543.0,667.0 543.0,657.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="484,796 518,796 518,852 545,852" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="552,852 543.0,857.0 543.0,847.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-asis-e-tool-info--ca" class="lf-edge">
-    <polyline class="lf-line" points="812,606 885,606" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="892,606 883.0,611.0 883.0,601.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="812,796 885,796" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,796 883.0,801.0 883.0,791.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-asis-e-tool-ask--ca" class="lf-edge">
-    <polyline class="lf-line" points="812,662 885,662" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="892,662 883.0,667.0 883.0,657.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="812,852 885,852" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="892,852 883.0,857.0 883.0,847.0" fill="#BDC1C6"/>
   </g>
   <g id="lf-asis-e-ca--bq" class="lf-edge">
-    <polyline class="lf-line" points="1162,634 1209,634" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
-    <polygon class="lf-head" points="1216,634 1207.0,639.0 1207.0,629.0" fill="#BDC1C6"/>
+    <polyline class="lf-line" points="1162,824 1209,824" fill="none" stroke="#BDC1C6" stroke-width="2" stroke-linejoin="round"/>
+    <polygon class="lf-head" points="1216,824 1207.0,829.0 1207.0,819.0" fill="#BDC1C6"/>
   </g>
   </g>
   <g id="lf-tobe-n-user" class="lf-node">
-    <rect class="lf-box" x="44" y="214" width="156" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-mdi-person" x="54" y="227.0" width="26" height="26"/>
-    <text x="89" y="244.3" font-size="11.6" font-weight="600" fill="#202124">User Prompt</text>
+    <rect class="lf-box" x="44" y="318" width="156" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-mdi-person" x="54" y="331.0" width="26" height="26"/>
+    <text x="89" y="348.3" font-size="11.6" font-weight="600" fill="#202124">User Prompt</text>
   </g>
   <g id="lf-tobe-n-root" class="lf-node">
-    <rect class="lf-box" x="264" y="214" width="220" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-vertex-ai" x="274" y="227.0" width="26" height="26"/>
-    <text x="309" y="237.0" font-size="12.3" font-weight="700" fill="#202124">Root Router</text>
-    <text x="309" y="252.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_root_router</text>
+    <rect class="lf-box" x="264" y="318" width="220" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-vertex-ai" x="274" y="331.0" width="26" height="26"/>
+    <text x="309" y="341.0" font-size="12.3" font-weight="700" fill="#202124">Root Router</text>
+    <text x="309" y="356.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_root_router</text>
   </g>
   <g id="lf-tobe-n-sub-customer" class="lf-node">
     <rect class="lf-box" x="552" y="78" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
@@ -219,93 +279,141 @@
     <text x="597" y="101.0" font-size="12.3" font-weight="700" fill="#202124">Customer Sub-Agent</text>
     <text x="597" y="116.5" font-size="10" font-weight="400" fill="#3C4043">customer_marketing_subagent</text>
   </g>
-  <g id="lf-tobe-n-sub-product" class="lf-node">
-    <rect class="lf-box" x="552" y="146" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-agents" x="562" y="159.0" width="26" height="26"/>
-    <text x="597" y="169.0" font-size="12.3" font-weight="700" fill="#202124">Product Sub-Agent</text>
-    <text x="597" y="184.5" font-size="10" font-weight="400" fill="#3C4043">product_profitability_subagent</text>
-  </g>
-  <g id="lf-tobe-n-sub-supply" class="lf-node">
-    <rect class="lf-box" x="552" y="214" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-agents" x="562" y="227.0" width="26" height="26"/>
-    <text x="597" y="237.0" font-size="12.3" font-weight="700" fill="#202124">Supply Chain Sub-Agent</text>
-    <text x="597" y="252.5" font-size="10" font-weight="400" fill="#3C4043">supply_chain_logistics_subagent</text>
-  </g>
-  <g id="lf-tobe-n-fan" class="lf-node">
-    <rect class="lf-box" x="552" y="282" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-mdi-widgets" x="562" y="295.0" width="26" height="26"/>
-    <text x="597" y="305.0" font-size="12.3" font-weight="700" fill="#202124">Cross-Domain Fan-out Tool</text>
-    <text x="597" y="320.5" font-size="10" font-weight="400" fill="#3C4043">run_cross_domain_caa_analysis</text>
-  </g>
-  <g id="lf-tobe-n-mem" class="lf-node">
-    <rect class="lf-box" x="552" y="350" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-cloud-sql" x="562" y="363.0" width="26" height="26"/>
-    <text x="597" y="373.0" font-size="12.3" font-weight="700" fill="#202124">Memory &amp; State Tools</text>
-    <text x="597" y="388.5" font-size="10" font-weight="400" fill="#3C4043">load_memory · save · inspect</text>
-  </g>
   <g id="lf-tobe-n-ca-customer" class="lf-node">
     <rect class="lf-box" x="892" y="78" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
     <use href="#icon-data-analytics" x="902" y="91.0" width="26" height="26"/>
     <text x="937" y="101.0" font-size="12.3" font-weight="700" fill="#202124">Customer Data Agent · 4 tables</text>
     <text x="937" y="116.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_customer_marketing_ca</text>
   </g>
+  <g id="lf-tobe-n-sub-product" class="lf-node">
+    <rect class="lf-box" x="552" y="138" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-agents" x="562" y="151.0" width="26" height="26"/>
+    <text x="597" y="161.0" font-size="12.3" font-weight="700" fill="#202124">Product Sub-Agent</text>
+    <text x="597" y="176.5" font-size="10" font-weight="400" fill="#3C4043">product_profitability_subagent</text>
+  </g>
   <g id="lf-tobe-n-ca-product" class="lf-node">
-    <rect class="lf-box" x="892" y="146" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-data-analytics" x="902" y="159.0" width="26" height="26"/>
-    <text x="937" y="169.0" font-size="12.3" font-weight="700" fill="#202124">Product Data Agent · 3 tables</text>
-    <text x="937" y="184.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_product_profitability_ca</text>
+    <rect class="lf-box" x="892" y="138" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-data-analytics" x="902" y="151.0" width="26" height="26"/>
+    <text x="937" y="161.0" font-size="12.3" font-weight="700" fill="#202124">Product Data Agent · 3 tables</text>
+    <text x="937" y="176.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_product_profitability_ca</text>
+  </g>
+  <g id="lf-tobe-n-sub-supply" class="lf-node">
+    <rect class="lf-box" x="552" y="198" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-agents" x="562" y="211.0" width="26" height="26"/>
+    <text x="597" y="221.0" font-size="12.3" font-weight="700" fill="#202124">Supply Chain Sub-Agent</text>
+    <text x="597" y="236.5" font-size="10" font-weight="400" fill="#3C4043">supply_chain_logistics_subagent</text>
   </g>
   <g id="lf-tobe-n-ca-supply" class="lf-node">
-    <rect class="lf-box" x="892" y="214" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-data-analytics" x="902" y="227.0" width="26" height="26"/>
-    <text x="937" y="237.0" font-size="12.3" font-weight="700" fill="#202124">Supply Data Agent · 5 tables</text>
-    <text x="937" y="252.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_supply_chain_ca</text>
+    <rect class="lf-box" x="892" y="198" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-data-analytics" x="902" y="211.0" width="26" height="26"/>
+    <text x="937" y="221.0" font-size="12.3" font-weight="700" fill="#202124">Supply Data Agent · 5 tables</text>
+    <text x="937" y="236.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_supply_chain_ca</text>
+  </g>
+  <g id="lf-tobe-n-sub-store" class="lf-node">
+    <rect class="lf-box" x="552" y="318" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-agents" x="562" y="331.0" width="26" height="26"/>
+    <text x="597" y="341.0" font-size="12.3" font-weight="700" fill="#202124">Store Channel Sub-Agent</text>
+    <text x="597" y="356.5" font-size="10" font-weight="400" fill="#3C4043">store_channel_subagent</text>
+  </g>
+  <g id="lf-tobe-n-ca-store" class="lf-node">
+    <rect class="lf-box" x="892" y="318" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-data-analytics" x="902" y="331.0" width="26" height="26"/>
+    <text x="937" y="341.0" font-size="12.3" font-weight="700" fill="#202124">Store Data Agent · 13 tables</text>
+    <text x="937" y="356.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_store_channel_ca</text>
+  </g>
+  <g id="lf-tobe-n-sub-catalog" class="lf-node">
+    <rect class="lf-box" x="552" y="378" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-agents" x="562" y="391.0" width="26" height="26"/>
+    <text x="597" y="401.0" font-size="12.3" font-weight="700" fill="#202124">Catalog Channel Sub-Agent</text>
+    <text x="597" y="416.5" font-size="10" font-weight="400" fill="#3C4043">catalog_channel_subagent</text>
+  </g>
+  <g id="lf-tobe-n-ca-catalog" class="lf-node">
+    <rect class="lf-box" x="892" y="378" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-data-analytics" x="902" y="391.0" width="26" height="26"/>
+    <text x="937" y="401.0" font-size="12.3" font-weight="700" fill="#202124">Catalog Data Agent · 11 tables</text>
+    <text x="937" y="416.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_catalog_channel_ca</text>
+  </g>
+  <g id="lf-tobe-n-sub-web" class="lf-node">
+    <rect class="lf-box" x="552" y="438" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-agents" x="562" y="451.0" width="26" height="26"/>
+    <text x="597" y="461.0" font-size="12.3" font-weight="700" fill="#202124">Web Channel Sub-Agent</text>
+    <text x="597" y="476.5" font-size="10" font-weight="400" fill="#3C4043">web_channel_subagent</text>
+  </g>
+  <g id="lf-tobe-n-ca-web" class="lf-node">
+    <rect class="lf-box" x="892" y="438" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-data-analytics" x="902" y="451.0" width="26" height="26"/>
+    <text x="937" y="461.0" font-size="12.3" font-weight="700" fill="#202124">Web Data Agent · 11 tables</text>
+    <text x="937" y="476.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_web_channel_ca</text>
+  </g>
+  <g id="lf-tobe-n-sub-fallback" class="lf-node">
+    <rect class="lf-box" x="552" y="498" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-agents" x="562" y="511.0" width="26" height="26"/>
+    <text x="597" y="521.0" font-size="12.3" font-weight="700" fill="#202124">Warehouse Fallback Sub-Agent</text>
+    <text x="597" y="536.5" font-size="10" font-weight="400" fill="#3C4043">enterprise_warehouse_subagent</text>
+  </g>
+  <g id="lf-tobe-n-ca-mono" class="lf-node">
+    <rect class="lf-box" x="892" y="498" width="270" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-data-analytics" x="902" y="511.0" width="26" height="26"/>
+    <text x="937" y="521.0" font-size="12.3" font-weight="700" fill="#202124">Warehouse-wide Data Agent · 32 tables</text>
+    <text x="937" y="536.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_monolithic_ca</text>
+  </g>
+  <g id="lf-tobe-n-fan" class="lf-node">
+    <rect class="lf-box" x="552" y="258" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-mdi-widgets" x="562" y="271.0" width="26" height="26"/>
+    <text x="597" y="281.0" font-size="12.3" font-weight="700" fill="#202124">Cross-Domain Fan-out Tool</text>
+    <text x="597" y="296.5" font-size="10" font-weight="400" fill="#3C4043">run_cross_domain_caa_analysis</text>
+  </g>
+  <g id="lf-tobe-n-mem" class="lf-node">
+    <rect class="lf-box" x="552" y="558" width="260" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-cloud-sql" x="562" y="571.0" width="26" height="26"/>
+    <text x="597" y="581.0" font-size="12.3" font-weight="700" fill="#202124">Memory &amp; State Tools</text>
+    <text x="597" y="596.5" font-size="10" font-weight="400" fill="#3C4043">load_memory · save · inspect</text>
   </g>
   <g id="lf-tobe-n-bq" class="lf-node">
-    <rect class="lf-box" x="1216" y="78" width="140" height="188" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-bigquery" x="1226" y="146.0" width="24" height="24"/>
-    <text x="1256" y="163.0" font-size="12.3" font-weight="700" fill="#202124">BigQuery</text>
-    <text x="1228" y="185.0" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_dw</text>
+    <rect class="lf-box" x="1216" y="78" width="140" height="472" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-bigquery" x="1226" y="288.0" width="24" height="24"/>
+    <text x="1256" y="305.0" font-size="12.3" font-weight="700" fill="#202124">BigQuery</text>
+    <text x="1228" y="327.0" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_dw</text>
   </g>
   <g id="lf-asis-n-user" class="lf-node">
-    <rect class="lf-box" x="44" y="580" width="156" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-mdi-person" x="54" y="593.0" width="26" height="26"/>
-    <text x="89" y="610.3" font-size="11.6" font-weight="600" fill="#202124">User Prompt</text>
+    <rect class="lf-box" x="44" y="770" width="156" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-mdi-person" x="54" y="783.0" width="26" height="26"/>
+    <text x="89" y="800.3" font-size="11.6" font-weight="600" fill="#202124">User Prompt</text>
   </g>
   <g id="lf-asis-n-agent" class="lf-node">
-    <rect class="lf-box" x="264" y="580" width="220" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-vertex-ai" x="274" y="593.0" width="26" height="26"/>
-    <text x="309" y="603.0" font-size="12.3" font-weight="700" fill="#202124">ADK Agent (single)</text>
-    <text x="309" y="618.5" font-size="10" font-weight="400" fill="#3C4043">asis_default_data_agent_tools</text>
+    <rect class="lf-box" x="264" y="770" width="220" height="52" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-vertex-ai" x="274" y="783.0" width="26" height="26"/>
+    <text x="309" y="793.0" font-size="12.3" font-weight="700" fill="#202124">ADK Agent (single)</text>
+    <text x="309" y="808.5" font-size="10" font-weight="400" fill="#3C4043">asis_default_data_agent_tools</text>
   </g>
   <g id="lf-asis-n-tool-list" class="lf-node">
-    <rect class="lf-box" x="552" y="527" width="260" height="46" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-mdi-widgets" x="562" y="537.0" width="26" height="26"/>
-    <text x="597" y="547.0" font-size="12.3" font-weight="700" fill="#202124">Built-in Tool · Discovery</text>
-    <text x="597" y="562.5" font-size="10" font-weight="400" fill="#3C4043">list_accessible_data_agents</text>
+    <rect class="lf-box" x="552" y="717" width="260" height="46" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-mdi-widgets" x="562" y="727.0" width="26" height="26"/>
+    <text x="597" y="737.0" font-size="12.3" font-weight="700" fill="#202124">Built-in Tool · Discovery</text>
+    <text x="597" y="752.5" font-size="10" font-weight="400" fill="#3C4043">list_accessible_data_agents</text>
   </g>
   <g id="lf-asis-n-tool-info" class="lf-node">
-    <rect class="lf-box" x="552" y="583" width="260" height="46" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-mdi-widgets" x="562" y="593.0" width="26" height="26"/>
-    <text x="597" y="603.0" font-size="12.3" font-weight="700" fill="#202124">Built-in Tool · Metadata</text>
-    <text x="597" y="618.5" font-size="10" font-weight="400" fill="#3C4043">get_data_agent_info</text>
+    <rect class="lf-box" x="552" y="773" width="260" height="46" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-mdi-widgets" x="562" y="783.0" width="26" height="26"/>
+    <text x="597" y="793.0" font-size="12.3" font-weight="700" fill="#202124">Built-in Tool · Metadata</text>
+    <text x="597" y="808.5" font-size="10" font-weight="400" fill="#3C4043">get_data_agent_info</text>
   </g>
   <g id="lf-asis-n-tool-ask" class="lf-node">
-    <rect class="lf-box" x="552" y="639" width="260" height="46" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-mdi-widgets" x="562" y="649.0" width="26" height="26"/>
-    <text x="597" y="659.0" font-size="12.3" font-weight="700" fill="#202124">Built-in Tool · Stateless Chat</text>
-    <text x="597" y="674.5" font-size="10" font-weight="400" fill="#3C4043">ask_data_agent</text>
+    <rect class="lf-box" x="552" y="829" width="260" height="46" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-mdi-widgets" x="562" y="839.0" width="26" height="26"/>
+    <text x="597" y="849.0" font-size="12.3" font-weight="700" fill="#202124">Built-in Tool · Stateless Chat</text>
+    <text x="597" y="864.5" font-size="10" font-weight="400" fill="#3C4043">ask_data_agent</text>
   </g>
   <g id="lf-asis-n-ca" class="lf-node">
-    <rect class="lf-box" x="892" y="583" width="270" height="102" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-data-analytics" x="902" y="621.0" width="26" height="26"/>
-    <text x="937" y="631.0" font-size="12.3" font-weight="700" fill="#202124">Monolithic Data Agent · 32 tables</text>
-    <text x="937" y="646.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_monolithic_ca</text>
+    <rect class="lf-box" x="892" y="773" width="270" height="102" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-data-analytics" x="902" y="811.0" width="26" height="26"/>
+    <text x="937" y="821.0" font-size="12.3" font-weight="700" fill="#202124">Monolithic Data Agent · 32 tables</text>
+    <text x="937" y="836.5" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_monolithic_ca</text>
   </g>
   <g id="lf-asis-n-bq" class="lf-node">
-    <rect class="lf-box" x="1216" y="583" width="140" height="102" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
-    <use href="#icon-bigquery" x="1226" y="608.0" width="24" height="24"/>
-    <text x="1256" y="625.0" font-size="12.3" font-weight="700" fill="#202124">BigQuery</text>
-    <text x="1228" y="647.0" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_dw</text>
+    <rect class="lf-box" x="1216" y="773" width="140" height="102" rx="9" ry="9" fill="#FFFFFF" stroke="#BDC1C6" stroke-width="2"/>
+    <use href="#icon-bigquery" x="1226" y="798.0" width="24" height="24"/>
+    <text x="1256" y="815.0" font-size="12.3" font-weight="700" fill="#202124">BigQuery</text>
+    <text x="1228" y="837.0" font-size="10" font-weight="400" fill="#3C4043">cymbal_enterprise_dw</text>
   </g>
 </svg>

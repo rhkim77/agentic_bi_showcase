@@ -99,15 +99,15 @@
   <rect x="20" y="16" width="1360" height="248" rx="12" ry="12" fill="#FFF8F7" stroke="#EA4335" stroke-width="2"/>
   <line x1="40" y1="62" x2="1360" y2="62" stroke="#DADCE0" stroke-width="1"/>
   <text x="40" y="46" font-size="15.5" font-weight="700" fill="#C5221F">Before (As-Is) — One ADK Agent with Built-in Data Agent Tools on One Monolithic Data Agent</text>
-  <rect x="1035" y="27" width="325" height="24" rx="12" ry="12" fill="#FCE8E6"/>
-  <text x="1197.5" y="43" text-anchor="middle" font-size="11.5" font-weight="700" fill="#C5221F">169,262 Input Tokens / Turn (S1), 194,640 at Turn 8</text>
+  <rect x="955" y="27" width="405" height="24" rx="12" ry="12" fill="#FCE8E6"/>
+  <text x="1157.5" y="43" text-anchor="middle" font-size="11.5" font-weight="700" fill="#C5221F">As-Is 8-Turn Avg Input (3 Runs): 160,578 to 175,625 Tokens / Turn</text>
   <rect x="44" y="78" width="396" height="166" rx="10" ry="10" fill="#FFFFFF" stroke="#EA4335" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="58" y="89" width="32" height="32"/>
   <text x="98" y="110" font-size="13.2" font-weight="700" fill="#202124">1. Schema &amp; Glossary Bloat</text>
   <line x1="58" y1="130" x2="426" y2="130" stroke="#E8EAED" stroke-width="1"/>
   <text x="60" y="152" font-size="11.4" font-weight="400" fill="#3C4043">• All 32 tables / 504 columns bound to 1 agent</text>
   <text x="60" y="173" font-size="11.4" font-weight="400" fill="#3C4043">• Schema and descriptions sent on every turn</text>
-  <text x="60" y="194" font-size="11.4" font-weight="400" fill="#3C4043">• Uncached median 108,501 BQCA input / turn</text>
+  <text x="60" y="194" font-size="11.4" font-weight="400" fill="#3C4043">• Uncached median 111,931 BQCA input / turn</text>
   <text x="60" y="215" font-size="11.4" font-weight="400" fill="#3C4043">• list / get_data_agent_info calls at runtime</text>
   <rect x="502" y="78" width="396" height="166" rx="10" ry="10" fill="#FFFFFF" stroke="#EA4335" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-cloud-storage" x="516" y="89" width="32" height="32"/>
@@ -115,7 +115,7 @@
   <line x1="516" y1="130" x2="884" y2="130" stroke="#E8EAED" stroke-width="1"/>
   <text x="518" y="152" font-size="11.4" font-weight="400" fill="#3C4043">• Full tool results stay in the ADK history</text>
   <text x="518" y="173" font-size="11.4" font-weight="400" fill="#3C4043">• No cap on result rows returned to the LLM</text>
-  <text x="518" y="194" font-size="11.4" font-weight="400" fill="#3C4043">• ADK prompt 5,760 to 33,099 over 8 turns</text>
+  <text x="518" y="194" font-size="11.4" font-weight="400" fill="#3C4043">• ADK prompt 5,604 to 34,500 over 8 turns</text>
   <text x="518" y="215" font-size="11.4" font-weight="400" fill="#3C4043">• Prompt keeps growing with every turn</text>
   <rect x="960" y="78" width="396" height="166" rx="10" ry="10" fill="#FFFFFF" stroke="#EA4335" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-mdi-widgets" x="974" y="89" width="32" height="32"/>
@@ -128,8 +128,8 @@
   <rect x="20" y="288" width="1360" height="256" rx="12" ry="12" fill="#F6FBF7" stroke="#34A853" stroke-width="2"/>
   <line x1="40" y1="334" x2="1360" y2="334" stroke="#DADCE0" stroke-width="1"/>
   <text x="40" y="318" font-size="15.5" font-weight="700" fill="#137333">After — Proposed 4-Layer Token Diet + ADK 4-Scope Session.state &amp; MemoryService Architecture</text>
-  <rect x="1024" y="299" width="336" height="24" rx="12" ry="12" fill="#E6F4EA"/>
-  <text x="1192.0" y="315" text-anchor="middle" font-size="11.5" font-weight="700" fill="#137333">Total Input: S1 -51.1% · S4 Avg -53.9% · Turn 8 -70.2%</text>
+  <rect x="1007" y="299" width="353" height="24" rx="12" ry="12" fill="#E6F4EA"/>
+  <text x="1183.5" y="315" text-anchor="middle" font-size="11.5" font-weight="700" fill="#137333">S4 Avg (3 Runs): Input -54% to -42% · Cost -38% to -34%</text>
   <rect x="40" y="352" width="306" height="172" rx="10" ry="10" fill="#FFFFFF" stroke="#34A853" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-bigquery" x="54" y="363" width="32" height="32"/>
   <text x="94" y="384" font-size="13.2" font-weight="700" fill="#202124">1. temp:* Scope (Turn GC)</text>
@@ -143,9 +143,9 @@
   <text x="432" y="384" font-size="13.2" font-weight="700" fill="#202124">2. session Scope ([-6:] Cap)</text>
   <line x1="392" y1="404" x2="670" y2="404" stroke="#E8EAED" stroke-width="1"/>
   <text x="394" y="426" font-size="11.4" font-weight="400" fill="#3C4043">• Per-agent [-6:] (3-turn) window</text>
-  <text x="394" y="447" font-size="11.4" font-weight="400" fill="#3C4043">• ADK prompt 1,282–3,630 over 8 turns</text>
+  <text x="394" y="447" font-size="11.4" font-weight="400" fill="#3C4043">• ADK prompt 1,772–6,718 over 8 turns</text>
   <text x="394" y="468" font-size="11.4" font-weight="400" fill="#3C4043">• before_model_callback keeps</text>
-  <text x="394" y="489" font-size="11.4" font-weight="400" fill="#3C4043">  last 3 user turns in ADK</text>
+  <text x="394" y="489" font-size="11.4" font-weight="400" fill="#3C4043">  last 3 user prompts in ADK</text>
   <rect x="716" y="352" width="306" height="172" rx="10" ry="10" fill="#FFFDF5" stroke="#F9AB00" stroke-width="2" filter="url(#card-shadow)"/>
   <use href="#icon-mdi-person" x="730" y="363" width="32" height="32"/>
   <text x="770" y="384" font-size="13.2" font-weight="700" fill="#202124">3. user:* &amp; app:* Scopes</text>
@@ -160,6 +160,6 @@
   <line x1="1068" y1="404" x2="1346" y2="404" stroke="#E8EAED" stroke-width="1"/>
   <text x="1070" y="426" font-size="11.4" font-weight="400" fill="#3C4043">• after_agent_callback indexes</text>
   <text x="1070" y="447" font-size="11.4" font-weight="400" fill="#3C4043">  completed sessions automatically</text>
-  <text x="1070" y="468" font-size="11.4" font-weight="400" fill="#3C4043">• load_memory recalls insights</text>
+  <text x="1070" y="468" font-size="11.4" font-weight="400" fill="#3C4043">• Recall tool reads pinned insights</text>
   <text x="1070" y="489" font-size="11.4" font-weight="400" fill="#3C4043">  in a new session (S5)</text>
 </svg>

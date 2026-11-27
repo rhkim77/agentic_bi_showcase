@@ -10,10 +10,10 @@ documented tables. This script reproduces that shape so the effect of schema sco
   3. Adds a description to every table and column. The descriptions are generated from naming rules;
      they are synthetic documentation, not text from a real company.
   4. Creates the monolithic data agent `cymbal_enterprise_monolithic_ca` bound to all 32 tables with
-     the business glossary of all three domains.
+     the business glossary of all six domains.
 
 Run `scripts/refresh_demo_seed.py` and `scripts/provision_cymbal_caa_agents.py` afterwards to seed the
-scenario rows and to bind the three domain-scoped data agents to the same dataset.
+scenario rows and to bind the six domain-scoped data agents to the same dataset.
 """
 
 from __future__ import annotations
@@ -190,7 +190,7 @@ def main() -> None:
         f"You are Cymbal Global Commerce's enterprise-wide BigQuery Conversational Analytics Agent (`{MONOLITHIC_CA_ID}`) "
         f"analyzing the whole warehouse `{PROJECT_ID}.{DATASET_ID}`. Follow the business glossary below when generating SQL "
         "and answer in concise English with exact figures.\n\n"
-        + "\n\n".join(glossary_section(fmt(t)) for t in (prov.CUSTOMER_SYSTEM_INSTRUCTION, prov.PRODUCT_SYSTEM_INSTRUCTION, prov.SUPPLY_SYSTEM_INSTRUCTION))
+        + "\n\n".join(glossary_section(fmt(t)) for t in prov.ALL_DOMAIN_INSTRUCTIONS)
     )
     name = prov.upsert_agent(
         sess,

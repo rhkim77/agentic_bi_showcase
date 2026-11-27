@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-11-26T16:01:02Z",
+  "generated_at_utc": "2026-11-27T03:11:10Z",
   "references": [
     {
       "id": "vip_revenue_aov_by_source_30d",
@@ -7,7 +7,7 @@
         "en": "Reading used: a VIP is a customer whose lifetime spend is at least $500 or who has at least 5 orders (glossary definition). Count, revenue and AOV cover those customers' order items created in the last 30 days, grouped by the customer's traffic source.",
         "ko": "적용한 해석: VIP는 누적 구매액이 $500 이상이거나 주문이 5건 이상인 고객입니다(Glossary 정의). 고객 수, 매출, AOV는 이 고객들의 최근 30일 Order Item을 고객의 Traffic Source별로 집계했습니다."
       },
-      "executed_at_utc": "2026-11-26T16:00:54Z",
+      "executed_at_utc": "2026-11-27T03:11:03Z",
       "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
       "queries": [
         {
@@ -25,15 +25,15 @@
           "rows": [
             [
               "Search",
-              "203",
-              "88299.96",
-              "248.73"
+              "198",
+              "87697.09",
+              "250.56"
             ],
             [
               "Organic",
               "46",
-              "18539.89",
-              "213.1"
+              "18289.89",
+              "210.23"
             ],
             [
               "Display",
@@ -44,8 +44,8 @@
             [
               "Email",
               "23",
-              "11964.07",
-              "244.16"
+              "11864.07",
+              "247.17"
             ],
             [
               "Facebook",
@@ -67,7 +67,7 @@
         "en": "Assumes the previous turn was the default S1 question. Reading used here: all three S1 columns stay restricted to VIP customers (Search gross revenue ~$88.3K), joined with 14-day cart sessions and cart abandonment rate (%) from events by traffic source. Both pipelines often compute gross revenue and AOV across all customers in each channel (~$608.5K for Search) while keeping vip_customer_count VIP-only — an ambiguity in the follow-up wording rather than a join failure.",
         "ko": "직전 Turn이 S1 기본 질문이었다고 가정합니다. 이 기준 SQL은 S1의 세 Column을 모두 VIP 고객 한정(Search 매출 약 $88.3K)으로 유지한 뒤 events의 최근 14일 Cart Session 수와 이탈률을 결합했습니다. 반면 두 Pipeline은 후속 질문 해석 시 VIP 고객 수만 VIP로 두고 매출·AOV는 채널 전체 고객 기준(Search 약 $608.5K)으로 집계하는 경우가 많으며, 이는 후속 질문 표현의 모호성에 따른 해석 차이입니다."
       },
-      "executed_at_utc": "2026-11-26T16:00:55Z",
+      "executed_at_utc": "2026-11-27T03:11:04Z",
       "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
       "queries": [
         {
@@ -87,19 +87,19 @@
           "rows": [
             [
               "Search",
-              "203",
-              "88299.96",
-              "248.73",
+              "198",
+              "87697.09",
+              "250.56",
               "40",
               "100.0"
             ],
             [
               "Organic",
               "46",
-              "18539.89",
-              "213.1",
-              "519",
-              "11.37"
+              "18289.89",
+              "210.23",
+              "509",
+              "11.39"
             ],
             [
               "Display",
@@ -112,18 +112,18 @@
             [
               "Email",
               "23",
-              "11964.07",
-              "244.16",
-              "4506",
-              "10.01"
+              "11864.07",
+              "247.17",
+              "4430",
+              "9.95"
             ],
             [
               "Facebook",
               "16",
               "5221.16",
               "274.8",
-              "1028",
-              "10.31"
+              "994",
+              "10.16"
             ]
           ],
           "total_rows": 5
@@ -139,7 +139,7 @@
         "en": "Reading used: no date or product filter. Lead time is the average whole days from shipped to delivered over all delivered order items, by the distribution center of the product. Holding cost is the summed cost of inventory rows that have no sold date.",
         "ko": "적용한 해석: 기간과 상품 조건 없이 전체 데이터를 대상으로 했습니다. Lead Time은 배송 완료된 모든 Order Item의 출고~배송 일수 평균이며 상품의 Distribution Center 기준입니다. Holding Cost는 판매일이 없는 Inventory 행의 원가 합계입니다."
       },
-      "executed_at_utc": "2026-11-26T16:00:56Z",
+      "executed_at_utc": "2026-11-27T03:11:05Z",
       "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
       "queries": [
         {
@@ -229,7 +229,7 @@
         "en": "Reading used: lead time over order items with order_id >= 9900000 for Women / Outerwear & Coats products. The question does not say whether the order_id filter also limits inventory, so holding cost is shown both ways: all Women's Outerwear inventory, and seeded inventory rows only.",
         "ko": "적용한 해석: Lead Time은 order_id >= 9900000이면서 Women / Outerwear & Coats 상품인 Order Item 기준입니다. order_id 조건이 Inventory에도 적용되는지 질문에 명시되지 않아 Holding Cost는 두 가지로 표시합니다: Women's Outerwear 전체 Inventory, 그리고 Seed 행만."
       },
-      "executed_at_utc": "2026-11-26T16:00:57Z",
+      "executed_at_utc": "2026-11-27T03:11:06Z",
       "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
       "queries": [
         {
@@ -274,7 +274,7 @@
         "en": "Reading used: every registered user with no order created in the last 90 days (glossary definition), including users who never ordered, grouped by the user's traffic source.",
         "ko": "적용한 해석: 최근 90일 동안 생성된 주문이 없는 모든 등록 사용자(Glossary 정의)이며 주문 이력이 전혀 없는 사용자도 포함합니다. 사용자의 Traffic Source별로 집계했습니다."
       },
-      "executed_at_utc": "2026-11-26T16:00:58Z",
+      "executed_at_utc": "2026-11-27T03:11:07Z",
       "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
       "queries": [
         {
@@ -290,23 +290,23 @@
           "rows": [
             [
               "Search",
-              "59009"
+              "59037"
             ],
             [
               "Organic",
-              "12693"
+              "12698"
             ],
             [
               "Facebook",
-              "4947"
+              "4953"
             ],
             [
               "Email",
-              "4225"
+              "4226"
             ],
             [
               "Display",
-              "3366"
+              "3370"
             ]
           ],
           "total_rows": 5
@@ -322,7 +322,7 @@
         "en": "Three queries, one per part of the question, each using the glossary formulas on rows with order_id >= 9900000. These give the figures only; the explanation of why profit is dropping is the agents' own synthesis and has no reference here.",
         "ko": "질문의 세 부분에 각각 대응하는 Query 3개이며, 모두 order_id >= 9900000 행에 Glossary 계산식을 적용했습니다. 여기서는 수치만 제공합니다. 이익이 왜 줄었는지에 대한 설명은 Agent가 직접 종합한 내용이라 기준 값이 없습니다."
       },
-      "executed_at_utc": "2026-11-26T16:00:59Z",
+      "executed_at_utc": "2026-11-27T03:11:07Z",
       "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
       "queries": [
         {
@@ -411,6 +411,131 @@
       "questions": [
         "why is women's outerwear & coats realized profit dropping despite strong vip sales? run a parallel cross-domain analysis across: (1) last 30-day vip orders and gross demand where order_id >= 9900000, (2) women's 'outerwear & coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent women's outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000).",
         "why is women's outerwear & coats realized profit dropping despite strong vip sales? run a parallel cross-domain analysis across: (1) last 30-day vip orders & gross demand where order_id >= 9900000, (2) women's 'outerwear & coats' unit margin %, return rate %, and realized profit by brand (order_id >= 9900000), and (3) recent women's outerwear average delivery lead time in days and unsold holding cost by distribution center (order_id >= 9900000)."
+      ]
+    },
+    {
+      "id": "store_net_sales_profit_by_year",
+      "note": {
+        "en": "Reading used: net sales is the sum of ss_ext_sales_price and net profit the sum of ss_net_profit (glossary), by the year of the sale date. Sales rows without a sale date are left out. The retail channel data is fixed (1998 to 2003), so these values do not change over time.",
+        "ko": "적용한 해석: Net Sales는 ss_ext_sales_price 합계, Net Profit은 ss_net_profit 합계이며(Glossary) 판매일의 연도로 묶었습니다. 판매일이 없는 행은 제외했습니다. 소매 채널 데이터는 1998~2003년 고정값이라 시간이 지나도 바뀌지 않습니다."
+      },
+      "executed_at_utc": "2026-11-27T03:11:09Z",
+      "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
+      "queries": [
+        {
+          "label": {
+            "en": "Store channel net sales and net profit by year",
+            "ko": "Store 채널 연도별 Net Sales와 Net Profit"
+          },
+          "sql": "SELECT d.d_year AS year,\n       ROUND(SUM(ss.ss_ext_sales_price), 2) AS net_sales,\n       ROUND(SUM(ss.ss_net_profit), 2) AS net_profit\nFROM `ryan-sandbox-agent.cymbal_enterprise_dw.store_sales` AS ss\nJOIN `ryan-sandbox-agent.cymbal_enterprise_dw.date_dim` AS d ON ss.ss_sold_date_sk = d.d_date_sk\nGROUP BY year\nORDER BY year",
+          "columns": [
+            "year",
+            "net_sales",
+            "net_profit"
+          ],
+          "rows": [
+            [
+              "1998",
+              "1.02904937489E9",
+              "-4.4411372297E8"
+            ],
+            [
+              "1999",
+              "1.01819820395E9",
+              "-4.3966621209E8"
+            ],
+            [
+              "2000",
+              "1.03789735943E9",
+              "-4.4640683796E8"
+            ],
+            [
+              "2001",
+              "1.01995402632E9",
+              "-4.431278822E8"
+            ],
+            [
+              "2002",
+              "1.02480550663E9",
+              "-4.4443716151E8"
+            ],
+            [
+              "2003",
+              "1.115152497E7",
+              "-4911263.28"
+            ]
+          ],
+          "total_rows": 6
+        }
+      ],
+      "questions": [
+        "for the retail store channel, show net sales and net profit by year."
+      ]
+    },
+    {
+      "id": "channels_net_profit_by_year",
+      "note": {
+        "en": "Reading used: net profit of each channel (ss_net_profit, cs_net_profit, ws_net_profit) by the year of the sale date, one row per year. The three fact tables are aggregated separately and joined on the year. Answering this in one query needs tables of three domains, so the To-Be router sends it to the warehouse-wide data agent.",
+        "ko": "적용한 해석: 채널별 Net Profit(ss_net_profit, cs_net_profit, ws_net_profit)을 판매일의 연도로 묶어 연도당 한 행으로 냈습니다. Fact Table 세 개를 각각 집계한 뒤 연도로 Join했습니다. 한 Query로 답하려면 세 Domain의 Table이 필요하므로 To-Be Router는 Warehouse 전체 Data Agent로 보냅니다."
+      },
+      "executed_at_utc": "2026-11-27T03:11:10Z",
+      "dataset": "ryan-sandbox-agent.cymbal_enterprise_dw",
+      "queries": [
+        {
+          "label": {
+            "en": "Net profit by year: store, catalog and web",
+            "ko": "연도별 Net Profit: Store, Catalog, Web"
+          },
+          "sql": "WITH store AS (\n  SELECT d.d_year AS year, SUM(ss.ss_net_profit) AS net_profit\n  FROM `ryan-sandbox-agent.cymbal_enterprise_dw.store_sales` AS ss JOIN `ryan-sandbox-agent.cymbal_enterprise_dw.date_dim` AS d ON ss.ss_sold_date_sk = d.d_date_sk\n  GROUP BY year\n),\ncatalog AS (\n  SELECT d.d_year AS year, SUM(cs.cs_net_profit) AS net_profit\n  FROM `ryan-sandbox-agent.cymbal_enterprise_dw.catalog_sales` AS cs JOIN `ryan-sandbox-agent.cymbal_enterprise_dw.date_dim` AS d ON cs.cs_sold_date_sk = d.d_date_sk\n  GROUP BY year\n),\nweb AS (\n  SELECT d.d_year AS year, SUM(ws.ws_net_profit) AS net_profit\n  FROM `ryan-sandbox-agent.cymbal_enterprise_dw.web_sales` AS ws JOIN `ryan-sandbox-agent.cymbal_enterprise_dw.date_dim` AS d ON ws.ws_sold_date_sk = d.d_date_sk\n  GROUP BY year\n)\nSELECT store.year,\n       ROUND(store.net_profit, 2) AS store_net_profit,\n       ROUND(catalog.net_profit, 2) AS catalog_net_profit,\n       ROUND(web.net_profit, 2) AS web_net_profit\nFROM store\nJOIN catalog USING (year)\nJOIN web USING (year)\nORDER BY year",
+          "columns": [
+            "year",
+            "store_net_profit",
+            "catalog_net_profit",
+            "web_net_profit"
+          ],
+          "rows": [
+            [
+              "1998",
+              "-4.4411372297E8",
+              "-7.227956935E7",
+              "-3.688225139E7"
+            ],
+            [
+              "1999",
+              "-4.3966621209E8",
+              "-7.172595244E7",
+              "-3.733416667E7"
+            ],
+            [
+              "2000",
+              "-4.4640683796E8",
+              "-7.331873832E7",
+              "-3.806537408E7"
+            ],
+            [
+              "2001",
+              "-4.431278822E8",
+              "-7.384285938E7",
+              "-3.819071978E7"
+            ],
+            [
+              "2002",
+              "-4.4443716151E8",
+              "-7.457875436E7",
+              "-3.651297317E7"
+            ],
+            [
+              "2003",
+              "-4911263.28",
+              "-683471.8",
+              "-446744.97"
+            ]
+          ],
+          "total_rows": 6
+        }
+      ],
+      "questions": [
+        "compare net profit by year across the retail store, catalog and web channels side by side in one table."
       ]
     }
   ]

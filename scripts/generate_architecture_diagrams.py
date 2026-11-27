@@ -24,6 +24,7 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 ICONS_SVG = Path(__file__).resolve().parent / "assets" / "diagram_icons.svg"
 BENCH_JSON = REPO_ROOT / "benchmarks" / "scenario_benchmark_results.json"
 CALIB_JSON = REPO_ROOT / "benchmarks" / "bqca_trace_token_calibration.json"
+REPEAT_JSON = REPO_ROOT / "benchmarks" / "repeat_runs.json"
 
 
 def _load_numbers() -> dict:
@@ -31,6 +32,15 @@ def _load_numbers() -> dict:
     bench = json.loads(BENCH_JSON.read_text(encoding="utf-8"))
     calib = json.loads(CALIB_JSON.read_text(encoding="utf-8"))["per_data_agent"]
     sc = {s["code"]: s for s in bench["scenarios"]}
+    repeat = json.loads(REPEAT_JSON.read_text(encoding="utf-8"))
+    shown = [r for r in repeat["runs"] if r["run"].endswith("_shown")][0]
+    if shown["generated_at_utc"] != bench["generated_at_utc"]:
+        raise SystemExit("[ERROR] benchmarks/repeat_runs.json does not describe the current benchmark file; refresh it.")
+
+    def rng(label: str, key: str) -> str:
+        """Range of one delta over all measured runs, e.g. `-54% to -42%`."""
+        vals = [r["rows"][label][key] for r in repeat["runs"]]
+        return f"{min(vals):+.0f}% to {max(vals):+.0f}%"
 
     def est(code: str, key: str = "result") -> dict:
         return sc[code][key]["comparison_summary"]["trace_estimate"]
@@ -43,7 +53,22 @@ def _load_numbers() -> dict:
     asis_adk = [t["asis_adk_prompt_tokens"] for t in curve]
     tobe_adk = [t["tobe_adk_prompt_tokens"] for t in curve]
     s1, s3, fan, s4 = est("S1"), est("S3"), est("S3", "fanout"), est("S4")
+    shop = [calib[a]["median_input_tokens_per_turn"] for a in ("cymbal_customer_marketing_ca", "cymbal_product_profitability_ca", "cymbal_supply_chain_ca")]
+    retail = [calib[a]["median_input_tokens_per_turn"] for a in ("cymbal_store_channel_ca", "cymbal_catalog_channel_ca", "cymbal_web_channel_ca")]
     return {
+        "shop_lo": min(shop), "shop_hi": max(shop), "retail_lo": min(retail), "retail_hi": max(retail),
+        "n_runs": repeat["runs_measured"],
+        "s1_tok_rng": rng("s1_online_shop", "total_input_delta_pct"), "s1_cost_rng": rng("s1_online_shop", "cost_delta_pct"),
+        "s3_tok_rng": rng("s3_switch", "total_input_delta_pct"), "s3_cost_rng": rng("s3_switch", "cost_delta_pct"),
+        "s4avg_tok_rng": rng("s4_average_8_turns", "total_input_delta_pct"), "s4avg_cost_rng": rng("s4_average_8_turns", "cost_delta_pct"),
+        "fan_tok_rng": rng("s3_fanout", "total_input_delta_pct"),
+        "s4avg_asis_lo": min(r["rows"]["s4_average_8_turns"]["asis_total_input_tokens"] for r in repeat["runs"]),
+        "s4avg_asis_hi": max(r["rows"]["s4_average_8_turns"]["asis_total_input_tokens"] for r in repeat["runs"]),
+        "med_store": calib["cymbal_store_channel_ca"]["median_input_tokens_per_turn"],
+        "med_catalog": calib["cymbal_catalog_channel_ca"]["median_input_tokens_per_turn"],
+        "med_web": calib["cymbal_web_channel_ca"]["median_input_tokens_per_turn"],
+        "s1_cost_pct": pct(s1["cost_delta_pct"]), "s3_cost_pct": pct(s3["cost_delta_pct"]),
+        "s4_cost_pct": pct((avg["tobe_cost_usd"] / avg["asis_cost_usd"] - 1) * 100),
         "s1_tobe": s1["tobe_total_input_tokens"], "s1_asis": s1["asis_total_input_tokens"],
         "s1_pct": pct(s1["total_input_delta_pct"]),
         "s3_pct": pct(s3["total_input_delta_pct"]),
@@ -254,39 +279,39 @@ def build_fig1() -> None:
         "• temp:* : Raw SQL & 20-row preview buffer (auto-evicted post-turn)",
         "• session : Per-domain [-6:] (3-turn) sliding window & query history",
         "• user:* & app:* : Persistent role/KPI profile & execution telemetry",
-        "• MemoryService : after_agent_callback indexing + load_memory recall",
+        "• MemoryService : after_agent_callback indexing + recall tool on the root",
     ], fill=YELLOW_FILL)
     draw_h_arrow(p, 304, 153, 414, BLUE, "arrow-blue", ["NL Query"])
     draw_h_arrow(p, 730, 153, 844, AMBER_DARK, "arrow-amber", ["4-Scope R/W"], mstart="arrow-amber-start")
 
     # Vertical Fan-out Connectors Tier 1 -> Tier 2
-    draw_v_arrow(p, 236, 248, 296, GREEN_BORDER, "arrow-green", "Domain 1 :chat (Stateless)")
-    draw_v_arrow(p, 700, 248, 296, GREEN_BORDER, "arrow-green", "Domain 2 :chat (Stateless)")
-    draw_v_arrow(p, 1164, 248, 296, GREEN_BORDER, "arrow-green", "Domain 3 :chat (Stateless)")
+    draw_v_arrow(p, 236, 248, 296, GREEN_BORDER, "arrow-green", "Online shop :chat (Stateless)")
+    draw_v_arrow(p, 700, 248, 296, GREEN_BORDER, "arrow-green", "Retail channel :chat (Stateless)")
+    draw_v_arrow(p, 1164, 248, 296, GREY, "arrow-grey", "Fallback :chat (Stateless)")
 
-    # Tier 2 (Middle): 3 Domain-Scoped BigQuery CAA Data Agents
+    # Tier 2 (Middle): domain-scoped BigQuery CAA data agents
     draw_lane(
         p, 20, 296, 1360, 236, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
         "Tier 2 — Domain-Scoped BigQuery Conversational Analytics (CAA) Layer (geminidataanalytics.googleapis.com)",
-        f"S1 Total Input: {N['s1_tobe']:,} vs {N['s1_asis']:,} Tokens ({N['s1_pct']})", GREEN_LIGHT, GREEN_DARK
+        f"S4 8-Turn Avg ({N['n_runs']} Runs): Input {N['s4avg_tok_rng']} · Cost {N['s4avg_cost_rng']}", GREEN_LIGHT, GREEN_DARK
     )
-    draw_card(p, 44, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 1: Customer & Funnel CAA", [
-        "• ID : cymbal_customer_marketing_ca",
-        "• Scoped Tables (4) : users, events, orders, order_items",
-        "• Glossary : VIP (>= $500 / >= 5 orders), Churn, AOV, Cart%",
-        f"• BQCA Input / Turn (Uncached Median) : {N['med_customer']:,}",
+    draw_card(p, 44, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Online Shop Domains · 3 Data Agents", [
+        "• cymbal_customer_marketing_ca · 4 tables",
+        "• cymbal_product_profitability_ca · 3 tables",
+        "• cymbal_supply_chain_ca · 5 tables",
+        f"• BQCA Input / Turn (Uncached Median) : {N['shop_lo']:,}–{N['shop_hi']:,}",
     ])
-    draw_card(p, 508, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 2: Product & Margin CAA", [
-        "• ID : cymbal_product_profitability_ca",
-        "• Scoped Tables (3) : products, order_items, orders",
-        "• Glossary : Gross Margin %, Net Rev, Realized Profit, Return%",
-        f"• BQCA Input / Turn (Uncached Median) : {N['med_product']:,}",
+    draw_card(p, 508, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Retail Channel Domains · 3 Data Agents", [
+        "• cymbal_store_channel_ca · 13 tables",
+        "• cymbal_catalog_channel_ca · 11 tables",
+        "• cymbal_web_channel_ca · 11 tables",
+        f"• Uncached Median: Store {N['med_store']:,} · Catalog {N['med_catalog']:,} · Web {N['med_web']:,}",
     ])
-    draw_card(p, 972, 358, 384, 156, GREEN_BORDER, "icon-bigquery", "Domain 3: Supply Chain & DC CAA", [
-        "• ID : cymbal_supply_chain_ca",
-        "• Scoped Tables (5) : distribution_centers, inventory_items + 3",
-        "• Glossary : Avg Delivery Lead Time, Unsold Inventory Cost",
-        f"• BQCA Input / Turn (Uncached Median) : {N['med_supply']:,}",
+    draw_card(p, 972, 358, 384, 156, GREY_BORDER, "icon-bigquery", "Warehouse-wide Fallback · 1 Data Agent", [
+        "• cymbal_enterprise_monolithic_ca · 32 tables",
+        "• For one result that needs several domains",
+        "• The same data agent the As-Is design uses",
+        f"• BQCA Input / Turn (Uncached Median) : {N['med_mono']:,}",
     ])
 
     # Vertical Connectors Tier 2 -> Tier 3
@@ -306,7 +331,7 @@ def build_fig1() -> None:
         f"• As-Is: one monolithic data agent on all 32 tables (uncached median {N['med_mono']:,} / turn)",
     ])
     draw_card(p, 736, 640, 620, 132, YELLOW_BORDER, "icon-data-analytics", "Business Glossary & Table / Column Descriptions", [
-        "• Each domain data agent carries only its own tables and glossary terms",
+        "• Tables joined in one query stay in the same domain data agent",
         "• Glossary formulas for VIP, Cart Abandonment %, Gross Margin %, Delivery Lead Time",
         "• Sub-agents bind static data agent IDs: no list / get discovery calls at runtime",
     ], fill=YELLOW_FILL)
@@ -553,7 +578,7 @@ def build_fig2() -> None:
     add_card(
         1, L1, GREEN_BORDER, "icon-vertex-ai", "ADK Root & Sub-Agents",
         [
-            "• Root & 3 Domain LlmAgents",
+            "• Root, 6 Domain & Fallback Agents",
             "• Peer & Root transfer_to_agent",
             "• Parallel 3-Domain Fan-out",
             "• Slim 20-Row Token Diet",
@@ -572,7 +597,7 @@ def build_fig2() -> None:
     add_card(
         3, L1, GREEN_BORDER, "icon-bigquery", "Scoped Domain BQ CAAs",
         [
-            "• Sales / Profit / Supply Chain",
+            "• 6 Domains + Warehouse Fallback",
             "• Parallel Fan-out on Demand",
             "• IAM : dataAgentUser",
             "• Scoped Schema per Domain",
@@ -743,9 +768,9 @@ def build_fig3() -> None:
         "• Attaches [-6:] msg window",
     ])
     draw_card(p, 1146, 76, 214, 154, GREEN_BORDER, "icon-bigquery", "Customer BQ CAA", [
-        "• 4 Tables Only",
-        f"• S1 Input {N['s1_pct']}",
-        "• vs 32-Table Mono",
+        f"• 4 Tables · S1 over {N['n_runs']} Runs",
+        f"• Input {N['s1_tok_rng']}",
+        f"• Cost {N['s1_cost_rng']}",
     ])
     draw_h_arrow(p, 270, 153, 388, BLUE, "arrow-blue", ["Turn 1"])
     draw_h_arrow(p, 664, 153, 782, GREEN_BORDER, "arrow-green", ["Agent Transfer", "(Same Turn)"])
@@ -773,9 +798,9 @@ def build_fig3() -> None:
         "• Scoped [-6:] BQCA window",
     ])
     draw_card(p, 1146, 328, 214, 154, GREEN_BORDER, "icon-bigquery", "Supply Chain CAA", [
-        "• 5 Tables Scoped",
-        f"• S3 Input {N['s3_pct']}",
-        "• No Conv Lock-in",
+        f"• 5 Tables · S3 over {N['n_runs']} Runs",
+        f"• Input {N['s3_tok_rng']}",
+        f"• Cost {N['s3_cost_rng']}",
     ])
     draw_h_arrow(p, 270, 405, 388, AMBER_DARK, "arrow-amber", ["Turn N+1"])
     draw_h_arrow(p, 664, 405, 782, AMBER_DARK, "arrow-amber", ["Peer Handoff", "(No Root Hop)"])
@@ -790,7 +815,7 @@ def build_fig3() -> None:
     draw_card(p, 40, 582, 230, 162, BLUE, "icon-mdi-person", "Composite Exec Query", [
         "• 'Why did Outerwear",
         "  net profit drop?'",
-        "• Spans All 3 Domains",
+        "• 3 Online Shop Domains",
     ])
     draw_card(p, 388, 582, 276, 162, GREEN_BORDER, "icon-vertex-ai", "run_cross_domain_caa", [
         "• Decomposes into 3 queries",
@@ -807,7 +832,7 @@ def build_fig3() -> None:
     draw_card(p, 1146, 582, 214, 162, YELLOW_BORDER, "icon-cloud-sql", "Unified Synthesis", [
         f"• {N['fan_tobe']:,} Input Tok",
         f"• vs {N['fan_asis']:,} Mono",
-        f"• {N['fan_pct']} Tokens",
+        f"• {N['n_runs']} Runs: {N['fan_tok_rng']}",
         f"• BQCA Calls {N['fan_calls_tobe']} vs {N['fan_calls_asis']}",
     ], fill=YELLOW_FILL)
     draw_h_arrow(p, 270, 663, 388, GREEN_BORDER, "arrow-green", ["1 Turn"])
@@ -825,7 +850,7 @@ def build_fig4() -> None:
     draw_lane(
         p, 20, 16, 1360, 248, RED_BORDER, "#FFF8F7", RED_DARK,
         "Before (As-Is) — One ADK Agent with Built-in Data Agent Tools on One Monolithic Data Agent",
-        f"{N['s1_asis']:,} Input Tokens / Turn (S1), {N['t8_asis']:,} at Turn 8", RED_LIGHT, RED_DARK
+        f"As-Is 8-Turn Avg Input ({N['n_runs']} Runs): {N['s4avg_asis_lo']:,} to {N['s4avg_asis_hi']:,} Tokens / Turn", RED_LIGHT, RED_DARK
     )
     draw_card(p, 44, 78, 396, 166, RED_BORDER, "icon-bigquery", "1. Schema & Glossary Bloat", [
         "• All 32 tables / 504 columns bound to 1 agent",
@@ -849,7 +874,7 @@ def build_fig4() -> None:
     draw_lane(
         p, 20, 288, 1360, 256, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
         "After — Proposed 4-Layer Token Diet + ADK 4-Scope Session.state & MemoryService Architecture",
-        f"Total Input: S1 {N['s1_pct']} · S4 Avg {N['s4_avg_pct']} · Turn 8 {N['t8_pct']}", GREEN_LIGHT, GREEN_DARK
+        f"S4 Avg ({N['n_runs']} Runs): Input {N['s4avg_tok_rng']} · Cost {N['s4avg_cost_rng']}", GREEN_LIGHT, GREEN_DARK
     )
     draw_card(p, 40, 352, 306, 172, GREEN_BORDER, "icon-bigquery", "1. temp:* Scope (Turn GC)", [
         "• Strips THOUGHT & PROGRESS",
@@ -861,7 +886,7 @@ def build_fig4() -> None:
         "• Per-agent [-6:] (3-turn) window",
         f"• ADK prompt {N['tobe_adk_min']:,}–{N['tobe_adk_max']:,} over 8 turns",
         "• before_model_callback keeps",
-        "  last 3 user turns in ADK",
+        "  last 3 user prompts in ADK",
     ])
     draw_card(p, 716, 352, 306, 172, YELLOW_BORDER, "icon-mdi-person", "3. user:* & app:* Scopes", [
         "• user:profile & preferred_kpis",
@@ -872,7 +897,7 @@ def build_fig4() -> None:
     draw_card(p, 1054, 352, 306, 172, GREEN_BORDER, "icon-cloud-sql", "4. ADK MemoryService Bank", [
         "• after_agent_callback indexes",
         "  completed sessions automatically",
-        "• load_memory recalls insights",
+        "• Recall tool reads pinned insights",
         "  in a new session (S5)",
     ])
 
@@ -880,12 +905,12 @@ def build_fig4() -> None:
 
 
 # ==============================================================================
-# FIGURE 5: Live Execution Flow (1400 x 694). Every node and edge carries an id
+# FIGURE 5: Live Execution Flow (1400 x 920). Every node and edge carries an id
 # (`lf-<side>-n-<node>` / `lf-<side>-e-<from>--<to>`); the portal inlines this SVG
 # and lights the elements from the ADK events of a live run.
 # ==============================================================================
 def build_fig5() -> None:
-    w, h = 1400, 724
+    w, h = 1400, 920
     idle = "#BDC1C6"
     lanes: list[str] = []
     edges: list[str] = []
@@ -938,49 +963,66 @@ def build_fig5() -> None:
         edges.append("\n".join(g))
 
     # ---- To-Be lane ----
+    # (node id, title, ADK agent name, data agent node, data agent title, data agent id)
+    subs = [
+        ("sub-customer", "Customer Sub-Agent", "customer_marketing_subagent", "ca-customer", "Customer Data Agent · 4 tables", "cymbal_customer_marketing_ca"),
+        ("sub-product", "Product Sub-Agent", "product_profitability_subagent", "ca-product", "Product Data Agent · 3 tables", "cymbal_product_profitability_ca"),
+        ("sub-supply", "Supply Chain Sub-Agent", "supply_chain_logistics_subagent", "ca-supply", "Supply Data Agent · 5 tables", "cymbal_supply_chain_ca"),
+        ("sub-store", "Store Channel Sub-Agent", "store_channel_subagent", "ca-store", "Store Data Agent · 13 tables", "cymbal_store_channel_ca"),
+        ("sub-catalog", "Catalog Channel Sub-Agent", "catalog_channel_subagent", "ca-catalog", "Catalog Data Agent · 11 tables", "cymbal_catalog_channel_ca"),
+        ("sub-web", "Web Channel Sub-Agent", "web_channel_subagent", "ca-web", "Web Data Agent · 11 tables", "cymbal_web_channel_ca"),
+        ("sub-fallback", "Warehouse Fallback Sub-Agent", "enterprise_warehouse_subagent", "ca-mono", "Warehouse-wide Data Agent · 32 tables", "cymbal_enterprise_monolithic_ca"),
+    ]
+    rows = [104 + 60 * i for i in range(9)]
+    # Row order: three online shop sub-agents, the fan-out tool that serves them, three retail channel
+    # sub-agents, the fallback, and the memory tools.
+    sub_row = {"sub-customer": rows[0], "sub-product": rows[1], "sub-supply": rows[2], "sub-store": rows[4],
+               "sub-catalog": rows[5], "sub-web": rows[6], "sub-fallback": rows[7]}
+    fan_y, mem_y, root_y = rows[3], rows[8], rows[4]
     draw_lane(
-        lanes, 20, 16, 1360, 430, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
-        "To-Be — Root Router + Domain Sub-Agents + Domain-Scoped Data Agents",
+        lanes, 20, 16, 1360, 620, GREEN_BORDER, GREEN_TINT, GREEN_DARK,
+        "To-Be — Root Router + 6 Domain Sub-Agents + Warehouse-wide Fallback",
         "Lit from the ADK events of the live run", GREEN_LIGHT, GREEN_DARK,
     )
-    rows = [104, 172, 240, 308, 376]
-    node("tobe", "user", 44, rows[2] - 26, 156, 52, "User Prompt", icon="icon-mdi-person")
-    node("tobe", "root", 264, rows[2] - 26, 220, 52, "Root Router", "cymbal_enterprise_root_router", "icon-vertex-ai")
-    node("tobe", "sub-customer", 552, rows[0] - 26, 260, 52, "Customer Sub-Agent", "customer_marketing_subagent", "icon-agents")
-    node("tobe", "sub-product", 552, rows[1] - 26, 260, 52, "Product Sub-Agent", "product_profitability_subagent", "icon-agents")
-    node("tobe", "sub-supply", 552, rows[2] - 26, 260, 52, "Supply Chain Sub-Agent", "supply_chain_logistics_subagent", "icon-agents")
-    node("tobe", "fan", 552, rows[3] - 26, 260, 52, "Cross-Domain Fan-out Tool", "run_cross_domain_caa_analysis", "icon-mdi-widgets")
-    node("tobe", "mem", 552, rows[4] - 26, 260, 52, "Memory & State Tools", "load_memory · save · inspect", "icon-cloud-sql")
-    node("tobe", "ca-customer", 892, rows[0] - 26, 270, 52, "Customer Data Agent · 4 tables", "cymbal_customer_marketing_ca", "icon-data-analytics")
-    node("tobe", "ca-product", 892, rows[1] - 26, 270, 52, "Product Data Agent · 3 tables", "cymbal_product_profitability_ca", "icon-data-analytics")
-    node("tobe", "ca-supply", 892, rows[2] - 26, 270, 52, "Supply Data Agent · 5 tables", "cymbal_supply_chain_ca", "icon-data-analytics")
-    bq_node("tobe", 1216, rows[0] - 26, 140, rows[2] - rows[0] + 52)
+    node("tobe", "user", 44, root_y - 26, 156, 52, "User Prompt", icon="icon-mdi-person")
+    node("tobe", "root", 264, root_y - 26, 220, 52, "Root Router", "cymbal_enterprise_root_router", "icon-vertex-ai")
+    for nid, title, agent, ca, ca_title, ca_id in subs:
+        y = sub_row[nid]
+        node("tobe", nid, 552, y - 26, 260, 52, title, agent, "icon-agents")
+        node("tobe", ca, 892, y - 26, 270, 52, ca_title, ca_id, "icon-data-analytics")
+    node("tobe", "fan", 552, fan_y - 26, 260, 52, "Cross-Domain Fan-out Tool", "run_cross_domain_caa_analysis", "icon-mdi-widgets")
+    node("tobe", "mem", 552, mem_y - 26, 260, 52, "Memory & State Tools", "load_memory · save · inspect", "icon-cloud-sql")
+    bq_node("tobe", 1216, rows[0] - 26, 140, rows[7] - rows[0] + 52)
 
-    edge("tobe", "user--root", [(200, rows[2]), (264, rows[2])])
-    for nid, ry in (("sub-customer", rows[0]), ("sub-product", rows[1]), ("fan", rows[3]), ("mem", rows[4])):
-        edge("tobe", f"root--{nid}", [(484, rows[2]), (518, rows[2]), (518, ry), (552, ry)])
-    edge("tobe", "root--sub-supply", [(484, rows[2]), (552, rows[2])])
-    for dom, ry in (("customer", rows[0]), ("product", rows[1]), ("supply", rows[2])):
-        edge("tobe", f"fan--ca-{dom}", [(812, rows[3]), (852, rows[3]), (852, ry), (892, ry)])
-        edge("tobe", f"sub-{dom}--ca-{dom}", [(812, ry), (892, ry)])
-        edge("tobe", f"ca-{dom}--bq", [(1162, ry), (1216, ry)])
-    edge("tobe", "peer-cp", [(682, rows[0] + 26), (682, rows[1] - 26)], head=False)
-    edge("tobe", "peer-ps", [(682, rows[1] + 26), (682, rows[2] - 26)], head=False)
+    edge("tobe", "user--root", [(200, root_y), (264, root_y)])
+    for nid, y in list(sub_row.items()) + [("fan", fan_y), ("mem", mem_y)]:
+        pts = [(484, root_y), (552, root_y)] if y == root_y else [(484, root_y), (518, root_y), (518, y), (552, y)]
+        edge("tobe", f"root--{nid}", pts)
+    for nid, _, _, ca, _, _ in subs:
+        y = sub_row[nid]
+        edge("tobe", f"{nid}--{ca}", [(812, y), (892, y)])
+        edge("tobe", f"{ca}--bq", [(1162, y), (1216, y)])
+    for dom in ("customer", "product", "supply"):
+        y = sub_row[f"sub-{dom}"]
+        edge("tobe", f"fan--ca-{dom}", [(812, fan_y), (852, fan_y), (852, y), (892, y)])
+    # Peer hand-over bus between consecutive sub-agents (drawn behind the boxes it passes).
+    for k in range(len(subs) - 1):
+        edge("tobe", f"peer-{k}", [(682, sub_row[subs[k][0]] + 26), (682, sub_row[subs[k + 1][0]] - 26)], head=False)
 
     # ---- As-Is lane ----
     draw_lane(
-        lanes, 20, 464, 1360, 244, GREY_BORDER, GREY_TINT, TEXT_MAIN,
+        lanes, 20, 654, 1360, 244, GREY_BORDER, GREY_TINT, TEXT_MAIN,
         "As-Is — One ADK Agent with 3 Built-in DataAgentToolset Functions on One Monolithic Data Agent",
         "Lit from the ADK events of the live run", GREY_LIGHT, TEXT_SUB,
     )
-    arows = [550, 606, 662]
+    arows = [740, 796, 852]
     node("asis", "user", 44, arows[1] - 26, 156, 52, "User Prompt", icon="icon-mdi-person")
     node("asis", "agent", 264, arows[1] - 26, 220, 52, "ADK Agent (single)", "asis_default_data_agent_tools", "icon-vertex-ai")
     node("asis", "tool-list", 552, arows[0] - 23, 260, 46, "Built-in Tool · Discovery", "list_accessible_data_agents", "icon-mdi-widgets")
     node("asis", "tool-info", 552, arows[1] - 23, 260, 46, "Built-in Tool · Metadata", "get_data_agent_info", "icon-mdi-widgets")
     node("asis", "tool-ask", 552, arows[2] - 23, 260, 46, "Built-in Tool · Stateless Chat", "ask_data_agent", "icon-mdi-widgets")
-    node("asis", "ca", 892, 583, 270, 102, "Monolithic Data Agent · 32 tables", "cymbal_enterprise_monolithic_ca", "icon-data-analytics")
-    bq_node("asis", 1216, 583, 140, 102)
+    node("asis", "ca", 892, 773, 270, 102, "Monolithic Data Agent · 32 tables", "cymbal_enterprise_monolithic_ca", "icon-data-analytics")
+    bq_node("asis", 1216, 773, 140, 102)
 
     edge("asis", "user--agent", [(200, arows[1]), (264, arows[1])])
     edge("asis", "agent--tool-list", [(484, arows[1]), (518, arows[1]), (518, arows[0]), (552, arows[0])])
@@ -988,7 +1030,7 @@ def build_fig5() -> None:
     edge("asis", "agent--tool-ask", [(484, arows[1]), (518, arows[1]), (518, arows[2]), (552, arows[2])])
     edge("asis", "tool-info--ca", [(812, arows[1]), (892, arows[1])])
     edge("asis", "tool-ask--ca", [(812, arows[2]), (892, arows[2])])
-    edge("asis", "ca--bq", [(1162, 634), (1216, 634)])
+    edge("asis", "ca--bq", [(1162, 824), (1216, 824)])
 
     body = lanes + ['  <g id="lf-edges">'] + edges + ["  </g>"] + nodes
     wrap_and_render("fig5_live_execution_flow", w, h, body)

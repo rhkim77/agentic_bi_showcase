@@ -4,6 +4,6 @@ output "cloud_run_service_url" {
 }
 
 output "bigquery_dataset" {
-  description = "BigQuery Dataset backing the 3 Domain CAA Data Agents"
+  description = "BigQuery Dataset backing the domain-scoped CAA data agents"
   value       = "${var.project_id}.${google_bigquery_dataset.cymbal_dataset.dataset_id}"
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Grants the Cloud Run service account access to this demo's own resources only.
 
-  * `roles/geminidataanalytics.dataAgentUser` on each of the four data agents of this demo
+  * `roles/geminidataanalytics.dataAgentUser` on each data agent of this demo (the monolithic one and the six domain ones)
     (set on the data agent, not on the project).
   * Read access to the demo dataset (BigQuery dataset access entry `READER`, not a project role).
 
@@ -29,6 +29,9 @@ DATA_AGENT_IDS = [
     os.environ.get("CYMBAL_CUSTOMER_CA_ID", "cymbal_customer_marketing_ca"),
     os.environ.get("CYMBAL_PRODUCT_CA_ID", "cymbal_product_profitability_ca"),
     os.environ.get("CYMBAL_SUPPLY_CA_ID", "cymbal_supply_chain_ca"),
+    os.environ.get("CYMBAL_STORE_CA_ID", "cymbal_store_channel_ca"),
+    os.environ.get("CYMBAL_CATALOG_CA_ID", "cymbal_catalog_channel_ca"),
+    os.environ.get("CYMBAL_WEB_CA_ID", "cymbal_web_channel_ca"),
 ]
 DATA_AGENT_ROLE = "roles/geminidataanalytics.dataAgentUser"
 

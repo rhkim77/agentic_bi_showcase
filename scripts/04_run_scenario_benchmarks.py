@@ -4,7 +4,7 @@
 Both pipelines run for real on Google Cloud, exactly as in the portal's live workbench:
 
   * As-Is: a plain ADK agent using the built-in data agent tools on the monolithic data agent.
-  * To-Be: the Root Router with three domain-scoped Sub-Agents.
+  * To-Be: the Root Router with six domain-scoped Sub-Agents and a warehouse-wide fallback Sub-Agent.
 
 What is measured:
 
@@ -60,6 +60,10 @@ from backend.workbench_engine import _comparison, _cost_estimate, reset_visitor_
 OUT_JSON = REPO_ROOT / "benchmarks" / "scenario_benchmark_results.json"
 VISITOR = "baseline_run"
 
+# Two extra measured rows on the retail channel tables (static data, 1998 to 2003).
+STORE_PROMPT = "For the retail store channel, show net sales and net profit by year."
+CROSS_PROMPT = "Compare net profit by year across the retail store, catalog and web channels side by side in one table."
+
 SCENARIOS: list[dict[str, Any]] = [
     {
         "code": "S1",
@@ -71,8 +75,9 @@ SCENARIOS: list[dict[str, Any]] = [
             "with the glossary of every domain. BQCA re-reads that schema on each of its internal LLM calls."
         ),
         "architecture_mechanism": (
-            "The Root Router hands the question to one of three Sub-Agents. Each Sub-Agent calls a data agent bound to "
-            "3 to 5 tables and its own domain glossary, so the context BQCA has to read per call is smaller."
+            "The Root Router hands the question to one of six domain Sub-Agents. Each calls a data agent bound to "
+            "3 to 13 tables and its own domain glossary, so the context BQCA has to read per call is smaller. "
+            "Tables that must be joined in one query stay in the same data agent."
         ),
         "prompt": "Show VIP customer count, total gross revenue, and average order value (AOV) by acquisition traffic source over the last 30 days.",
     },
@@ -101,8 +106,10 @@ SCENARIOS: list[dict[str, Any]] = [
             "spanning several domains is answered in one long call."
         ),
         "architecture_mechanism": (
-            "A Sub-Agent can hand over directly to another domain's Sub-Agent. For a question spanning domains, the "
-            "Root Router calls the scoped data agents concurrently and writes one synthesis."
+            "A Sub-Agent can hand over directly to another domain's Sub-Agent. For separate questions about several "
+            "domains, the Root Router calls the scoped data agents concurrently and writes one synthesis. A question "
+            "whose single result needs tables of several domains goes to a fallback Sub-Agent on the warehouse-wide "
+            "data agent, at about the same BQCA input as As-Is."
         ),
         "prompt": "Now pivot to Supply Chain: compare average delivery lead time in days and unsold inventory holding cost ($) across all distribution centers.",
         "fanout_prompt": (
@@ -128,11 +135,12 @@ SCENARIOS: list[dict[str, Any]] = [
         "prompt": "Compare average delivery lead time in days and unsold inventory holding cost ($) by distribution center for Women's Outerwear (order_id >= 9900000).",
         # Eight different questions. A question that repeats an earlier one lets the As-Is agent answer
         # from its own session history without calling BQCA, which measures something else.
+        # Turns 5 to 8 move through the three retail channel domains.
         "append_prompts": [
-            "Which distribution center has the longest average delivery lead time, and how many delivered orders does it have?",
-            "Show the return and cancellation rate (%) by brand for Women's Outerwear & Coats (order_id >= 9900000).",
-            "Show gross margin % and realized gross profit by brand for Women's Outerwear & Coats (order_id >= 9900000).",
-            "Count dormant customers with zero orders in the last 90 days by traffic source.",
+            "For the retail catalog channel, show net profit by call center name and ship mode type.",
+            "For the retail catalog channel, show the average inventory quantity on hand by warehouse name.",
+            "For the retail store channel, show net profit by shopper education status and household income band.",
+            "For the retail web channel, show net sales, net profit and return amount by web site name.",
         ],
     },
     {
@@ -216,8 +224,18 @@ def fetch_chat_traces(since: datetime) -> list[dict[str, Any]]:
     return traces
 
 
-def match(traces: list[dict[str, Any]], agents: list[str], window: list[str | None]) -> dict[str, Any] | None:
-    """Sums the Cloud Trace usage of the chat calls a turn made. None unless every call is found."""
+def match(
+    traces: list[dict[str, Any]],
+    agents: list[str],
+    window: list[str | None],
+    call_starts: list[str | None] | None = None,
+) -> dict[str, Any] | None:
+    """Sums the Cloud Trace usage of the chat calls a turn made. None unless every call is found.
+
+    When the start time of each call is known (To-Be records it), a call takes the trace of its data agent
+    that started closest to it. Both pipelines can call the same data agent in the same turn (the To-Be
+    fallback and As-Is both use the warehouse-wide agent), so To-Be is matched first and As-Is takes the rest.
+    """
     if not agents:
         return {"input_tokens": 0, "cached_input_tokens": 0, "output_tokens": 0, "llm_calls": 0}
     if not window or not window[0] or not window[1]:
@@ -225,8 +243,13 @@ def match(traces: list[dict[str, Any]], agents: list[str], window: list[str | No
     lo = datetime.fromisoformat(window[0]) - timedelta(seconds=3)
     hi = datetime.fromisoformat(window[1]) + timedelta(seconds=3)
     total = {"input_tokens": 0, "cached_input_tokens": 0, "output_tokens": 0, "llm_calls": 0}
-    for agent in agents:
-        hit = next((t for t in sorted(traces, key=lambda x: x["start"]) if not t["used"] and t["agent"] == agent and lo <= t["start"] <= hi), None)
+    for idx, agent in enumerate(agents):
+        pool = [t for t in sorted(traces, key=lambda x: x["start"]) if not t["used"] and t["agent"] == agent and lo <= t["start"] <= hi]
+        started = call_starts[idx] if call_starts and idx < len(call_starts) and call_starts[idx] else None
+        if started and pool:
+            ref = datetime.fromisoformat(started)
+            pool.sort(key=lambda t: abs((t["start"] - ref).total_seconds()))
+        hit = pool[0] if pool else None
         if hit is None:
             return None
         hit["used"] = True
@@ -236,9 +259,9 @@ def match(traces: list[dict[str, Any]], agents: list[str], window: list[str | No
 
 
 def apply_measured(payload: dict[str, Any], traces: list[dict[str, Any]]) -> None:
-    for side in ("asis", "tobe"):
+    for side in ("tobe", "asis"):
         s = payload[side]
-        measured = match(traces, s["bqca_agents"], [s.get("started_at_utc"), s.get("ended_at_utc")])
+        measured = match(traces, s["bqca_agents"], [s.get("started_at_utc"), s.get("ended_at_utc")], s.get("bqca_call_started_utc"))
         if measured is None:
             s["bqca_trace_estimate"], s["cost_estimate_usd"], s["bqca_basis"] = None, None, "unmatched"
         else:
@@ -280,8 +303,8 @@ def finalize_s4(s4: dict[str, Any], traces: list[dict[str, Any]]) -> dict[str, A
     """Attaches measured BQCA usage to every S4 turn and returns the per-turn average."""
     curve = s4["turn_curve"]
     for row in curve:
+        b = match(traces, row["tobe_bqca_agents"], row["tobe_window_utc"], row.get("tobe_bqca_call_started_utc"))
         a = match(traces, row["asis_bqca_agents"], row["asis_window_utc"])
-        b = match(traces, row["tobe_bqca_agents"], row["tobe_window_utc"])
         row["bqca_basis"] = "measured" if a is not None and b is not None else "unmatched"
         if a is not None and b is not None:
             row["asis_bqca"], row["tobe_bqca"] = a, b
@@ -356,17 +379,21 @@ async def main() -> None:
 
     results: dict[str, dict[str, Any]] = {}
     extra: dict[str, dict[str, Any]] = {}
+    print("[S1 store channel]")
+    extra["S1"] = {"store_channel": await run_step("S1", STORE_PROMPT)}
     for code in ("S1", "S2", "S3"):
         print(f"[{code}]")
         results[code] = await run_step(code, spec[code]["prompt"])
     print("[S3 fan-out]")
     extra["S3"] = {"fanout": await run_step("S3", spec["S3"]["fanout_prompt"])}
+    print("[S3 cross-channel, warehouse-wide fallback]")
+    extra["S3"]["cross_channel"] = await run_step("S3", CROSS_PROMPT)
     print("[S5]")
     results["S5"] = await run_step("S5", spec["S5"]["prompt"])
     results["S4"] = await run_s4(spec["S4"])
 
     s4 = results["S4"]
-    others = [p for p in list(results.values()) + [extra["S3"]["fanout"]] if p is not s4]
+    others = [p for p in list(results.values()) + [x for group in extra.values() for x in group.values()] if p is not s4]
     expected = sum(len(p[side]["bqca_agents"]) for p in others for side in ("asis", "tobe")) + curve_calls(s4["turn_curve"])
     traces = wait_for_traces(run_started, expected)
     s4_average = finalize_s4(s4, traces)  # S4 first: its turns own their chat calls

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Provisions 3 English-First Domain-Scoped BigQuery CAA Data Agents for Cymbal Global Commerce.
+"""Provisions the 6 domain-scoped BigQuery CAA Data Agents for Cymbal Global Commerce.
 
 Target Dataset: `{PROJECT_ID}.{DATASET_ID}` (Default: `ryan-sandbox-agent.cymbal_enterprise_dw`)
 Leaves existing Korean Hands-on Lab agents (`thelook_*`) 100% untouched, creating/updating:
   1. `cymbal_customer_marketing_ca` (4 tables: `users`, `events`, `orders`, `order_items`)
   2. `cymbal_product_profitability_ca` (3 tables: `products`, `order_items`, `orders`)
   3. `cymbal_supply_chain_ca` (5 tables: `distribution_centers`, `inventory_items`, `order_items`, `orders`, `products`)
+  4. `cymbal_store_channel_ca` (13 tables: store sales and returns with their dimensions)
+  5. `cymbal_catalog_channel_ca` (11 tables: catalog sales and returns, call centers, inventory)
+  6. `cymbal_web_channel_ca` (11 tables: web sales and returns, web sites and pages)
 """
 
 from __future__ import annotations
@@ -39,6 +42,24 @@ LOCATION = "global"
 CUSTOMER_CA_ID = "cymbal_customer_marketing_ca"
 PRODUCT_CA_ID = "cymbal_product_profitability_ca"
 SUPPLY_CA_ID = "cymbal_supply_chain_ca"
+STORE_CA_ID = "cymbal_store_channel_ca"
+CATALOG_CA_ID = "cymbal_catalog_channel_ca"
+WEB_CA_ID = "cymbal_web_channel_ca"
+
+# Tables that have to be joined in one SQL statement must sit in the same data agent. The retail
+# channel tables form a star schema, so each channel agent carries the dimensions its facts join to.
+STORE_TABLES = [
+    "store_sales", "store_returns", "store", "date_dim", "time_dim", "item", "customer", "customer_address",
+    "customer_demographics", "household_demographics", "income_band", "promotion", "reason",
+]
+CATALOG_TABLES = [
+    "catalog_sales", "catalog_returns", "catalog_page", "call_center", "inventory", "warehouse", "ship_mode",
+    "date_dim", "item", "customer", "promotion",
+]
+WEB_TABLES = [
+    "web_sales", "web_returns", "web_site", "web_page", "ship_mode", "warehouse", "time_dim", "date_dim", "item",
+    "customer", "promotion",
+]
 
 CUSTOMER_SYSTEM_INSTRUCTION = r"""You are Cymbal Global Commerce's dedicated **Customer CRM & Marketing Funnel BigQuery Conversational Analytics Agent (`cymbal_customer_marketing_ca`)** analyzing `{project}.{dataset}`.
 Strictly follow the Enterprise Business Glossary & Verified SQL Mapping Ruleset below when generating SQL, and always answer in concise, executive-ready English with exact figures.
@@ -116,6 +137,76 @@ Strictly follow the Enterprise Business Glossary & Verified SQL Mapping Ruleset 
 - Respond in crisp executive English pinpointing distribution center lead-time bottlenecks (e.g., Chicago IL vs. Memphis TN) and unsold inventory capital exposure.
 """
 
+STORE_SYSTEM_INSTRUCTION = """You are Cymbal Global Commerce's dedicated **Store Channel BigQuery Conversational Analytics Agent (`cymbal_store_channel_ca`)** analyzing the retail warehouse tables in `{project}.{dataset}`.
+Strictly follow the Enterprise Business Glossary & Verified SQL Mapping Ruleset below when generating SQL, and always answer in concise, executive-ready English with exact figures.
+
+[Enterprise Business Glossary & Verified SQL Mapping Rules — Domain 4: Store Channel]
+1. Store Net Sales and Store Net Profit:
+   - Net Sales: `SUM(store_sales.ss_ext_sales_price)`. Net Profit: `SUM(store_sales.ss_net_profit)`.
+2. Store Return Amount and Return Amount Rate (%):
+   - Return Amount: `SUM(store_returns.sr_return_amt)`. Return Amount Rate: return amount * 100 / net sales.
+   - Aggregate `store_sales` and `store_returns` separately on the same grouping keys, then join the two aggregates. Do not join sales rows to return rows directly.
+3. Store Channel Calendar:
+   - Sales year: `store_sales.ss_sold_date_sk = date_dim.d_date_sk`, then `date_dim.d_year`. Returns year: `store_returns.sr_returned_date_sk = date_dim.d_date_sk`.
+   - Use an inner join to `date_dim`, so rows without a date are left out. The data covers 1998 to 2003; do not add a relative date filter.
+4. Store, Item, Promotion and Return Reason:
+   - `ss_store_sk = store.s_store_sk`, `ss_item_sk = item.i_item_sk`, `ss_promo_sk = promotion.p_promo_sk`, `sr_reason_sk = reason.r_reason_sk`.
+5. Shopper Demographics:
+   - Education: `ss_cdemo_sk = customer_demographics.cd_demo_sk` (`cd_education_status`). Income band: `ss_hdemo_sk = household_demographics.hd_demo_sk`, then `hd_income_band_sk = income_band.ib_income_band_sk` (`ib_lower_bound`, `ib_upper_bound`).
+   - Customer: `ss_customer_sk = customer.c_customer_sk`. Address: `ss_addr_sk = customer_address.ca_address_sk`. Time of day: `ss_sold_time_sk = time_dim.t_time_sk`.
+
+[Response Guidelines]
+- Respond in crisp executive English with exact totals. Round money to 2 decimals.
+"""
+
+CATALOG_SYSTEM_INSTRUCTION = """You are Cymbal Global Commerce's dedicated **Catalog Channel BigQuery Conversational Analytics Agent (`cymbal_catalog_channel_ca`)** analyzing the retail warehouse tables in `{project}.{dataset}`.
+Strictly follow the Enterprise Business Glossary & Verified SQL Mapping Ruleset below when generating SQL, and always answer in concise, executive-ready English with exact figures.
+
+[Enterprise Business Glossary & Verified SQL Mapping Rules — Domain 5: Catalog Channel]
+1. Catalog Net Sales and Catalog Net Profit:
+   - Net Sales: `SUM(catalog_sales.cs_ext_sales_price)`. Net Profit: `SUM(catalog_sales.cs_net_profit)`.
+2. Catalog Return Amount and Return Amount Rate (%):
+   - Return Amount: `SUM(catalog_returns.cr_return_amount)`. Return Amount Rate: return amount * 100 / net sales.
+   - Aggregate `catalog_sales` and `catalog_returns` separately on the same grouping keys, then join the two aggregates.
+3. Catalog Channel Calendar:
+   - Sales year: `catalog_sales.cs_sold_date_sk = date_dim.d_date_sk`, then `date_dim.d_year`. Returns year: `catalog_returns.cr_returned_date_sk = date_dim.d_date_sk`.
+   - Use an inner join to `date_dim`. The data covers 1998 to 2003; do not add a relative date filter.
+4. Call Center, Ship Mode, Catalog Page and Warehouse:
+   - `cs_call_center_sk = call_center.cc_call_center_sk` (`cc_name`), `cs_ship_mode_sk = ship_mode.sm_ship_mode_sk` (`sm_type`), `cs_catalog_page_sk = catalog_page.cp_catalog_page_sk`, `cs_warehouse_sk = warehouse.w_warehouse_sk` (`w_warehouse_name`).
+   - Item: `cs_item_sk = item.i_item_sk`. Customer: `cs_bill_customer_sk = customer.c_customer_sk`. Promotion: `cs_promo_sk = promotion.p_promo_sk`.
+5. Warehouse Inventory On Hand:
+   - `inventory.inv_quantity_on_hand` by `inv_warehouse_sk = warehouse.w_warehouse_sk`, `inv_item_sk = item.i_item_sk` and `inv_date_sk = date_dim.d_date_sk`. Inventory rows are weekly snapshots; average or pick one date, do not sum across dates.
+
+[Response Guidelines]
+- Respond in crisp executive English with exact totals. Round money to 2 decimals.
+"""
+
+WEB_SYSTEM_INSTRUCTION = """You are Cymbal Global Commerce's dedicated **Web Channel BigQuery Conversational Analytics Agent (`cymbal_web_channel_ca`)** analyzing the retail warehouse tables in `{project}.{dataset}`.
+Strictly follow the Enterprise Business Glossary & Verified SQL Mapping Ruleset below when generating SQL, and always answer in concise, executive-ready English with exact figures.
+
+[Enterprise Business Glossary & Verified SQL Mapping Rules — Domain 6: Web Channel]
+1. Web Net Sales and Web Net Profit:
+   - Net Sales: `SUM(web_sales.ws_ext_sales_price)`. Net Profit: `SUM(web_sales.ws_net_profit)`.
+2. Web Return Amount and Return Amount Rate (%):
+   - Return Amount: `SUM(web_returns.wr_return_amt)`. Return Amount Rate: return amount * 100 / net sales.
+   - Aggregate `web_sales` and `web_returns` separately on the same grouping keys, then join the two aggregates.
+3. Web Channel Calendar:
+   - Sales year: `web_sales.ws_sold_date_sk = date_dim.d_date_sk`, then `date_dim.d_year`. Returns year: `web_returns.wr_returned_date_sk = date_dim.d_date_sk`.
+   - Use an inner join to `date_dim`. The data covers 1998 to 2003; do not add a relative date filter.
+4. Web Site, Web Page, Ship Mode and Warehouse:
+   - `ws_web_site_sk = web_site.web_site_sk` (`web_name`), `ws_web_page_sk = web_page.wp_web_page_sk` (`wp_type`), `ws_ship_mode_sk = ship_mode.sm_ship_mode_sk` (`sm_type`), `ws_warehouse_sk = warehouse.w_warehouse_sk`.
+   - Item: `ws_item_sk = item.i_item_sk`. Customer: `ws_bill_customer_sk = customer.c_customer_sk`. Promotion: `ws_promo_sk = promotion.p_promo_sk`. Time of day: `ws_sold_time_sk = time_dim.t_time_sk`.
+
+[Response Guidelines]
+- Respond in crisp executive English with exact totals. Round money to 2 decimals.
+"""
+
+# Order used wherever every domain instruction is needed (the monolithic As-Is agent carries all of them).
+ALL_DOMAIN_INSTRUCTIONS = [
+    CUSTOMER_SYSTEM_INSTRUCTION, PRODUCT_SYSTEM_INSTRUCTION, SUPPLY_SYSTEM_INSTRUCTION,
+    STORE_SYSTEM_INSTRUCTION, CATALOG_SYSTEM_INSTRUCTION, WEB_SYSTEM_INSTRUCTION,
+]
+
 
 def get_authorized_session() -> AuthorizedSession:
     creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
@@ -134,7 +225,7 @@ def resolve_dataset(session: AuthorizedSession, project_id: str, dataset_id: str
             resp = alt
     if resp.status_code != 200:
         raise RuntimeError(f"BigQuery dataset {project_id}.{dataset_id} not found: HTTP {resp.status_code}")
-    t_resp = session.get(f"{bq_base}/datasets/{dataset_id}/tables?maxResults=50")
+    t_resp = session.get(f"{bq_base}/datasets/{dataset_id}/tables?maxResults=200")
     t_resp.raise_for_status()
     tables = {t["tableReference"]["tableId"] for t in t_resp.json().get("tables", [])}
     return dataset_id, tables
@@ -195,7 +286,7 @@ def upsert_agent(
 
 
 def main() -> None:
-    print(f"Provisioning 3 English-First Cymbal CAA Data Agents on `{PROJECT_ID}.{DATASET_ID}`...")
+    print(f"Provisioning 6 domain-scoped Cymbal CAA Data Agents on `{PROJECT_ID}.{DATASET_ID}`...")
     sess = get_authorized_session()
     ds, existing = resolve_dataset(sess, PROJECT_ID, DATASET_ID)
     print(f"Verified dataset `{PROJECT_ID}.{ds}` with tables: {sorted(existing)}")
@@ -221,6 +312,27 @@ def main() -> None:
             "Domain-scoped BigQuery CAA Data Agent for distribution center delivery lead times and unsold inventory holding cost.",
             SUPPLY_SYSTEM_INSTRUCTION.format(project=PROJECT_ID, dataset=ds),
             [t for t in ["distribution_centers", "inventory_items", "order_items", "orders", "products"] if t in existing],
+        ),
+        (
+            STORE_CA_ID,
+            "Cymbal Global Commerce — Store Channel CAA",
+            "Domain-scoped BigQuery CAA Data Agent for store sales, store returns, promotions and shopper demographics.",
+            STORE_SYSTEM_INSTRUCTION.format(project=PROJECT_ID, dataset=ds),
+            [t for t in STORE_TABLES if t in existing],
+        ),
+        (
+            CATALOG_CA_ID,
+            "Cymbal Global Commerce — Catalog Channel CAA",
+            "Domain-scoped BigQuery CAA Data Agent for catalog sales and returns, call centers, ship modes and warehouse inventory.",
+            CATALOG_SYSTEM_INSTRUCTION.format(project=PROJECT_ID, dataset=ds),
+            [t for t in CATALOG_TABLES if t in existing],
+        ),
+        (
+            WEB_CA_ID,
+            "Cymbal Global Commerce — Web Channel CAA",
+            "Domain-scoped BigQuery CAA Data Agent for web sales and returns by web site and web page.",
+            WEB_SYSTEM_INSTRUCTION.format(project=PROJECT_ID, dataset=ds),
+            [t for t in WEB_TABLES if t in existing],
         ),
     ]
 

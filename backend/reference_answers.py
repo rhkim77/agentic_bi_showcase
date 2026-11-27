@@ -151,6 +151,38 @@ _NOTE_VIP = {
     "ko": "적용한 해석: VIP는 누적 구매액이 $500 이상이거나 주문이 5건 이상인 고객입니다(Glossary 정의). 고객 수, 매출, AOV는 이 고객들의 최근 30일 Order Item을 고객의 Traffic Source별로 집계했습니다.",
 }
 
+_SQL_STORE_BY_YEAR = """SELECT d.d_year AS year,
+       ROUND(SUM(ss.ss_ext_sales_price), 2) AS net_sales,
+       ROUND(SUM(ss.ss_net_profit), 2) AS net_profit
+FROM `{T}.store_sales` AS ss
+JOIN `{T}.date_dim` AS d ON ss.ss_sold_date_sk = d.d_date_sk
+GROUP BY year
+ORDER BY year"""
+
+_SQL_CHANNELS_BY_YEAR = """WITH store AS (
+  SELECT d.d_year AS year, SUM(ss.ss_net_profit) AS net_profit
+  FROM `{T}.store_sales` AS ss JOIN `{T}.date_dim` AS d ON ss.ss_sold_date_sk = d.d_date_sk
+  GROUP BY year
+),
+catalog AS (
+  SELECT d.d_year AS year, SUM(cs.cs_net_profit) AS net_profit
+  FROM `{T}.catalog_sales` AS cs JOIN `{T}.date_dim` AS d ON cs.cs_sold_date_sk = d.d_date_sk
+  GROUP BY year
+),
+web AS (
+  SELECT d.d_year AS year, SUM(ws.ws_net_profit) AS net_profit
+  FROM `{T}.web_sales` AS ws JOIN `{T}.date_dim` AS d ON ws.ws_sold_date_sk = d.d_date_sk
+  GROUP BY year
+)
+SELECT store.year,
+       ROUND(store.net_profit, 2) AS store_net_profit,
+       ROUND(catalog.net_profit, 2) AS catalog_net_profit,
+       ROUND(web.net_profit, 2) AS web_net_profit
+FROM store
+JOIN catalog USING (year)
+JOIN web USING (year)
+ORDER BY year"""
+
 REFERENCES: list[dict[str, Any]] = [
     {
         "id": "vip_revenue_aov_by_source_30d",
@@ -219,6 +251,24 @@ REFERENCES: list[dict[str, Any]] = [
             {"label": {"en": "(2) Margin, return rate and realized profit by brand", "ko": "(2) Brand별 Margin, 반품률, 실현 이익"}, "sql": _SQL_FAN_BRAND},
             {"label": {"en": "(3) Lead time and unsold cost by distribution center", "ko": "(3) Distribution Center별 Lead Time 및 미판매 원가"}, "sql": _SQL_DC_OUTERWEAR_SEED},
         ],
+    },
+    {
+        "id": "store_net_sales_profit_by_year",
+        "questions": ["For the retail store channel, show net sales and net profit by year."],
+        "note": {
+            "en": "Reading used: net sales is the sum of ss_ext_sales_price and net profit the sum of ss_net_profit (glossary), by the year of the sale date. Sales rows without a sale date are left out. The retail channel data is fixed (1998 to 2003), so these values do not change over time.",
+            "ko": "적용한 해석: Net Sales는 ss_ext_sales_price 합계, Net Profit은 ss_net_profit 합계이며(Glossary) 판매일의 연도로 묶었습니다. 판매일이 없는 행은 제외했습니다. 소매 채널 데이터는 1998~2003년 고정값이라 시간이 지나도 바뀌지 않습니다.",
+        },
+        "queries": [{"label": {"en": "Store channel net sales and net profit by year", "ko": "Store 채널 연도별 Net Sales와 Net Profit"}, "sql": _SQL_STORE_BY_YEAR}],
+    },
+    {
+        "id": "channels_net_profit_by_year",
+        "questions": ["Compare net profit by year across the retail store, catalog and web channels side by side in one table."],
+        "note": {
+            "en": "Reading used: net profit of each channel (ss_net_profit, cs_net_profit, ws_net_profit) by the year of the sale date, one row per year. The three fact tables are aggregated separately and joined on the year. Answering this in one query needs tables of three domains, so the To-Be router sends it to the warehouse-wide data agent.",
+            "ko": "적용한 해석: 채널별 Net Profit(ss_net_profit, cs_net_profit, ws_net_profit)을 판매일의 연도로 묶어 연도당 한 행으로 냈습니다. Fact Table 세 개를 각각 집계한 뒤 연도로 Join했습니다. 한 Query로 답하려면 세 Domain의 Table이 필요하므로 To-Be Router는 Warehouse 전체 Data Agent로 보냅니다.",
+        },
+        "queries": [{"label": {"en": "Net profit by year: store, catalog and web", "ko": "연도별 Net Profit: Store, Catalog, Web"}, "sql": _SQL_CHANNELS_BY_YEAR}],
     },
 ]
 
