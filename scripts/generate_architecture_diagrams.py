@@ -885,7 +885,7 @@ def build_fig4() -> None:
 # and lights the elements from the ADK events of a live run.
 # ==============================================================================
 def build_fig5() -> None:
-    w, h = 1400, 694
+    w, h = 1400, 724
     idle = "#BDC1C6"
     lanes: list[str] = []
     edges: list[str] = []
@@ -969,18 +969,18 @@ def build_fig5() -> None:
 
     # ---- As-Is lane ----
     draw_lane(
-        lanes, 20, 464, 1360, 214, GREY_BORDER, GREY_TINT, TEXT_MAIN,
-        "As-Is — One ADK Agent with Built-in Data Agent Tools on One Monolithic Data Agent",
+        lanes, 20, 464, 1360, 244, GREY_BORDER, GREY_TINT, TEXT_MAIN,
+        "As-Is — One ADK Agent with 3 Built-in DataAgentToolset Functions on One Monolithic Data Agent",
         "Lit from the ADK events of the live run", GREY_LIGHT, TEXT_SUB,
     )
-    arows = [545, 593, 641]
+    arows = [550, 606, 662]
     node("asis", "user", 44, arows[1] - 26, 156, 52, "User Prompt", icon="icon-mdi-person")
     node("asis", "agent", 264, arows[1] - 26, 220, 52, "ADK Agent (single)", "asis_default_data_agent_tools", "icon-vertex-ai")
-    node("asis", "tool-list", 552, arows[0] - 19, 260, 38, "list_accessible_data_agents")
-    node("asis", "tool-info", 552, arows[1] - 19, 260, 38, "get_data_agent_info")
-    node("asis", "tool-ask", 552, arows[2] - 19, 260, 38, "ask_data_agent")
-    node("asis", "ca", 892, 574, 270, 86, "Monolithic Data Agent · 32 tables", "cymbal_enterprise_monolithic_ca", "icon-data-analytics")
-    bq_node("asis", 1216, 574, 140, 86)
+    node("asis", "tool-list", 552, arows[0] - 23, 260, 46, "Built-in Tool · Discovery", "list_accessible_data_agents", "icon-mdi-widgets")
+    node("asis", "tool-info", 552, arows[1] - 23, 260, 46, "Built-in Tool · Metadata", "get_data_agent_info", "icon-mdi-widgets")
+    node("asis", "tool-ask", 552, arows[2] - 23, 260, 46, "Built-in Tool · Stateless Chat", "ask_data_agent", "icon-mdi-widgets")
+    node("asis", "ca", 892, 583, 270, 102, "Monolithic Data Agent · 32 tables", "cymbal_enterprise_monolithic_ca", "icon-data-analytics")
+    bq_node("asis", 1216, 583, 140, 102)
 
     edge("asis", "user--agent", [(200, arows[1]), (264, arows[1])])
     edge("asis", "agent--tool-list", [(484, arows[1]), (518, arows[1]), (518, arows[0]), (552, arows[0])])
@@ -988,7 +988,7 @@ def build_fig5() -> None:
     edge("asis", "agent--tool-ask", [(484, arows[1]), (518, arows[1]), (518, arows[2]), (552, arows[2])])
     edge("asis", "tool-info--ca", [(812, arows[1]), (892, arows[1])])
     edge("asis", "tool-ask--ca", [(812, arows[2]), (892, arows[2])])
-    edge("asis", "ca--bq", [(1162, 617), (1216, 617)])
+    edge("asis", "ca--bq", [(1162, 634), (1216, 634)])
 
     body = lanes + ['  <g id="lf-edges">'] + edges + ["  </g>"] + nodes
     wrap_and_render("fig5_live_execution_flow", w, h, body)
