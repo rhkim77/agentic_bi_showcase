@@ -30,17 +30,23 @@ resource "google_service_account" "showcase_sa" {
   depends_on   = [google_project_service.apis]
 }
 
+# Project level: only what cannot be scoped lower (run BigQuery jobs, call Vertex AI).
 resource "google_project_iam_member" "showcase_sa_roles" {
   for_each = toset([
     "roles/bigquery.user",
-    "roles/bigquery.dataViewer",
     "roles/aiplatform.user",
-    "roles/geminidataanalytics.dataAgentUser",
-    "roles/cloudtrace.user",
   ])
   project = var.project_id
   role    = each.value
   member  = "serviceAccount:${google_service_account.showcase_sa.email}"
+}
+
+# Read access to the demo dataset only. Access to the data agents is granted per data agent by
+# scripts/grant_runtime_access.py once the provisioning scripts have created them.
+resource "google_bigquery_dataset_iam_member" "showcase_sa_dataset_viewer" {
+  dataset_id = google_bigquery_dataset.cymbal_dataset.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = "serviceAccount:${google_service_account.showcase_sa.email}"
 }
 
 resource "google_cloud_run_v2_service" "showcase" {
@@ -84,5 +90,8 @@ resource "google_cloud_run_v2_service" "showcase" {
       }
     }
   }
-  depends_on = [google_project_iam_member.showcase_sa_roles]
+  depends_on = [
+    google_project_iam_member.showcase_sa_roles,
+    google_bigquery_dataset_iam_member.showcase_sa_dataset_viewer,
+  ]
 }

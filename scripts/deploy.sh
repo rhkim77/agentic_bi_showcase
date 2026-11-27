@@ -26,23 +26,39 @@ if ! gcloud projects describe "${PROJECT}" >/dev/null 2>&1; then
   fi
 fi
 
-echo "==> [1/5] Verifying GCP project (${PROJECT}) & dedicated least-privilege Service Account (${SA_EMAIL})..."
+echo "==> [1/5] Verifying GCP project (${PROJECT}) & dedicated Service Account (${SA_EMAIL})..."
 if ! gcloud iam service-accounts describe "${SA_EMAIL}" --project "${PROJECT}" >/dev/null 2>&1; then
   gcloud iam service-accounts create "${SA_NAME}" \
     --project "${PROJECT}" \
     --display-name "Cymbal Agentic BI Showcase Cloud Run SA"
 fi
 
+# Project level: only what cannot be scoped lower (run BigQuery jobs, call Vertex AI).
 for ROLE in \
   "roles/bigquery.user" \
-  "roles/bigquery.dataViewer" \
-  "roles/aiplatform.user" \
-  "roles/geminidataanalytics.dataAgentUser"; do
+  "roles/aiplatform.user"; do
   gcloud projects add-iam-policy-binding "${PROJECT}" \
     --member="serviceAccount:${SA_EMAIL}" \
     --role="${ROLE}" \
     --condition=None \
     --quiet >/dev/null
+done
+
+# Data access is granted on the demo's own data agents and dataset, not on the project, so the public
+# workbench cannot reach other data agents or datasets that live in the same project.
+GCP_ACCESS_TOKEN="${CLOUDSDK_AUTH_ACCESS_TOKEN:-$(gcloud auth print-access-token)}" \
+  python3 "$(dirname "$0")/grant_runtime_access.py" \
+  --service-account "${SA_EMAIL}" --project "${PROJECT}" --dataset "${DATASET_ID}"
+
+# Earlier versions of this script granted these two roles on the whole project.
+for ROLE in \
+  "roles/bigquery.dataViewer" \
+  "roles/geminidataanalytics.dataAgentUser"; do
+  gcloud projects remove-iam-policy-binding "${PROJECT}" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="${ROLE}" \
+    --condition=None \
+    --quiet >/dev/null 2>&1 || true
 done
 
 echo "==> [2/5] Ensuring Artifact Registry repository '${REPO}' in '${REGION}'..."
