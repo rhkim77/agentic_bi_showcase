@@ -1547,6 +1547,485 @@ SHARED_CSS = r"""
     .stage-anim-prev {
       animation: deckSlideFromLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1);
     }
+
+    /* === v3 Web UI Design Pattern & Best Practice Polish === */
+
+    /* 4. Global Tabular Numerals for zero jitter & aligned numeric columns */
+    code, pre, .mono, .kpi-value, .op-kpi-pill .num, .metric-cell .m-v, .savings-big,
+    .data-table td, .matrix-table td, #lbl-qpd, #tco-asis, #tco-tobe {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 5. WCAG 2.2 AA Skip Link & Keyboard Focus Ring */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 6px;
+      z-index: 999;
+      background: var(--blue);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .skip-link:focus {
+      left: 12px;
+    }
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    /* 3. Material 3 Clean Secondary Tab Styling + Single Primary CTA Discipline */
+    .slide-tab-btn {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 6px 6px 0 0;
+      padding: 6px 10px 7px;
+      position: relative;
+    }
+    .slide-tab-btn:hover {
+      background: #EDF3FE;
+      color: #174EA6;
+      border-color: transparent;
+    }
+    .slide-tab-btn.active {
+      background: #FFFFFF;
+      color: #174EA6;
+      border-color: #D2E1F9 #D2E1F9 transparent #D2E1F9;
+      box-shadow: inset 0 -3px 0 var(--blue);
+      font-weight: 700;
+    }
+    .slide-tab-btn.active .slide-tab-badge {
+      background: var(--blue-soft);
+      color: #174EA6;
+    }
+    /* Secondary Prev/Next arrows stay outline so they don't compete with primary page CTAs */
+    .topbar-slide-arrows .top-arrow-btn.primary,
+    .stage-wizard-bar .top-arrow-btn.primary {
+      background: #FFFFFF;
+      border-color: #90B8F8;
+      color: #174EA6;
+    }
+    .topbar-slide-arrows .top-arrow-btn.primary:hover:not(:disabled),
+    .stage-wizard-bar .top-arrow-btn.primary:hover:not(:disabled) {
+      background: var(--blue-soft);
+      border-color: var(--blue);
+      color: #174EA6;
+    }
+    /* Stage tabs inside Slide 3: crisp segmented underline tabs */
+    .stage-wizard-bar {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stage-wiz-pill {
+      border: 1px solid transparent;
+      background: #F8F9FA;
+      color: var(--text-secondary);
+      border-radius: 6px;
+    }
+    .stage-wiz-pill:hover {
+      background: #EDF3FE;
+      color: #174EA6;
+      border-color: transparent;
+    }
+    .stage-wiz-pill.active {
+      background: var(--blue-soft);
+      border-color: #90B8F8;
+      color: #174EA6;
+      box-shadow: inset 0 -2.5px 0 var(--blue);
+    }
+    .stage-wiz-pill.active .stage-done-dot {
+      background: #CEEAD6;
+      color: #0D652D;
+    }
+
+    /* 1. Anti-Card-Soup: Remove outer .scenario-shell wrapper border/padding on Slide 3 */
+    #scenarios .scenario-shell {
+      background: transparent;
+      border: none;
+      padding: 0;
+      box-shadow: none;
+    }
+    .stage-compact-banner {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--blue);
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* High-Visibility Module 1: Prompt Evaluator Workbench */
+    .workbench-box {
+      background: #FFFFFF;
+      border: 1px solid #90B8F8;
+      border-radius: 12px;
+      padding: 0;
+      margin-bottom: 18px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(26, 115, 232, 0.08);
+    }
+    .module-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 13px 20px;
+    }
+    .module-banner.wb-banner {
+      background: linear-gradient(90deg, #174EA6 0%, #1A73E8 100%);
+      color: #FFFFFF;
+    }
+    .module-banner-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      margin: 0;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .module-banner-badge {
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .wb-banner .module-banner-badge {
+      background: rgba(255, 255, 255, 0.20);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+    }
+    .wb-body-inner {
+      padding: 16px 20px 18px;
+    }
+    .wb-subbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #EEF0F4;
+    }
+
+    /* High-Visibility Sub-Module: Live Execution Flow */
+    .flow-box {
+      margin: 16px 0 0;
+      background: #FAFBFE;
+      border: 1px solid #D5E3F8;
+      border-radius: 10px;
+      padding: 0;
+      overflow: hidden;
+    }
+    .flow-head {
+      background: #EEF4FF;
+      border-bottom: 1px solid #D5E3F8;
+      border-left: 5px solid var(--blue);
+      padding: 10px 16px;
+      margin-bottom: 0;
+      align-items: center;
+    }
+    .flow-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #174EA6;
+    }
+    .flow-body-inner {
+      padding: 12px 16px;
+    }
+
+    /* High-Visibility Module 2 (Live Result) vs Module 3 (Pre-Run Baseline) */
+    .live-dual-card {
+      margin-top: 0;
+      margin-bottom: 20px;
+      background: #FFFFFF;
+      border-radius: 12px;
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+      min-width: 0;
+    }
+    .live-dual-card.is-live-result {
+      border: 2px solid #137333;
+      box-shadow: 0 6px 20px rgba(19, 115, 51, 0.13);
+    }
+    .live-dual-card.is-baseline-result {
+      border: 1px solid #BDC1C6;
+      box-shadow: var(--shadow-sm);
+    }
+    @keyframes liveResultPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(19, 115, 51, 0.42); }
+      70%  { box-shadow: 0 0 0 10px rgba(19, 115, 51, 0); }
+      100% { box-shadow: 0 6px 20px rgba(19, 115, 51, 0.13); }
+    }
+    .live-dual-card.live-result-flash {
+      animation: liveResultPulse 0.85s ease-out;
+    }
+    .module-banner.live-banner {
+      background: linear-gradient(90deg, #0D652D 0%, #137333 100%);
+      color: #FFFFFF;
+    }
+    .module-banner.live-banner .module-banner-title {
+      font-size: 19px;
+    }
+    .live-status-pill {
+      font-size: 11.8px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #FFFFFF;
+      color: #0D652D;
+      letter-spacing: 0.03em;
+    }
+    .live-status-pill.err {
+      color: #B31412;
+      background: #FCE8E6;
+    }
+    .module-banner.baseline-banner {
+      background: #ECEFF4;
+      border-bottom: 1px solid #DADCE0;
+      border-left: 5px solid #5F6368;
+      color: #202124;
+    }
+    .module-banner.baseline-banner .module-banner-title {
+      font-size: 17.5px;
+      color: #202124;
+    }
+    .baseline-status-pill {
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: #FFFFFF;
+      border: 1px solid #BDC1C6;
+      color: #3C4043;
+    }
+    .dual-card-prompt-strip {
+      padding: 10px 20px;
+      background: #F8FAFD;
+      border-bottom: 1px solid #E8EAED;
+      font-size: 13.5px;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .dual-card-body {
+      padding: 18px 20px 20px;
+    }
+
+    /* Unified Single-Surface Metric Ribbon with Hairline Dividers (No Card Soup) */
+    .live-dual-card .metric-ribbon {
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #FFFFFF;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .live-dual-card .metric-cell {
+      background: transparent;
+      border-radius: 0;
+      padding: 12px 15px;
+      border-right: 1px solid #E8EAED;
+    }
+    .live-dual-card .metric-cell:last-child {
+      border-right: none;
+    }
+    @media (max-width: 900px) {
+      .live-dual-card .metric-cell { border-bottom: 1px solid #E8EAED; }
+    }
+
+    /* Clean Left-Accent Section Titles inside Comparison Card */
+    .card-section-block {
+      padding: 14px 0;
+      border-top: 1px solid #ECEFF1;
+    }
+    .card-section-heading {
+      font-size: 15px;
+      font-weight: 700;
+      color: #174EA6;
+      padding-left: 10px;
+      border-left: 4px solid var(--blue);
+      margin-bottom: 8px;
+      line-height: 1.35;
+    }
+    .card-section-heading.green {
+      color: #0D652D;
+      border-left-color: #137333;
+    }
+
+    /* 2. Desktop 50/50 Side-by-Side Comparison Grid for As-Is vs To-Be */
+    .ab-split-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: stretch;
+      margin-top: 12px;
+    }
+    @media (max-width: 1024px) {
+      .ab-split-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    .ab-col-card {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .ab-col-card.asis { border-color: #F1B6B3; }
+    .ab-col-card.tobe { border-color: #A8DAB5; }
+    .ab-col-head {
+      padding: 11px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .ab-col-card.asis .ab-col-head {
+      background: #FCE8E6;
+      border-bottom: 1px solid #F1B6B3;
+      color: #B31412;
+    }
+    .ab-col-card.tobe .ab-col-head {
+      background: #E6F4EA;
+      border-bottom: 1px solid #A8DAB5;
+      color: #0D652D;
+    }
+    .ab-col-title {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: inherit;
+    }
+    .ab-col-body {
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .ab-col-body .answer-box {
+      border: none;
+      border-left: 3px solid var(--green);
+      background: #F8FAFC;
+      padding: 12px 14px;
+      border-radius: 6px;
+    }
+    .ab-col-card.asis .ab-col-body .answer-box {
+      border-left-color: var(--red);
+      background: #FFFDFD;
+    }
+    .ab-sql-details {
+      margin-top: auto;
+      border-top: 1px solid #ECEFF1;
+      padding-top: 10px;
+      font-size: 12.5px;
+    }
+    .ab-sql-details summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #174EA6;
+      user-select: none;
+    }
+
+    /* Prominent Baseline Section Divider */
+    .ref-divider {
+      background: #F1F3F4;
+      border: 1px solid #DADCE0;
+      border-left: 5px solid #5F6368;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin: 24px 0 12px;
+      font-size: 15.5px;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: -0.01em;
+      color: #202124;
+    }
+    .ref-divider::after {
+      display: none;
+    }
+
+    /* 4. Compact Collapsible Methodology Disclosure (65-82ch readable measure) */
+    .methodology-disclosure {
+      background: #F8FAFD;
+      border: 1px solid #D5E3F8;
+      border-radius: 8px;
+      padding: 9px 14px;
+      margin: 12px 0 16px;
+      font-size: 13px;
+    }
+    .methodology-disclosure summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .methodology-disclosure .meth-body {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #E2ECFA;
+      max-width: 84ch;
+      line-height: 1.62;
+      color: var(--text-secondary);
+      font-size: 12.8px;
+    }
+
+    /* 5. Live Execution Pending Skeleton Card */
+    @keyframes skelShimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .live-skeleton-card {
+      border: 2px dashed #1A73E8;
+      border-radius: 12px;
+      background: #FFFFFF;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(26, 115, 232, 0.10);
+    }
+    .skel-bar {
+      height: 14px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #EEF2F7 25%, #DCE6F7 50%, #EEF2F7 75%);
+      background-size: 200% 100%;
+      animation: skelShimmer 1.4s infinite linear;
+    }
+
+    /* Unified 18px Accent Headings on Slide 4 & Slide 6 Major Cards */
+    #progressive-tracker h3,
+    #benchmarks .info-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #174EA6;
+    }
 """
 
 
@@ -1562,6 +2041,7 @@ HTML_EN = r"""<!DOCTYPE html>
   <style>__SHARED_CSS__</style>
 </head>
 <body class="deck-mode">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <header class="topbar">
     <div class="topbar-row-util">
@@ -1584,7 +2064,7 @@ HTML_EN = r"""<!DOCTYPE html>
     </div>
     <div class="topbar-row-slides">
       <div class="topbar-row-slides-inner">
-        <nav class="slide-tab-strip" id="deck-stepper" aria-label="Slide navigation">
+        <nav class="slide-tab-strip" id="deck-stepper" role="tablist" aria-label="Slide navigation">
           <button type="button" class="slide-tab-btn active" data-goto-slide="0"><span class="slide-tab-badge">Slide 1</span><span>Overview &amp; Agenda</span></button>
           <button type="button" class="slide-tab-btn" data-goto-slide="1"><span class="slide-tab-badge">Slide 2</span><span>Demo Guide</span></button>
           <button type="button" class="slide-tab-btn" data-goto-slide="2"><span class="slide-tab-badge">Slide 3</span><span>Live Demo</span></button>
@@ -1601,7 +2081,7 @@ HTML_EN = r"""<!DOCTYPE html>
     </div>
   </header>
 
-  <main class="container">
+  <main class="container" id="main-content">
 
     <section id="one-pager" class="portal-slide active-slide" data-slide-index="0">
       __ONEPAGER_HTML__
@@ -1654,7 +2134,7 @@ HTML_EN = r"""<!DOCTYPE html>
         Four architecture diagrams drawn for this repository, and a trade-off comparison of one-shot stateless calls, the server-managed stateful conversation and the ADK-managed design measured here.
       </p>
 
-      <div class="tab-bar" id="diagram-tabs">
+      <div class="tab-bar" id="diagram-tabs" role="tablist">
         <button class="tab-btn active" data-fig="fig1">Fig 1. 3-Tier System Architecture</button>
         <button class="tab-btn" data-fig="fig2">Fig 2. Stateless vs Stateful vs Hybrid State</button>
         <button class="tab-btn" data-fig="fig3">Fig 3. Hybrid Routing (Paths A / B / C)</button>
@@ -1872,6 +2352,7 @@ HTML_KO = r"""<!DOCTYPE html>
   <style>__SHARED_CSS__</style>
 </head>
 <body class="deck-mode">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <header class="topbar">
     <div class="topbar-row-util">
@@ -1894,7 +2375,7 @@ HTML_KO = r"""<!DOCTYPE html>
     </div>
     <div class="topbar-row-slides">
       <div class="topbar-row-slides-inner">
-        <nav class="slide-tab-strip" id="deck-stepper" aria-label="Slide 선택">
+        <nav class="slide-tab-strip" id="deck-stepper" role="tablist" aria-label="Slide 선택">
           <button type="button" class="slide-tab-btn active" data-goto-slide="0"><span class="slide-tab-badge">Slide 1</span><span>시작·목차</span></button>
           <button type="button" class="slide-tab-btn" data-goto-slide="1"><span class="slide-tab-badge">Slide 2</span><span>Demo Guide</span></button>
           <button type="button" class="slide-tab-btn" data-goto-slide="2"><span class="slide-tab-badge">Slide 3</span><span>실시간 Demo</span></button>
@@ -1911,7 +2392,7 @@ HTML_KO = r"""<!DOCTYPE html>
     </div>
   </header>
 
-  <main class="container">
+  <main class="container" id="main-content">
 
     <section id="one-pager" class="portal-slide active-slide" data-slide-index="0">
       __ONEPAGER_HTML__
@@ -1964,7 +2445,7 @@ HTML_KO = r"""<!DOCTYPE html>
         이 Repository용으로 그린 Architecture Diagram 4종과, One-Shot Stateless 호출·Server 관리형 Stateful 대화·여기서 측정한 ADK 관리형 구성의 Trade-off 비교입니다.
       </p>
 
-      <div class="tab-bar" id="diagram-tabs">
+      <div class="tab-bar" id="diagram-tabs" role="tablist">
         <button class="tab-btn active" data-fig="fig1">Fig 1. 3-Tier 전체 System Architecture</button>
         <button class="tab-btn" data-fig="fig2">Fig 2. Stateless vs Stateful vs 제안 Hybrid</button>
         <button class="tab-btn" data-fig="fig3">Fig 3. 3-Way Hybrid Routing (Path A / B / C)</button>
@@ -2401,7 +2882,7 @@ PORTAL_JS = r"""
         const isAct = i === activeScenarioIdx;
         const isDone = !!liveRunResults[sc.code];
         const shortLbl = (S.layerShort && S.layerShort[sc.code]) ? S.layerShort[sc.code] : sc.code;
-        return `<button type="button" class="stage-wiz-pill${isAct ? " active" : ""}" data-stage-idx="${i}">
+        return `<button type="button" role="tab" aria-selected="${isAct ? "true" : "false"}" class="stage-wiz-pill${isAct ? " active" : ""}" data-stage-idx="${i}">
           <span><strong>${escapeHtml(sc.code)}</strong> · ${escapeHtml(shortLbl)}</span>
           ${isDone ? `<span class="stage-done-dot">✓ Live</span>` : ""}
         </button>`;
@@ -2409,7 +2890,7 @@ PORTAL_JS = r"""
 
       bar.innerHTML = `
         <button type="button" class="top-arrow-btn" id="stage-prev-btn" ${activeScenarioIdx <= 0 ? "disabled" : ""}>${D.prevStageBtn || "← Prev Stage"}</button>
-        <div class="stage-pill-row">${pills}</div>
+        <div class="stage-pill-row" role="tablist">${pills}</div>
         <div style="display:inline-flex;align-items:center;gap:6px;">
           <button type="button" class="top-arrow-btn primary" id="stage-next-btn" ${activeScenarioIdx >= tot - 1 ? "disabled" : ""}>${D.nextStageBtn || "Next Stage →"}</button>
           <button type="button" class="btn-outline" id="stage-reset-btn" style="font-size:11.8px;padding:5px 10px;" ${(!liveApiAvailable || workbenchRunning) ? "disabled" : ""}>${D.resetStageBtn || "Reset Session"}</button>
@@ -2464,59 +2945,62 @@ PORTAL_JS = r"""
         </div>
 
         <div class="workbench-box" id="wb-console-anchor" style="margin-top:0;">
-          <div class="wb-header">
-            <div>
-              <span class="tag tag-blue" style="margin-bottom:4px;">${S.wbBadge} · ${escapeHtml(sc.code)}</span>
-              <h3 style="font-size:16px;margin-bottom:2px;">${S.wbTitle} (${escapeHtml(S.layerLabels[sc.code] || sc.code)})</h3>
-              <div style="font-size:12.8px;color:var(--text-secondary);">${S.wbSubtitle}</div>
+          <div class="module-banner wb-banner">
+            <h3 class="module-banner-title">${S.wbTitle} (${escapeHtml(S.layerLabels[sc.code] || sc.code)})</h3>
+            <span class="module-banner-badge">${S.wbBadge} · ${escapeHtml(sc.code)}</span>
+          </div>
+          <div class="wb-body-inner">
+            <div class="wb-subbar">
+              <div style="font-size:13px;color:var(--text-secondary);max-width:78ch;">${S.wbSubtitle}</div>
+              <details style="font-size:12.3px;color:var(--text-secondary);flex-shrink:0;">
+                <summary style="cursor:pointer;font-weight:700;color:var(--blue);">${S.wbSchemaSummary}</summary>
+                <div style="margin-top:6px;background:#F8FAFD;border:1px solid var(--border);border-radius:6px;padding:9px 12px;max-width:540px;line-height:1.5;">
+                  ${S.wbSchemaBodyHtml}
+                </div>
+              </details>
             </div>
-            <details style="font-size:12.3px;color:var(--text-secondary);">
-              <summary style="cursor:pointer;font-weight:600;color:var(--blue);">${S.wbSchemaSummary}</summary>
-              <div style="margin-top:6px;background:#FFFFFF;border:1px solid var(--border);border-radius:6px;padding:9px 12px;max-width:540px;line-height:1.5;">
-                ${S.wbSchemaBodyHtml}
+
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">${S.wbPresetLabel}</div>
+            <div class="preset-row" id="wb-preset-row">${presetButtonsHtml}</div>
+
+            <textarea class="wb-textarea" id="wb-prompt-input" aria-label="${escapeHtml(S.wbTitle)}" maxlength="600" placeholder="${escapeHtml(S.wbPlaceholder)}">${escapeHtml(currentDraft)}</textarea>
+            ${sc.code === "S4" ? `<div style="font-size:12.3px;color:var(--text-secondary);margin-bottom:10px;">${S.wbS4Hint}</div>` : ""}
+
+            <div class="wb-actions">
+              <div class="wb-btn-group">
+                <button type="button" class="btn-live" id="wb-run-dual-btn" ${(liveApiAvailable && !workbenchRunning) ? "" : "disabled"}>
+                  ${liveApiAvailable ? S.wbBtnRunDual.replace("{CODE}", sc.code) : S.btnRunDisabled}
+                </button>
+                ${(sc.code === "S4" && savedLive) ? `<button type="button" class="btn-outline" id="wb-append-turn-btn" ${workbenchRunning ? "disabled" : ""}>${S.wbBtnAppendTurn}</button>` : ""}
               </div>
-            </details>
-          </div>
-
-          <div style="font-size:11.8px;font-weight:700;color:var(--text-secondary);margin-bottom:5px;">${S.wbPresetLabel}</div>
-          <div class="preset-row" id="wb-preset-row">${presetButtonsHtml}</div>
-
-          <textarea class="wb-textarea" id="wb-prompt-input" maxlength="600" placeholder="${escapeHtml(S.wbPlaceholder)}">${escapeHtml(currentDraft)}</textarea>
-          ${sc.code === "S4" ? `<div style="font-size:12.3px;color:var(--text-secondary);margin-bottom:10px;">${S.wbS4Hint}</div>` : ""}
-
-          <div class="wb-actions">
-            <div class="wb-btn-group">
-              <button type="button" class="btn-live" id="wb-run-dual-btn" ${(liveApiAvailable && !workbenchRunning) ? "" : "disabled"}>
-                ${liveApiAvailable ? S.wbBtnRunDual.replace("{CODE}", sc.code) : S.btnRunDisabled}
-              </button>
-              ${(sc.code === "S4" && savedLive) ? `<button type="button" class="btn-outline" id="wb-append-turn-btn" ${workbenchRunning ? "disabled" : ""}>${S.wbBtnAppendTurn}</button>` : ""}
+              <div class="wb-btn-group">
+                ${nextSc ? `<button type="button" class="btn-next-step" id="wb-next-step-btn">${S.wbBtnNextStep.replace("{NEXT}", nextSc.code)}</button>` : ""}
+              </div>
             </div>
-            <div class="wb-btn-group">
-              ${nextSc ? `<button type="button" class="btn-next-step" id="wb-next-step-btn">${S.wbBtnNextStep.replace("{NEXT}", nextSc.code)}</button>` : ""}
-            </div>
-          </div>
 
-          ${flowBoxHtml(sc.code)}
-          <div id="wb-sse-stream-container"></div>
-          <div id="wb-live-dual-card-container">${savedLive ? buildDualComparisonCardHtml(savedLive) : ""}</div>
+            ${flowBoxHtml(sc.code)}
+            <div id="wb-sse-stream-container"></div>
+          </div>
         </div>
+
+        <div id="wb-live-dual-card-container">${savedLive ? buildDualComparisonCardHtml(savedLive) : ""}</div>
 
         <details class="stage-why-details">
           <summary>${(UI_STRINGS.deck && UI_STRINGS.deck.whyStageSummary) || "View Stage Context: As-Is Problem vs. To-Be Architectural Mechanism"} (${escapeHtml(sc.code)})</summary>
-          <div class="stack-list" style="margin-top:10px;">
+          <div class="ab-split-grid" style="margin-top:10px;">
             <div class="sub-box asis-border">
-              <div class="sub-box-title">${S.challengeLabel}</div>
+              <div class="sub-box-title" style="color:#B31412;">${S.challengeLabel}</div>
               <div style="font-size:13.5px;">${formatInlineText(sc.challenge)}</div>
             </div>
             <div class="sub-box tobe-border">
-              <div class="sub-box-title">${S.mechanismLabel}</div>
+              <div class="sub-box-title" style="color:#0D652D;">${S.mechanismLabel}</div>
               <div style="font-size:13.5px;">${formatInlineText(sc.architecture_mechanism)}</div>
             </div>
           </div>
         </details>
 
         <div class="ref-divider">${S.refBaselineHeading} (${escapeHtml(sc.code)})</div>
-        <div class="sub-box" style="margin-bottom:14px;font-size:12.8px;">${S.baselineDisclosureHtml}</div>
+        ${S.baselineDisclosureHtml}
         ${sc.result ? buildDualComparisonCardHtml(sc.result, true) : ""}
         ${sc.store_channel ? `<div class="ref-divider">${S.storeHeading}</div>${buildDualComparisonCardHtml(sc.store_channel, true)}` : ""}
         ${sc.fanout ? `<div class="ref-divider">${S.fanoutHeading}</div>${buildDualComparisonCardHtml(sc.fanout, true)}` : ""}
@@ -2734,12 +3218,12 @@ PORTAL_JS = r"""
       }).join("");
       const note = (ref.note && (ref.note[L] || ref.note.en)) || "";
       return `
-        <div class="sub-box" style="margin-bottom:16px;">
-          <span class="tag tag-blue">${S.refTitle}</span>
-          <div style="font-size:12.6px;margin-top:6px;">${escapeHtml(note)}</div>
+        <div class="card-section-block">
+          <div class="card-section-heading">${S.refTitle}</div>
+          <div style="font-size:12.8px;color:var(--text-secondary);max-width:84ch;">${escapeHtml(note)}</div>
           ${ref.error ? `<div style="color:var(--red);font-size:12.5px;margin-top:6px;">${S.refError}: ${escapeHtml(ref.error)}</div>` : ""}
           ${blocks}
-          <div style="font-size:12.2px;color:var(--text-secondary);margin-top:9px;">
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:8px;max-width:86ch;">
             ${isSnapshot ? S.refSnapshotNote : S.refLiveNote} <span class="mono">${escapeHtml(ref.executed_at_utc || "")}</span>. ${S.refDisclaimer}
           </div>
         </div>`;
@@ -2823,98 +3307,121 @@ PORTAL_JS = r"""
       const w = v => Math.max(2, Math.min(100, ((v || 0) / maxBar) * 100)).toFixed(1);
 
       const traceHtml = tr ? `
-          <div class="sub-box" style="margin-bottom:16px;">
-            <span class="tag ${measuredBqca ? "tag-green" : "tag-amber"}">${measuredBqca ? S.wbTraceTitleMeasured : S.wbTraceTitle}</span>
-            <div class="mono" style="font-size:12.5px;line-height:1.7;">
-              BQCA input tokens: To-Be ${fmtTok(tr.tobe_bqca_input_tokens)} vs As-Is ${fmtTok(tr.asis_bqca_input_tokens)}<br/>
-              Total input (ADK + BQCA): To-Be ${fmtTok(tr.tobe_total_input_tokens)} vs As-Is ${fmtTok(tr.asis_total_input_tokens)} (${fmtDelta(tr.total_input_delta_pct)})<br/>
-              Cost estimate per turn: To-Be $${Number(tr.tobe_cost_usd || 0).toFixed(4)} vs As-Is $${Number(tr.asis_cost_usd || 0).toFixed(4)} (${fmtDelta(tr.cost_delta_pct)})
+          <div class="card-section-block">
+            <div class="card-section-heading ${measuredBqca ? "green" : ""}">${measuredBqca ? S.wbTraceTitleMeasured : S.wbTraceTitle}</div>
+            <div class="mono" style="font-size:12.6px;line-height:1.7;">
+              BQCA input tokens: <strong>To-Be ${fmtTok(tr.tobe_bqca_input_tokens)}</strong> vs As-Is ${fmtTok(tr.asis_bqca_input_tokens)}<br/>
+              Total input (ADK + BQCA): <strong>To-Be ${fmtTok(tr.tobe_total_input_tokens)}</strong> vs As-Is ${fmtTok(tr.asis_total_input_tokens)} (<strong style="color:${deltaColor(tr.total_input_delta_pct)};">${fmtDelta(tr.total_input_delta_pct)}</strong>)<br/>
+              Cost estimate per turn: <strong>To-Be $${Number(tr.tobe_cost_usd || 0).toFixed(4)}</strong> vs As-Is $${Number(tr.asis_cost_usd || 0).toFixed(4)} (<strong style="color:${deltaColor(tr.cost_delta_pct)};">${fmtDelta(tr.cost_delta_pct)}</strong>)
             </div>
-            <div style="font-size:12.3px;color:var(--text-secondary);margin-top:6px;">${measuredBqca ? S.wbTraceNoteMeasured : S.wbTraceNote + " <span class=\"mono\">" + escapeHtml(cal.measured_at_utc || "") + "</span>"}</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;max-width:86ch;">${measuredBqca ? S.wbTraceNoteMeasured : S.wbTraceNote + " <span class=\"mono\">" + escapeHtml(cal.measured_at_utc || "") + "</span>"}</div>
           </div>
-        ` : `<div class="sub-box" style="margin-bottom:16px;font-size:12.8px;color:var(--text-secondary);">${S.wbTraceUnavailable}</div>`;
+        ` : `<div class="card-section-block" style="font-size:12.8px;color:var(--text-secondary);">${S.wbTraceUnavailable}</div>`;
+
+      const sqlToggleLabel = (S.deck && S.deck.sqlDetailsSummary) || "Generated SQL & Call Telemetry";
+      const bannerCls = isBaseline ? "baseline-banner" : "live-banner";
+      const cardCls = isBaseline ? "is-baseline-result" : "is-live-result";
+      const statusCls = isBaseline
+        ? "baseline-status-pill"
+        : ("live-status-pill" + (res.status === "SUCCESS" ? "" : " err"));
 
       return `
-        <div class="live-dual-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-            <div>
-              <span class="tag ${res.status === "SUCCESS" ? "tag-green" : "tag-red"}" style="margin-bottom:4px;">${isBaseline ? S.baselineCardBadge : S.wbLiveCardBadge} · ${escapeHtml(res.scenario_code)} · ${escapeHtml(res.status || "")}</span>
-              <div style="font-size:13.5px;font-weight:600;color:var(--text);">${S.wbExecutedPromptLabel}: "${escapeHtml(res.prompt_executed)}"</div>
-            </div>
-            <div class="mono" style="font-size:12px;color:var(--text-secondary);">
+        <div class="live-dual-card ${cardCls}">
+          <div class="module-banner ${bannerCls}">
+            <h3 class="module-banner-title">
+              <span>${isBaseline ? S.baselineCardBadge : S.wbLiveCardBadge} · ${escapeHtml(res.scenario_code)}</span>
+              <span class="${statusCls}">${escapeHtml(res.status || "SUCCESS")}</span>
+            </h3>
+            <div class="mono" style="font-size:12.3px;opacity:0.94;">
               Wall-Clock: <strong>${secs(res.wall_clock_ms)}</strong> · google-adk ${escapeHtml(res.adk_version || "")}
             </div>
           </div>
 
-          ${prereqHtml}
-
-          <div class="metric-ribbon" style="margin-bottom:14px;">
-            <div class="metric-cell">
-              <div class="m-k">${S.wbMetricAdk}</div>
-              <div class="m-v mono" style="color:${deltaColor(m.adk_prompt_delta_pct)};">${fmtTok(m.tobe_adk_prompt_tokens)} vs ${fmtTok(m.asis_adk_prompt_tokens)} (${fmtDelta(m.adk_prompt_delta_pct)})</div>
-            </div>
-            <div class="metric-cell">
-              <div class="m-k">${S.wbMetricCalls}</div>
-              <div class="m-v mono">${fmtTok(m.tobe_bqca_calls)} vs ${fmtTok(m.asis_bqca_calls)}</div>
-            </div>
-            <div class="metric-cell">
-              <div class="m-k">${S.wbMetricLatency}</div>
-              <div class="m-v mono">${secs(m.tobe_latency_ms)} vs ${secs(m.asis_latency_ms)}</div>
-            </div>
-            <div class="metric-cell">
-              <div class="m-k">${S.wbMetricLlmCalls}</div>
-              <div class="m-v mono">${fmtTok(m.tobe_llm_calls)} vs ${fmtTok(m.asis_llm_calls)}</div>
-            </div>
+          <div class="dual-card-prompt-strip">
+            <div><strong>${S.wbExecutedPromptLabel}:</strong> "${escapeHtml(res.prompt_executed)}"</div>
           </div>
 
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">${S.wbBarTitle}</div>
-            <div class="dual-bar-track">
-              <div class="bar-line">
-                <span class="mono" style="font-size:11px;width:52px;color:var(--red);font-weight:700;">As-Is</span>
-                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-asis" style="width:${w(m.asis_adk_prompt_tokens)}%;"></div></div>
-                <span class="mono" style="font-size:11.5px;width:110px;text-align:right;">${fmtTok(m.asis_adk_prompt_tokens)} tok</span>
+          <div class="dual-card-body">
+            ${prereqHtml}
+
+            <div class="metric-ribbon">
+              <div class="metric-cell">
+                <div class="m-k">${S.wbMetricAdk}</div>
+                <div class="m-v mono" style="color:${deltaColor(m.adk_prompt_delta_pct)};">${fmtTok(m.tobe_adk_prompt_tokens)} vs ${fmtTok(m.asis_adk_prompt_tokens)} (${fmtDelta(m.adk_prompt_delta_pct)})</div>
               </div>
-              <div class="bar-line">
-                <span class="mono" style="font-size:11px;width:52px;color:var(--green);font-weight:700;">To-Be</span>
-                <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-tobe" style="width:${w(m.tobe_adk_prompt_tokens)}%;"></div></div>
-                <span class="mono" style="font-size:11.5px;width:110px;text-align:right;color:var(--green);font-weight:700;">${fmtTok(m.tobe_adk_prompt_tokens)} tok</span>
+              <div class="metric-cell">
+                <div class="m-k">${S.wbMetricCalls}</div>
+                <div class="m-v mono">${fmtTok(m.tobe_bqca_calls)} vs ${fmtTok(m.asis_bqca_calls)}</div>
+              </div>
+              <div class="metric-cell">
+                <div class="m-k">${S.wbMetricLatency}</div>
+                <div class="m-v mono">${secs(m.tobe_latency_ms)} vs ${secs(m.asis_latency_ms)}</div>
+              </div>
+              <div class="metric-cell">
+                <div class="m-k">${S.wbMetricLlmCalls}</div>
+                <div class="m-v mono">${fmtTok(m.tobe_llm_calls)} vs ${fmtTok(m.asis_llm_calls)}</div>
               </div>
             </div>
-          </div>
 
-          ${traceHtml}
-          ${turnCurveHtml}
-          ${stateHtml}
-          ${referenceBoxHtml(res.reference || (isBaseline ? findReferenceSnapshot(res.prompt_executed) : null), !res.reference)}
-
-          <div class="stack-list" style="margin-bottom:0;">
-            <div class="sub-box asis-border" style="background:#FFFBFB;">
-              <div class="evidence-header">
-                <span class="tag tag-red">${escapeHtml(asis.label || "As-Is")}</span>
-                <span class="mono" style="font-size:11.8px;color:var(--red);">ADK prompt ${fmtTok(asisAdk.prompt_tokens)} tok · cached ${fmtTok(asisAdk.cached_tokens)} · ${secs(asis.latency_ms)}</span>
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:6px;">${S.wbBarTitle}</div>
+              <div class="dual-bar-track">
+                <div class="bar-line">
+                  <span class="mono" style="font-size:11px;width:52px;color:var(--red);font-weight:700;">As-Is</span>
+                  <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-asis" style="width:${w(m.asis_adk_prompt_tokens)}%;"></div></div>
+                  <span class="mono" style="font-size:11.5px;width:110px;text-align:right;">${fmtTok(m.asis_adk_prompt_tokens)} tok</span>
+                </div>
+                <div class="bar-line">
+                  <span class="mono" style="font-size:11px;width:52px;color:var(--green);font-weight:700;">To-Be</span>
+                  <div style="flex:1;background:#E8EAED;border-radius:4px;overflow:hidden;"><div class="bar-fill-tobe" style="width:${w(m.tobe_adk_prompt_tokens)}%;"></div></div>
+                  <span class="mono" style="font-size:11.5px;width:110px;text-align:right;color:var(--green);font-weight:700;">${fmtTok(m.tobe_adk_prompt_tokens)} tok</span>
+                </div>
               </div>
-              <div class="mono" style="font-size:11.8px;color:var(--text-secondary);margin-bottom:8px;">
-                Tools called: ${escapeHtml((asis.tool_calls || []).join(", ") || "none")} · ${S.wbMsgsPerCall}: ${escapeHtml(JSON.stringify(asis.bqca_messages_sent || []))} · ${S.wbToolResp}: ${fmtTok(asis.tool_response_chars)} chars
-              </div>
-              ${sideErrors(asis)}
-              ${asis.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(asis.generated_sql)}</pre>` : ""}
-              ${asis.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(asis.markdown_table)}</div>` : ""}
-              <div class="answer-box" style="border-left-color:var(--red);">${formatAgentAnswer(asis.answer)}</div>
             </div>
 
-            <div class="sub-box tobe-border" style="background:#F8FDF9;">
-              <div class="evidence-header">
-                <span class="tag tag-green">${escapeHtml(tobe.label || "To-Be")}</span>
-                <span class="mono" style="font-size:11.8px;color:var(--green);font-weight:700;">ADK prompt ${fmtTok(tobeAdk.prompt_tokens)} tok · cached ${fmtTok(tobeAdk.cached_tokens)} · ${secs(tobe.latency_ms)}</span>
+            ${traceHtml}
+            ${turnCurveHtml}
+            ${stateHtml}
+            ${referenceBoxHtml(res.reference || (isBaseline ? findReferenceSnapshot(res.prompt_executed) : null), !res.reference)}
+
+            <div class="ab-split-grid">
+              <div class="ab-col-card asis">
+                <div class="ab-col-head">
+                  <span class="ab-col-title">${escapeHtml(asis.label || "As-Is")}</span>
+                  <span class="mono" style="font-size:11.8px;font-weight:600;">ADK ${fmtTok(asisAdk.prompt_tokens)} tok · ${secs(asis.latency_ms)}</span>
+                </div>
+                <div class="ab-col-body">
+                  ${sideErrors(asis)}
+                  <div class="answer-box">${formatAgentAnswer(asis.answer)}</div>
+                  ${asis.markdown_table ? `<div>${parseMarkdownTableToHtml(asis.markdown_table)}</div>` : ""}
+                  <details class="ab-sql-details">
+                    <summary>${sqlToggleLabel}</summary>
+                    <div class="mono" style="font-size:11.5px;color:var(--text-secondary);margin:8px 0;">
+                      Tools: ${escapeHtml((asis.tool_calls || []).join(", ") || "none")} · ${S.wbMsgsPerCall}: ${escapeHtml(JSON.stringify(asis.bqca_messages_sent || []))} · ${S.wbToolResp}: ${fmtTok(asis.tool_response_chars)} chars · cached: ${fmtTok(asisAdk.cached_tokens)}
+                    </div>
+                    ${asis.generated_sql ? `<pre class="sql-block">${escapeHtml(asis.generated_sql)}</pre>` : ""}
+                  </details>
+                </div>
               </div>
-              <div class="mono" style="font-size:11.8px;color:var(--text-secondary);margin-bottom:8px;">
-                Agents: ${escapeHtml((tobeAdk.agents_invoked || []).join(" > ") || "none")} · BQCA agents: ${escapeHtml((tobe.bqca_agents || []).join(", ") || "none")} · ${S.wbMsgsPerCall}: ${escapeHtml(JSON.stringify(tobe.bqca_messages_sent || []))}
+
+              <div class="ab-col-card tobe">
+                <div class="ab-col-head">
+                  <span class="ab-col-title">${escapeHtml(tobe.label || "To-Be")}</span>
+                  <span class="mono" style="font-size:11.8px;font-weight:700;">ADK ${fmtTok(tobeAdk.prompt_tokens)} tok · ${secs(tobe.latency_ms)}</span>
+                </div>
+                <div class="ab-col-body">
+                  ${sideErrors(tobe)}
+                  <div class="answer-box">${formatAgentAnswer(tobe.answer)}</div>
+                  ${tobe.markdown_table ? `<div>${parseMarkdownTableToHtml(tobe.markdown_table)}</div>` : ""}
+                  <details class="ab-sql-details">
+                    <summary>${sqlToggleLabel}</summary>
+                    <div class="mono" style="font-size:11.5px;color:var(--text-secondary);margin:8px 0;">
+                      Agents: ${escapeHtml((tobeAdk.agents_invoked || []).join(" > ") || "none")} · BQCA: ${escapeHtml((tobe.bqca_agents || []).join(", ") || "none")} · ${S.wbMsgsPerCall}: ${escapeHtml(JSON.stringify(tobe.bqca_messages_sent || []))} · cached: ${fmtTok(tobeAdk.cached_tokens)}
+                    </div>
+                    ${tobe.generated_sql ? `<pre class="sql-block">${escapeHtml(tobe.generated_sql)}</pre>` : ""}
+                  </details>
+                </div>
               </div>
-              ${sideErrors(tobe)}
-              ${tobe.generated_sql ? `<pre class="sql-block" style="margin-bottom:10px;">${escapeHtml(tobe.generated_sql)}</pre>` : ""}
-              ${tobe.markdown_table ? `<div style="margin-bottom:10px;">${parseMarkdownTableToHtml(tobe.markdown_table)}</div>` : ""}
-              <div class="answer-box">${formatAgentAnswer(tobe.answer)}</div>
             </div>
           </div>
         </div>
@@ -2945,15 +3452,20 @@ PORTAL_JS = r"""
             </div>
             <button type="button" class="btn-outline" id="flow-replay-btn" style="${hasRun ? "" : "display:none;"}">${S.flowReplay}</button>
           </div>
-          <div class="flow-svg-wrap">${FLOW_SVG}</div>
-          <div class="flow-status mono" id="flow-status-tobe"><b>[To-Be]</b> ${S.flowIdle}</div>
-          <div class="flow-status mono" id="flow-status-asis"><b>[As-Is]</b> ${S.flowIdle}</div>
-          <div class="flow-legend">
-            <span><span class="flow-chip active"></span>${S.flowLegendActive}</span>
-            <span><span class="flow-chip done"></span>${S.flowLegendDone}</span>
-            <span><span class="flow-chip"></span>${S.flowLegendIdle}</span>
+          <div class="flow-body-inner">
+            <div class="flow-svg-wrap">${FLOW_SVG}</div>
+            <div class="flow-status mono" id="flow-status-tobe"><b>[To-Be]</b> ${S.flowIdle}</div>
+            <div class="flow-status mono" id="flow-status-asis"><b>[As-Is]</b> ${S.flowIdle}</div>
+            <div class="flow-legend">
+              <span><span class="flow-chip active"></span>${S.flowLegendActive}</span>
+              <span><span class="flow-chip done"></span>${S.flowLegendDone}</span>
+              <span><span class="flow-chip"></span>${S.flowLegendIdle}</span>
+            </div>
+            <details style="margin-top:6px;font-size:12px;color:var(--text-secondary);">
+              <summary style="cursor:pointer;font-weight:600;color:var(--blue);">${(S.deck && S.deck.flowNoteSummary) || "Diagram streaming notes"}</summary>
+              <div style="margin-top:4px;max-width:84ch;line-height:1.55;">${S.flowNote}</div>
+            </details>
           </div>
-          <div class="flow-desc" style="margin-top:6px;">${S.flowNote}</div>
         </div>`;
     }
 
@@ -3123,6 +3635,24 @@ PORTAL_JS = r"""
         dualBtn.textContent = S.wbRunningDual.replace("{CODE}", scenarioCode);
       }
       if (appendBtn) appendBtn.disabled = true;
+      if (cardContainer) {
+        const pendTitle = ((S.deck && S.deck.pendingResultTitle) || "Running Live Dual A/B on Google Cloud ({CODE})...").replace("{CODE}", escapeHtml(scenarioCode));
+        const pendSub = (S.deck && S.deck.pendingResultSub) || "Executing As-Is and To-Be in parallel on Vertex AI and BigQuery. Results will appear here automatically.";
+        cardContainer.innerHTML = `
+          <div class="live-skeleton-card" role="status" aria-live="polite">
+            <div class="module-banner wb-banner">
+              <h3 class="module-banner-title">${pendTitle}</h3>
+              <span class="module-banner-badge">RUNNING</span>
+            </div>
+            <div style="padding:18px 20px;">
+              <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">${pendSub}</div>
+              <div class="ab-split-grid">
+                <div style="display:flex;flex-direction:column;gap:10px;"><div class="skel-bar" style="width:45%;height:18px;"></div><div class="skel-bar"></div><div class="skel-bar" style="width:82%;"></div></div>
+                <div style="display:flex;flex-direction:column;gap:10px;"><div class="skel-bar" style="width:45%;height:18px;"></div><div class="skel-bar"></div><div class="skel-bar" style="width:86%;"></div></div>
+              </div>
+            </div>
+          </div>`;
+      }
 
       const startMs = Date.now();
       const logs = [];
@@ -3203,6 +3733,11 @@ PORTAL_JS = r"""
               liveRunResults[scenarioCode] = evt.payload;
               if (cardContainer) {
                 cardContainer.innerHTML = buildDualComparisonCardHtml(evt.payload);
+                const liveCard = cardContainer.querySelector(".live-dual-card");
+                if (liveCard) {
+                  liveCard.classList.add("live-result-flash");
+                  liveCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
               }
               renderProgressiveTracker();
               if (scenarioCode === "S4") {
@@ -3397,6 +3932,8 @@ PORTAL_JS = r"""
 
       document.querySelectorAll("#deck-stepper .slide-tab-btn").forEach((btn, idx) => {
         const isAct = idx === activeSlideIdx && document.body.classList.contains("deck-mode");
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-selected", isAct ? "true" : "false");
         btn.classList.toggle("active", isAct);
         if (isAct) btn.setAttribute("aria-current", "step");
         else btn.removeAttribute("aria-current");
@@ -3492,16 +4029,22 @@ PORTAL_JS = r"""
       document.getElementById("bench-ts").textContent = BENCHMARK_DATA.generated_at_utc;
       renderHeroKpis();
 
-      const disclosureHtml = `<div class="sub-box" style="margin:14px 0;font-size:12.8px;">${S.baselineDisclosureHtml}</div>`;
+      const disclosureHtml = S.baselineDisclosureHtml;
       const heroGrid = document.getElementById("hero-kpi-grid");
       if (heroGrid) heroGrid.insertAdjacentHTML("afterend", disclosureHtml);
       const benchDesc = document.querySelector("#benchmarks .section-desc");
       if (benchDesc) benchDesc.insertAdjacentHTML("afterend", disclosureHtml);
 
-      document.querySelectorAll("#diagram-tabs .tab-btn").forEach(btn => {
+      document.querySelectorAll("#diagram-tabs .tab-btn").forEach((btn, dIdx) => {
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-selected", dIdx === 0 ? "true" : "false");
         btn.addEventListener("click", () => {
-          document.querySelectorAll("#diagram-tabs .tab-btn").forEach(b => b.classList.remove("active"));
+          document.querySelectorAll("#diagram-tabs .tab-btn").forEach(b => {
+            b.classList.remove("active");
+            b.setAttribute("aria-selected", "false");
+          });
           btn.classList.add("active");
+          btn.setAttribute("aria-selected", "true");
           const f = S.figures[btn.dataset.fig];
           document.getElementById("fig-img").src = f.src;
           document.getElementById("fig-title").textContent = f.title;
@@ -3572,6 +4115,10 @@ UI_EN = {
         "nextStageBtn": "Next Stage →",
         "resetStageBtn": "Reset Live Session",
         "whyStageSummary": "View Stage Context: As-Is Problem vs. To-Be Mechanism",
+        "sqlDetailsSummary": "Generated SQL & Call Telemetry",
+        "flowNoteSummary": "Diagram streaming notes",
+        "pendingResultTitle": "Running Live Dual A/B on Google Cloud ({CODE})...",
+        "pendingResultSub": "Executing As-Is and To-Be in parallel on Vertex AI and BigQuery. Results will appear here automatically.",
     },
     "heroKpis": {
         "k1Label": "S1 · BQCA input tokens per turn",
@@ -3650,7 +4197,7 @@ UI_EN = {
     "wbBtnRunDual": "Run Full Live Dual A/B on GCP ({CODE}: As-Is vs To-Be)",
     "wbRunningDual": "Streaming Parallel As-Is & To-Be on GCP ({CODE})...",
     "wbBtnAppendTurn": "+ Run this prompt as the next turn of the live S4 session",
-    "wbBtnNextStep": "Continue to Next Layer ({NEXT} →)",
+    "wbBtnNextStep": "Next Stage ({NEXT}) →",
     "wbBtnReset": "Reset Live Session & Tracker",
     "wbSseHeader": "Live GCP Parallel SSE Execution Stream",
     "lang": "en",
@@ -3745,6 +4292,10 @@ UI_KO = {
         "nextStageBtn": "다음 Stage →",
         "resetStageBtn": "Session 초기화",
         "whyStageSummary": "이 Stage의 검증 배경 보기: As-Is 문제점 vs To-Be 해결 원리",
+        "sqlDetailsSummary": "생성된 SQL 및 세부 호출 Telemetry 보기",
+        "flowNoteSummary": "실행 흐름 Diagram 표시 기준 안내",
+        "pendingResultTitle": "Google Cloud 실시간 Dual A/B 병렬 실행 중 ({CODE})...",
+        "pendingResultSub": "Vertex AI와 BigQuery에서 As-Is와 To-Be를 동시에 실행하고 있습니다. 완료 즉시 아래에 결과 Card가 표시됩니다.",
     },
     "heroKpis": {
         "k1Label": "S1 · Turn당 BQCA Input Token",
@@ -3823,7 +4374,7 @@ UI_KO = {
     "wbBtnRunDual": "GCP 실시간 Dual A/B 병렬 실행 ({CODE}: As-Is vs To-Be 동시 비교)",
     "wbRunningDual": "GCP에서 {CODE} As-Is 및 To-Be 동시 병렬 실행 및 계측 중...",
     "wbBtnAppendTurn": "+ 이 질문을 현재 S4 Session의 다음 Turn으로 실행",
-    "wbBtnNextStep": "다음 개선 단계({NEXT} →)로 이어서 진행",
+    "wbBtnNextStep": "다음 Stage ({NEXT})로 이동 →",
     "wbBtnReset": "실시간 Session 및 그래프 초기화",
     "wbSseHeader": "실시간 GCP Dual A/B 병렬 SSE 실행 타임라인",
     "lang": "ko",
@@ -3961,21 +4512,33 @@ def build_disclosure_html(lang: str, data: dict) -> str:
     adk = env.get("adk_version", "")
     n_runs = _repeat_runs()["runs_measured"]
     if lang == "ko":
-        return (
-            f"<strong>수치 산출 방법.</strong> 두 구성 모두 {day}에 Google Cloud에서 실제로 실행했습니다(<span class='mono'>google-adk {adk}</span>). "
+        body = (
+            f"두 구성 모두 {day}에 Google Cloud에서 실제로 실행했습니다(<span class='mono'>google-adk {adk}</span>). "
             "ADK 계층 Token은 Vertex AI usage_metadata, BQCA 계층 Token은 각 실행에서 발생한 Chat 호출의 Cloud Trace Span에서 읽었고, 가정으로 계산한 값은 없습니다. "
             "Warehouse는 기업 규모 Schema를 재현한 합성 구성입니다. thelook 7개와 TPC-DS 25개, 모두 32개 Table에 규칙으로 생성한 Table·Column 설명을 붙였습니다. "
             "As-Is는 32개 Table 전체와 모든 Domain 용어집을 Data Agent 하나에 연결하고, To-Be는 Domain별 Data Agent 6개에 Table 3~13개씩 연결하고, 한 결과에 여러 Domain이 필요한 질문은 Warehouse 전체 Data Agent로 보냅니다. 개별 행의 Token 차이에는 BQCA Cache 상태가 섞이므로 비용과 함께 봐 주세요. "
             f"같은 Code로 이날 Scenario를 {n_runs}회 측정했습니다. Card에는 그중 Gemini 호출 대기가 분 단위로 길어진 구간이 없는 1회를 측정 후에 골라 표시했고, 개별 행의 Token 차이는 실행 간 20~30%p 달랐습니다(전체 실행: \u003cspan class='mono'\u003ebenchmarks/repeat_runs.json\u003c/span\u003e). "
             "실시간 Workbench 실행에서는 ADK 계층을 직접 측정하고, Chat API가 Token 사용량을 반환하지 않으므로 BQCA 계층은 Data Agent별 Cloud Trace 중앙값을 표시합니다."
         )
-    return (
-        f"<strong>How these numbers were produced.</strong> Both pipelines ran on Google Cloud on {day} (<span class='mono'>google-adk {adk}</span>). "
+        return (
+            "<details class='methodology-disclosure'>"
+            f"<summary><strong>수치 산출 기준 요약 ({day}, {n_runs}회 반복 실측)</strong> — Vertex AI usage_metadata + Cloud Trace Span 직접 계측 · <span style='color:var(--blue);'>상세 전제 및 측정 방법 펼치기</span></summary>"
+            f"<div class='meth-body'>{body}</div>"
+            "</details>"
+        )
+    body = (
+        f"Both pipelines ran on Google Cloud on {day} (<span class='mono'>google-adk {adk}</span>). "
         "ADK-tier tokens come from Vertex AI usage_metadata. BQCA-tier tokens come from the Cloud Trace spans of the chat calls made in each run. Nothing is modeled. "
         "The warehouse is a synthetic reproduction of an enterprise-scale schema: 32 tables (thelook 7 and TPC-DS 25) with table and column descriptions generated by rule. "
         "As-Is binds all 32 tables and every domain glossary to one data agent. To-Be binds 3 to 13 tables to each of six domain data agents and sends questions that need several domains in one result to the warehouse-wide data agent. Token deltas of single rows mix cached and uncached BQCA turns, so read them with the cost. "
         f"The scenarios were measured {n_runs} times that day with the same code. The cards show one run, picked afterwards because it had no wait of several minutes on a Gemini call; single-row token deltas differed by 20 to 30 points between the runs (all runs: \u003cspan class='mono'\u003ebenchmarks/repeat_runs.json\u003c/span\u003e). "
         "Live workbench runs measure the ADK tier directly and show the Cloud Trace median per data agent for the BQCA tier, because the chat API returns no token usage."
+    )
+    return (
+        "<details class='methodology-disclosure'>"
+        f"<summary><strong>Measurement Methodology ({day}, {n_runs} repeat GCP runs)</strong> — Measured from Vertex AI usage_metadata &amp; Cloud Trace spans · <span style='color:var(--blue);'>Click to expand full notes</span></summary>"
+        f"<div class='meth-body'>{body}</div>"
+        "</details>"
     )
 
 
