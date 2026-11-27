@@ -49,7 +49,7 @@ Token deltas of single rows mix cached and uncached BQCA turns (a cached pass ha
 - Eight different questions in one session, moving from the online shop domains to the three retail channels:
   - **`As-Is` ADK prompt tokens**: `5,604` → `9,042` → `13,261` → `18,142` → `22,856` → `26,354` → `28,588` → `34,500`.
   - **`To-Be` ADK prompt tokens**: `2,586`, `1,772`, `2,257`, `5,645`, `6,718`, `3,245`, `5,738`, `6,365` (`before_model_callback` dropped up to `21` older content items).
-  - **8-turn average total input (ADK + BQCA)**: `81,374` (`To-Be`) vs `175,625` (`As-Is`), **`-53.7%`**; list-price average cost `$0.2285` vs `$0.3545` (**`-35.6%`**).
+  - **8-turn average total input (ADK + BQCA)**: `81,374` (`To-Be`) vs `175,625` (`As-Is`), **`-53.7%`**; average cost `$0.2285` vs `$0.3545` (**`-35.6%`**, published rates with 0.1x on cached spans).
   - **BQCA calls over the session**: 8 BQCA calls for `To-Be` and 8 for `As-Is`.
 
 ### Scenario `S5` — New-Session Recall via `user:*` State & `MemoryService`

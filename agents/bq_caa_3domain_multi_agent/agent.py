@@ -93,10 +93,12 @@ def _get_visitor_memory_file() -> Path:
 # Upstream ADK History Compaction cap (max pure-text user turns kept in `llm_request.contents`)
 MAX_ADK_UPSTREAM_USER_TURNS = 3
 
-# Official Cloud Billing PAYG Pricing Constants (USD per 1M tokens)
-# Ref: https://cloud.google.com/products/data-agents/pricing & Vertex AI Pricing
+# PAYG Pricing Constants (USD per 1M tokens)
+# Published rates: https://cloud.google.com/products/data-agents/pricing ($3.00 input, $20.00 output)
+# and https://cloud.google.com/vertex-ai/generative-ai/pricing (Gemini 2.5 Flash $0.30 / $0.03 / $2.50).
+# BQCA `cache_read` spans use the standard 0.1x (90% discount) context-cache rate ($0.30 / 1M).
 BQCA_INPUT_NON_CACHED_USD_PER_1M = 3.00
-BQCA_INPUT_CACHED_USD_PER_1M = 0.30      # 90% Cached Input Token Discount (0.1x rate)
+BQCA_INPUT_CACHED_USD_PER_1M = 0.30
 BQCA_OUTPUT_USD_PER_1M = 20.00
 VERTEX_FLASH_INPUT_USD_PER_1M = 0.30
 VERTEX_FLASH_CACHED_USD_PER_1M = 0.03

@@ -16,6 +16,11 @@ infra/.terraform/
 infra/*.tfstate*
 infra/*.tfvars
 !infra/terraform.tfvars.example
+click-to-deploy/.terraform/
+click-to-deploy/.terraform.lock.hcl
+click-to-deploy/*.tfstate*
+click-to-deploy/*.tfvars
+!click-to-deploy/terraform.tfvars.example
 internal_docs/
 .adk/
 */.adk/

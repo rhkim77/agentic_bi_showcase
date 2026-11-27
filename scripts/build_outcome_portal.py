@@ -1118,7 +1118,7 @@ HTML_EN = r"""<!DOCTYPE html>
 
       <div class="info-card">
         <div style="margin-bottom:16px;">
-          <span class="tag tag-green">Cost at list prices</span>
+          <span class="tag tag-green">Cost at published rates</span>
           <h3>Yearly Cost Scaled from the Measured Average Turn</h3>
         </div>
         <div class="calc-grid">
@@ -1130,7 +1130,7 @@ HTML_EN = r"""<!DOCTYPE html>
               </div>
               <input type="range" id="rng-qpd" min="1000" max="50000" step="1000" value="10000" />
             </div>
-            <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Cost per turn = measured ADK tokens and measured BQCA tokens of the S4 session at list prices: BQCA input <span class="mono">$3.00/1M</span>, cached input <span class="mono">$0.30/1M</span>, output <span class="mono">$20.00/1M</span>; <span class="mono">gemini-2.5-flash</span> input <span class="mono">$0.30/1M</span>, cached input <span class="mono">$0.03/1M</span>, output <span class="mono">$2.50/1M</span>. BigQuery query cost is not included. The yearly figure is a linear scaling of that average, not a forecast.</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Cost per turn = measured ADK tokens and measured BQCA tokens of the S4 session: BQCA published rates (<span class="mono">$3.00/1M</span> input, <span class="mono">$20.00/1M</span> output) with the standard 90% context-cache discount (<span class="mono">$0.30/1M</span>) applied to <span class="mono">cache_read</span> spans; <span class="mono">gemini-2.5-flash</span> published rates (<span class="mono">$0.30/1M</span> input, <span class="mono">$0.03/1M</span> cached input, <span class="mono">$2.50/1M</span> output). BigQuery query cost is not included. The yearly figure is a linear scaling of that average, not a forecast.</p>
           </div>
 
           <div class="tco-result-box">
@@ -1163,7 +1163,7 @@ HTML_EN = r"""<!DOCTYPE html>
           <h3>Key Implementation Files</h3>
           <pre class="sql-block" style="max-height:none;font-size:12px;">agentic_bi_showcase/  (https://github.com/rhkim77/agentic_bi_showcase)
 ├── agents/
-│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 3 Sub-Agents + 4-Scope State + MemoryService
+│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 6 domain Sub-Agents + fallback + 4-Scope State + MemoryService
 │   │                                            # + before_model_callback (3-turn cap) + after_model_callback
 │   ├── bq_caa_streaming_agent/agent.py          # SequentialAgent + BaseAgent :chat SSE Streamer
 │   └── bq_caa_toolset_agent/agent.py            # Built-in DataAgentToolset baseline comparison
@@ -1180,6 +1180,7 @@ HTML_EN = r"""<!DOCTYPE html>
 │   ├── 07_answer_check.py                       # N runs per preset question vs the reference rows
 │   ├── grant_runtime_access.py                  # Per data agent and per dataset access for the service account
 │   └── build_outcome_portal.py                  # Compiles EN (index.html) &amp; KO (index_ko.html) portals
+├── click-to-deploy/                             # Terraform IaC for Cloud Run, dataset &amp; least-privilege IAM
 ├── benchmarks/scenario_benchmark_results.json   # Measured S1-S5 SQL, answers &amp; 2-tier token telemetry
 └── docs/
     ├── ARCHITECTURE_AND_CONFIGURATION_GUIDE.md
@@ -1207,7 +1208,7 @@ uv run adk web agents --port 8000</pre>
           <p style="font-size:12.8px;color:var(--text-secondary);">
             References: <a href="https://cloud.google.com/gemini/docs/conversational-analytics-api/integration-patterns" target="_blank" style="color:var(--blue);">CAA Integration Patterns</a> ·
             <a href="https://cloud.google.com/gemini/docs/conversational-analytics-api/state-management" target="_blank" style="color:var(--blue);">CAA State Management</a> ·
-            <a href="https://cloud.google.com/products/data-agents/pricing" target="_blank" style="color:var(--blue);">Data Agents Pricing (90% Cached Input)</a> ·
+            <a href="https://cloud.google.com/products/data-agents/pricing" target="_blank" style="color:var(--blue);">Data Cloud Agents Pricing</a> ·
             <a href="https://google.github.io/adk-docs/sessions/" target="_blank" style="color:var(--blue);">ADK Sessions &amp; Memory</a>
           </p>
         </div>
@@ -1387,8 +1388,8 @@ HTML_KO = r"""<!DOCTYPE html>
     </section>
 
     <section id="benchmarks">
-      <h2>4. 8-Turn Session의 Token 추이와 공시 단가 기준 비용</h2>
-      <p class="section-desc">S4 기준 실행에서 측정한 값입니다. 왼쪽은 Turn별 Input Token 합계로, <span class="mono">Vertex AI usage_metadata</span>의 ADK Prompt Token과 Cloud Trace의 BQCA Input Token을 더한 것입니다. 오른쪽은 Turn별 ADK Prompt Token입니다. 아래는 측정한 Turn당 평균 비용을 공시 단가로 연 단위 환산한 값입니다.</p>
+      <h2>4. 8-Turn Session의 Token 추이와 연간 환산 비용</h2>
+      <p class="section-desc">S4 기준 실행에서 측정한 값입니다. 왼쪽은 Turn별 Input Token 합계로, <span class="mono">Vertex AI usage_metadata</span>의 ADK Prompt Token과 Cloud Trace의 BQCA Input Token을 더한 것입니다. 오른쪽은 Turn별 ADK Prompt Token입니다. 아래는 측정한 Turn당 평균 비용을 연 단위로 단순 환산한 값입니다.</p>
 
       <div class="two-col" style="margin-bottom: 24px;">
         <div class="info-card">
@@ -1403,7 +1404,7 @@ HTML_KO = r"""<!DOCTYPE html>
 
       <div class="info-card">
         <div style="margin-bottom:16px;">
-          <span class="tag tag-green">공시 단가 기준 비용</span>
+          <span class="tag tag-green">공시 단가·Cache 할인 적용 비용</span>
           <h3>측정한 평균 Turn 비용의 연간 환산</h3>
         </div>
         <div class="calc-grid">
@@ -1415,7 +1416,7 @@ HTML_KO = r"""<!DOCTYPE html>
               </div>
               <input type="range" id="rng-qpd" min="1000" max="50000" step="1000" value="10000" />
             </div>
-            <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Turn당 비용은 S4 Session에서 측정한 ADK Token과 BQCA Token에 공시 단가를 곱한 값입니다. BQCA Input <span class="mono">$3.00/1M</span>, Cached Input <span class="mono">$0.30/1M</span>, Output <span class="mono">$20.00/1M</span>, <span class="mono">gemini-2.5-flash</span> Input <span class="mono">$0.30/1M</span>, Cached Input <span class="mono">$0.03/1M</span>, Output <span class="mono">$2.50/1M</span>입니다. BigQuery Query 비용은 포함하지 않았습니다. 연간 값은 평균의 단순 환산이며 예측이 아닙니다.</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:6px;">Turn당 비용은 S4 Session에서 측정한 ADK Token과 BQCA Token으로 산출했습니다. BQCA 공시 단가(Input <span class="mono">$3.00/1M</span>, Output <span class="mono">$20.00/1M</span>)를 기준으로 Cloud Trace의 <span class="mono">cache_read</span> 구간에는 표준 90% Context Cache 할인율(<span class="mono">$0.30/1M</span>)을 적용했고, <span class="mono">gemini-2.5-flash</span> 공시 단가(Input <span class="mono">$0.30/1M</span>, Cached Input <span class="mono">$0.03/1M</span>, Output <span class="mono">$2.50/1M</span>)를 더했습니다. BigQuery Query 비용은 포함하지 않았습니다. 연간 값은 평균의 단순 환산이며 예측이 아닙니다.</p>
           </div>
 
           <div class="tco-result-box">
@@ -1448,7 +1449,7 @@ HTML_KO = r"""<!DOCTYPE html>
           <h3>핵심 구현 File 매핑</h3>
           <pre class="sql-block" style="max-height:none;font-size:12px;">agentic_bi_showcase/  (https://github.com/rhkim77/agentic_bi_showcase)
 ├── agents/
-│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 3 Sub-Agent + 4-Scope State + MemoryService
+│   ├── bq_caa_3domain_multi_agent/agent.py      # Root + 6 Domain Sub-Agent + Fallback + 4-Scope State + MemoryService
 │   │                                            # + before_model_callback(3-Turn 압축) + after_model_callback(실측)
 │   ├── bq_caa_streaming_agent/agent.py          # SequentialAgent + BaseAgent :chat SSE Streamer
 │   └── bq_caa_toolset_agent/agent.py            # 내장 DataAgentToolset 대조군
@@ -1465,6 +1466,7 @@ HTML_KO = r"""<!DOCTYPE html>
 │   ├── 07_answer_check.py                       # Preset 질문을 N회 실행해 기준 행과 대조
 │   ├── grant_runtime_access.py                  # Service Account에 Data Agent·Dataset 단위 권한 부여
 │   └── build_outcome_portal.py                  # 영문(index.html) 및 한국어(index_ko.html) Portal 생성
+├── click-to-deploy/                             # Cloud Run·Dataset·최소 권한 IAM용 Terraform IaC
 ├── benchmarks/scenario_benchmark_results.json   # S1-S5 실측 SQL, 답변 및 2-Tier Token Telemetry 원본
 └── docs/
     ├── ARCHITECTURE_AND_CONFIGURATION_GUIDE.md
@@ -1492,7 +1494,7 @@ uv run adk web agents --port 8000</pre>
           <p style="font-size:12.8px;color:var(--text-secondary);">
             공식 참조 문서: <a href="https://cloud.google.com/gemini/docs/conversational-analytics-api/integration-patterns" target="_blank" style="color:var(--blue);">CAA Integration Patterns</a> ·
             <a href="https://cloud.google.com/gemini/docs/conversational-analytics-api/state-management" target="_blank" style="color:var(--blue);">CAA State Management</a> ·
-            <a href="https://cloud.google.com/products/data-agents/pricing" target="_blank" style="color:var(--blue);">Data Agents 과금 정책(90% Cached Input)</a> ·
+            <a href="https://cloud.google.com/products/data-agents/pricing" target="_blank" style="color:var(--blue);">Data Cloud Agents Pricing</a> ·
             <a href="https://google.github.io/adk-docs/sessions/" target="_blank" style="color:var(--blue);">ADK Session &amp; Memory</a>
           </p>
         </div>
@@ -2736,7 +2738,7 @@ UI_EN = {
         "k2Label": "S1 · Total input tokens (ADK + BQCA)",
         "k2Sub": "To-Be vs As-Is for the same question.",
         "k3Label": "S4 · Average total input per turn",
-        "k3Sub": "Cost per turn at list prices:",
+        "k3Sub": "Cost per turn:",
         "k4Label": "S5 · Recall in a new session",
         "k4Unit": "BQCA calls",
         "k4Sub": "To-Be answered from memory in",
@@ -2838,7 +2840,7 @@ UI_EN = {
     "wbLiveS4TableTitle": "Measured ADK prompt tokens per turn in this live session",
     "refBaselineHeading": "Measured Pre-Run Baseline",
     "wbTraceTitleMeasured": "BQCA tier: measured from the Cloud Trace spans of this run",
-    "wbTraceNoteMeasured": "BQCA writes its internal LLM calls to Cloud Trace. These figures sum the token usage of the chat calls made in this run. Cost uses list prices.",
+    "wbTraceNoteMeasured": "BQCA writes its internal LLM calls to Cloud Trace. These figures sum the token usage of the chat calls made in this run. Cost uses published rates with 0.1x on cached spans.",
     "baselineCardBadge": "Measured baseline run",
     "fanoutHeading": "Measured baseline: one question across three domains",
     "storeHeading": "Measured baseline: single-domain question on the retail store channel",
@@ -2852,7 +2854,7 @@ UI_EN = {
     "wbMetricLlmCalls": "ADK LLM calls, measured (To-Be vs As-Is)",
     "wbBarTitle": "ADK-tier prompt tokens for this run (Vertex AI usage_metadata)",
     "wbTraceTitle": "BQCA tier: Cloud Trace uncached-turn medians, not measured for this run",
-    "wbTraceNote": "The chat API returns no token usage. These figures use the Cloud Trace median of uncached chat turns (cache_read = 0) for each data agent called, so warm and cold turns are compared on the same basis. Baseline rows instead sum the actual Cloud Trace spans of that pre-run (which can include cached passes). Cost uses list prices. Calibration time (UTC):",
+    "wbTraceNote": "The chat API returns no token usage. These figures use the Cloud Trace median of uncached chat turns (cache_read = 0) for each data agent called, so warm and cold turns are compared on the same basis. Baseline rows instead sum the actual Cloud Trace spans of that pre-run (which can include cached passes). Cost uses published rates with 0.1x on cached spans. Calibration time (UTC):",
     "wbTraceUnavailable": "No Cloud Trace calibration exists for one of the data agents called, so BQCA-tier tokens are not shown.",
     "wbPrereqNote": "Turn 1 ran first because this session had no earlier turn:",
     "wbErrorLabel": "Error",
@@ -2901,7 +2903,7 @@ UI_KO = {
         "k2Label": "S1 · Input Token 합계 (ADK + BQCA)",
         "k2Sub": "같은 질문에 대한 To-Be vs As-Is.",
         "k3Label": "S4 · Turn당 평균 Input Token 합계",
-        "k3Sub": "공시 단가 기준 Turn당 비용:",
+        "k3Sub": "Turn당 비용:",
         "k4Label": "S5 · 신규 Session 기억 복원",
         "k4Unit": "BQCA 호출",
         "k4Sub": "To-Be가 Memory로 답한 시간:",
@@ -3003,7 +3005,7 @@ UI_KO = {
     "wbLiveS4TableTitle": "이번 실시간 Session의 Turn별 ADK Prompt Token 실측치",
     "refBaselineHeading": "사전 실행 실측 기준치",
     "wbTraceTitleMeasured": "BQCA 계층: 이 실행의 Cloud Trace Span에서 측정",
-    "wbTraceNoteMeasured": "BQCA는 내부 LLM 호출을 Cloud Trace에 기록합니다. 이 실행에서 발생한 Chat 호출의 Token 사용량을 합산했고, 비용은 공시 단가 기준입니다.",
+    "wbTraceNoteMeasured": "BQCA는 내부 LLM 호출을 Cloud Trace에 기록합니다. 이 실행에서 발생한 Chat 호출의 Token 사용량을 합산했고, 비용은 공시 단가(Cache 구간 0.1x 할인) 기준입니다.",
     "baselineCardBadge": "실측 기준 실행",
     "fanoutHeading": "실측 기준치: 세 Domain에 걸친 질문",
     "storeHeading": "실측 기준치: Retail Store Channel 단일 Domain 질문",
@@ -3017,7 +3019,7 @@ UI_KO = {
     "wbMetricLlmCalls": "ADK LLM 호출 수 실측 (To-Be vs As-Is)",
     "wbBarTitle": "이번 실행의 ADK 계층 Prompt Token (Vertex AI usage_metadata)",
     "wbTraceTitle": "BQCA 계층: Cloud Trace Uncached Turn 중앙값이며 이번 실행의 측정값이 아님",
-    "wbTraceNote": "Chat API는 Token 사용량을 반환하지 않습니다. 호출된 Data Agent별로 Cloud Trace에서 Uncached Chat Turn(cache_read = 0)의 중앙값을 사용해 동일 조건에서 비교합니다. 반면 기준치 행은 사전 실행 한 번의 실제 Span을 그대로 합산한 값(Cache 재조회 포함 가능)이라 차이가 날 수 있습니다. 비용은 공시 단가 기준입니다. 측정 시각(UTC):",
+    "wbTraceNote": "Chat API는 Token 사용량을 반환하지 않습니다. 호출된 Data Agent별로 Cloud Trace에서 Uncached Chat Turn(cache_read = 0)의 중앙값을 사용해 동일 조건에서 비교합니다. 반면 기준치 행은 사전 실행 한 번의 실제 Span을 그대로 합산한 값(Cache 재조회 포함 가능)이라 차이가 날 수 있습니다. 비용은 공시 단가(Cache 구간 0.1x 할인) 기준입니다. 측정 시각(UTC):",
     "wbTraceUnavailable": "호출된 Data Agent 중 Cloud Trace 측정값이 없는 것이 있어 BQCA 계층 Token은 표시하지 않습니다.",
     "wbPrereqNote": "이 Session에 선행 Turn이 없어 Turn 1을 먼저 실행했습니다:",
     "wbErrorLabel": "오류",
@@ -3284,7 +3286,7 @@ def build_overview_html(lang: str, data: dict) -> str:
           <p class="story-intro">아래 단계(S1~S5)에서 사전 측정값, 실시간 Dual A/B 실행, 실행 흐름 Diagram, 기준 SQL 결과를 함께 볼 수 있습니다.</p>
           <ul class="story-list">
             <li><strong>Domain별 Turn당 BQCA Input (Cloud Trace Uncached 중앙값):</strong> {per_agent} tok, Warehouse 전체 Data Agent {mono:,} tok입니다. {len(gain)}개 Data Agent는 Warehouse 전체보다 {g_lo}~{g_hi} 적습니다. Store와 Catalog는 Fact에 공용 Dimension이 따라와 Online Shop Domain보다 차이가 작습니다. {flat_note}</li>
-            <li><strong>측정 행 (Input Token / 공시 단가 비용):</strong> Online Shop 질문(S1) {s1_tok} / {s1_cost}, Retail Store 질문(S1) {st_tok} / {st_cost}, 8-Turn Session 평균(S4) {avg_tok} / {avg_cost}. {n_runs}회 측정 중 1회의 값이며, {n_runs}회 전체 범위는 차례로 {rng("s1_online_shop")}, {rng("s1_retail_store")}, {rng("s4_average_8_turns")}입니다. 신규 Session 기억 질문(S5)은 BQCA 호출 {s5_calls}회, {s5_secs:.1f}초였습니다. 개별 행의 Token 차이에는 BQCA Cache 상태가 섞이므로 비용과 함께 봐 주세요.</li>
+            <li><strong>측정 행 (Input Token / 비용):</strong> Online Shop 질문(S1) {s1_tok} / {s1_cost}, Retail Store 질문(S1) {st_tok} / {st_cost}, 8-Turn Session 평균(S4) {avg_tok} / {avg_cost}. {n_runs}회 측정 중 1회의 값이며, {n_runs}회 전체 범위는 차례로 {rng("s1_online_shop")}, {rng("s1_retail_store")}, {rng("s4_average_8_turns")}입니다. 신규 Session 기억 질문(S5)은 BQCA 호출 {s5_calls}회, {s5_secs:.1f}초였습니다. 개별 행의 Token 차이에는 BQCA Cache 상태가 섞이므로 비용과 함께 봐 주세요.</li>
             <li><strong>차이가 없거나 실행에 따라 달라지는 경우:</strong> 세 Retail Channel을 한 결과로 묶는 질문은 Fallback이 Warehouse 전체 Data Agent를 호출합니다({cx_tok} / {cx_cost}, {n_runs}회 범위 {rng("s3_cross_channel")}). 세 Domain에 대한 별개 질문은 To-Be가 Domain마다 한 번씩 호출하므로 As-Is의 호출 수에 따라 결과가 달라집니다(이번 측정 {fan_tok} / {fan_cost}, {n_runs}회 범위 {rng("s3_fanout")}, 호출 {fan_m['tobe_bqca_calls']}회 대 {fan_m['asis_bqca_calls']}회).</li>
             {check_html}
           </ul>
@@ -3326,7 +3328,7 @@ def build_overview_html(lang: str, data: dict) -> str:
           <p class="story-intro">Each step below (S1 to S5) pairs the measured baseline with a live Dual A/B run, an execution flow diagram and reference SQL results.</p>
           <ul class="story-list">
             <li><strong>BQCA input per turn by domain (uncached Cloud Trace medians):</strong> {per_agent} tokens, warehouse-wide data agent {mono:,}. {len(gain)} data agents are {g_lo} to {g_hi} below the warehouse-wide one. Store and Catalog save less than the online shop domains because each sales fact brings shared dimension tables with it. {flat_note}</li>
-            <li><strong>Measured rows (input tokens / cost at list prices):</strong> online shop question (S1) {s1_tok} / {s1_cost}, retail store question (S1) {st_tok} / {st_cost}, 8-turn session average (S4) {avg_tok} / {avg_cost}. These are one of {n_runs} runs; over all {n_runs} the ranges were {rng("s1_online_shop")}, {rng("s1_retail_store")} and {rng("s4_average_8_turns")}. New-session recall (S5) made {s5_calls} BQCA calls and took {s5_secs:.1f}s. Token deltas of single rows mix cached and uncached BQCA turns, so read them with the cost.</li>
+            <li><strong>Measured rows (input tokens / cost):</strong> online shop question (S1) {s1_tok} / {s1_cost}, retail store question (S1) {st_tok} / {st_cost}, 8-turn session average (S4) {avg_tok} / {avg_cost}. These are one of {n_runs} runs; over all {n_runs} the ranges were {rng("s1_online_shop")}, {rng("s1_retail_store")} and {rng("s4_average_8_turns")}. New-session recall (S5) made {s5_calls} BQCA calls and took {s5_secs:.1f}s. Token deltas of single rows mix cached and uncached BQCA turns, so read them with the cost.</li>
             <li><strong>No gain, or dependent on the run:</strong> one result across the three retail channels goes through the fallback to the warehouse-wide data agent ({cx_tok} / {cx_cost}; {n_runs} runs: {rng("s3_cross_channel")}). For separate questions on three domains To-Be makes one call per domain, so the result depends on how many calls As-Is makes ({fan_tok} / {fan_cost} in this run, {rng("s3_fanout")} over {n_runs} runs, {fan_m['tobe_bqca_calls']} vs {fan_m['asis_bqca_calls']} calls).</li>
             {check_html}
           </ul>

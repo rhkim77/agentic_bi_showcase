@@ -31,7 +31,7 @@ Both pipelines ran on Google Cloud through the same engine as the portal's live 
 - **`To-Be`**: the Root Router with six domain Sub-Agents, each calling a data agent bound to 3 to 13 tables and its own glossary, and a fallback Sub-Agent that calls the warehouse-wide data agent when one result needs several domains or no domain fits. The domain data agents cover 31 of the 32 tables; the fallback reaches all 32.
 - **ADK tokens**: `Vertex AI usage_metadata` prompt tokens of every LLM call in the turn.
 - **BQCA tokens**: `gen_ai.usage.*` of the `generate_content` spans that BQCA wrote to Cloud Trace for the chat calls of the turn.
-- **Cost**: measured tokens at list prices (BQCA `$3.00` input, `$0.30` cached input, `$20.00` output per 1M; `gemini-2.5-flash` `$0.30`, `$0.03`, `$2.50`). BigQuery query cost is not included.
+- **Cost**: measured tokens at published rates (BQCA `$3.00` input and `$20.00` output per 1M, with the standard 90% context-cache discount `$0.30` per 1M applied to `cache_read` spans; `gemini-2.5-flash` `$0.30` input, `$0.03` cached input, `$2.50` output per 1M). BigQuery query cost is not included.
 
 | Scenario | ADK prompt As-Is | ADK prompt To-Be | BQCA input As-Is | BQCA input To-Be | Total input As-Is | Total input To-Be | Token delta | Cost As-Is | Cost To-Be | Cost delta | BQCA calls As-Is / To-Be | Latency As-Is / To-Be |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
@@ -88,7 +88,8 @@ How to read it:
 - **[`backend/main.py`](./backend/main.py)**, **[`backend/workbench_engine.py`](./backend/workbench_engine.py)** & **[`backend/reference_answers.py`](./backend/reference_answers.py)**: FastAPI + real-time `SSE` (`POST /api/workbench/stream`) engine powering the **Interactive S1–S5 Progressive Dual A/B Workbench**, live ADK step-stream flow visualization, and BigQuery reference SQL execution alongside both pipelines.
 - **[`agents/bq_caa_streaming_agent/agent.py`](./agents/bq_caa_streaming_agent/agent.py)** & **[`agents/bq_caa_toolset_agent/agent.py`](./agents/bq_caa_toolset_agent/agent.py)**: Companion `SequentialAgent` custom `:chat` streamer and built-in `DataAgentToolset` baseline packages.
 - **[`docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md`](./docs/ARCHITECTURE_AND_CONFIGURATION_GUIDE.md)** & **[`docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md`](./docs/SCENARIO_WALKTHROUGH_AND_BENCHMARKS.md)**: Full architectural specification and A/B SQL/telemetry walkthrough.
-- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Portals with the measured baseline, the live Dual A/B workbench and a list-price cost calculator.
+- **[`docs/index.html`](./docs/index.html)** (`EN`) & **[`docs/index_ko.html`](./docs/index_ko.html)** (`KO`): Portals with the measured baseline, the live Dual A/B workbench and a cost calculator.
+- **[`click-to-deploy/`](./click-to-deploy/)**: Terraform IaC (`main.tf`, `variables.tf`, `outputs.tf`, `README.md`) for Cloud Run, BigQuery dataset, Artifact Registry, and least-privilege IAM.
 
 ```bash
 gcloud auth application-default login --scopes="https://www.googleapis.com/auth/cloud-platform"
@@ -114,6 +115,6 @@ uv run python scripts/build_outcome_portal.py
 
 1. **Google Cloud — Integration Patterns for Data Agents**: [Integration patterns for data agents](https://cloud.google.com/gemini/docs/conversational-analytics-api/integration-patterns)
 2. **Google Cloud — State Management for Data Agents**: [State management for data agents](https://cloud.google.com/gemini/docs/conversational-analytics-api/state-management)
-3. **Google Cloud — Data Agents Pricing (`90%` Cached Input Rate)**: [Data Cloud Agents pricing](https://cloud.google.com/products/data-agents/pricing)
+3. **Google Cloud — Data Cloud Agents & Vertex AI Pricing**: [Data Cloud Agents pricing](https://cloud.google.com/products/data-agents/pricing) · [Vertex AI pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing)
 4. **Google ADK — Multi-Agent Systems**: [Multi-Agent Systems in ADK](https://google.github.io/adk-docs/agents/multi-agents/)
 5. **Google ADK — 4-Scope Sessions, State & Memory**: [Session, State, and Memory in ADK](https://google.github.io/adk-docs/sessions/)

@@ -1,0 +1,5 @@
+project_id            = "your-gcp-project-id"
+data_location         = "us-central1"
+bq_dataset_id         = "cymbal_enterprise_dw"
+ingress               = "INGRESS_TRAFFIC_ALL"
+allow_unauthenticated = false

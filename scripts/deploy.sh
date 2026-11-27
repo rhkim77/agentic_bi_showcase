@@ -17,6 +17,7 @@ SA_EMAIL="${SERVICE_ACCOUNT:-${SA_NAME}@${PROJECT}.iam.gserviceaccount.com}"
 
 SHA_TAG="$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M)"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/${SERVICE}:${SHA_TAG}"
+LATEST_IMAGE="${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/${SERVICE}:latest"
 
 # On Cloudtop where Application Default Credentials (ADC) are configured instead of GCE VM metadata
 if ! gcloud projects describe "${PROJECT}" >/dev/null 2>&1; then
@@ -73,6 +74,7 @@ gcloud builds submit \
   --project "${PROJECT}" \
   --tag "${IMAGE}" \
   .
+gcloud artifacts docker tags add "${IMAGE}" "${LATEST_IMAGE}" --quiet
 
 echo "==> [4/5] Deploying '${SERVICE}' to Cloud Run (${REGION})..."
 gcloud run deploy "${SERVICE}" \

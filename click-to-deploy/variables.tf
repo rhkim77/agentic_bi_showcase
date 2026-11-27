@@ -51,8 +51,35 @@ variable "bq_dataset_id" {
   default     = "cymbal_enterprise_dw"
 }
 
+variable "artifact_repo" {
+  type        = string
+  description = "Artifact Registry Docker repository ID in var.project_id."
+  default     = "demo-eng-images"
+}
+
 variable "container_image" {
   type        = string
-  description = "Pre-built Artifact Registry container image URI."
-  default     = "us-central1-docker.pkg.dev/ryan-sandbox-agent/demo-eng-images/cymbal-agentic-bi-showcase:latest"
+  description = "Optional full container image URI. When empty, defaults to <data_location>-docker.pkg.dev/<project_id>/<artifact_repo>/cymbal-agentic-bi-showcase:latest."
+  default     = ""
+}
+
+variable "ingress" {
+  type        = string
+  description = "Cloud Run ingress setting. Use INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER in orgs that enforce constraints/run.allowedIngress."
+  default     = "INGRESS_TRAFFIC_ALL"
+
+  validation {
+    condition = contains([
+      "INGRESS_TRAFFIC_ALL",
+      "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER",
+      "INGRESS_TRAFFIC_INTERNAL_ONLY",
+    ], var.ingress)
+    error_message = "ingress must be INGRESS_TRAFFIC_ALL, INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER, or INGRESS_TRAFFIC_INTERNAL_ONLY."
+  }
+}
+
+variable "allow_unauthenticated" {
+  type        = bool
+  description = "Grant roles/run.invoker to allUsers. Keep false in Domain Restricted Sharing orgs and access via 'gcloud run services proxy' or authenticated IAM."
+  default     = false
 }
